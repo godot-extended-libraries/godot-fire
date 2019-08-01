@@ -154,6 +154,20 @@ Files extracted from upstream source:
 Patches in the `patches` directory should be re-applied after updates.
 
 
+## lcms2
+
+- Upstream: https://sourceforge.net/projects/lcms/
+- Version: 2.9
+- License: MIT License
+
+Files extracted from the upstream source:
+
+- src/*.{c,h}
+- include/*.h
+- AUTHORS
+- COPYING
+
+
 ## libogg
 
 - Upstream: https://www.xiph.org/ogg
