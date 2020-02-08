@@ -1404,6 +1404,24 @@ void PhysicalBone::apply_impulse(const Vector3 &p_pos, const Vector3 &p_impulse)
 	PhysicsServer::get_singleton()->body_apply_impulse(get_rid(), p_pos, p_impulse);
 }
 
+void PhysicalBone::reset_physics_simulation_state() {
+	if (simulate_physics) {
+		_start_physics_simulation();
+	} else {
+		_stop_physics_simulation();
+	}
+}
+
+void PhysicalBone::reset_to_rest_position() {
+	if (parent_skeleton) {
+		if (-1 == bone_id) {
+			set_global_transform(parent_skeleton->get_global_transform() * body_offset);
+		} else {
+			set_global_transform(parent_skeleton->get_global_transform() * parent_skeleton->get_bone_global_pose(bone_id) * body_offset);
+		}
+	}
+}
+
 bool PhysicalBone::PinJointData::_set(const StringName &p_name, const Variant &p_value, RID j) {
 	if (JointData::_set(p_name, p_value, j)) {
 		return true;
@@ -2061,7 +2079,7 @@ void PhysicalBone::_notification(int p_what) {
 			parent_skeleton = find_skeleton_parent(get_parent());
 			update_bone_id();
 			reset_to_rest_position();
-			_reset_physics_simulation_state();
+			reset_physics_simulation_state();
 			if (!joint.is_valid() && joint_data) {
 				_reload_joint();
 			}
@@ -2124,8 +2142,6 @@ void PhysicalBone::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_body_offset", "offset"), &PhysicalBone::set_body_offset);
 	ClassDB::bind_method(D_METHOD("get_body_offset"), &PhysicalBone::get_body_offset);
-
-	ClassDB::bind_method(D_METHOD("is_static_body"), &PhysicalBone::is_static_body);
 
 	ClassDB::bind_method(D_METHOD("get_simulate_physics"), &PhysicalBone::get_simulate_physics);
 
@@ -2411,7 +2427,7 @@ void PhysicalBone::set_simulate_physics(bool p_simulate) {
 	}
 
 	simulate_physics = p_simulate;
-	_reset_physics_simulation_state();
+	reset_physics_simulation_state();
 }
 
 bool PhysicalBone::get_simulate_physics() {
@@ -2419,7 +2435,7 @@ bool PhysicalBone::get_simulate_physics() {
 }
 
 bool PhysicalBone::is_simulating_physics() {
-	return _internal_simulate_physics && !_internal_static_body;
+	return _internal_simulate_physics;
 }
 
 void PhysicalBone::set_bone_name(const String &p_name) {
@@ -2488,10 +2504,10 @@ PhysicalBone::PhysicalBone() :
 #ifdef TOOLS_ENABLED
 		gizmo_move_joint(false),
 #endif
-		joint_data(nullptr),
-		parent_skeleton(nullptr),
 		static_body(false),
 		_internal_static_body(false),
+		joint_data(NULL),
+		parent_skeleton(NULL),
 		simulate_physics(false),
 		_internal_simulate_physics(false),
 		bone_id(-1),
@@ -2501,8 +2517,7 @@ PhysicalBone::PhysicalBone() :
 		friction(1),
 		gravity_scale(1) {
 
-	set_static_body(static_body);
-	_reset_physics_simulation_state();
+	reset_physics_simulation_state();
 }
 
 PhysicalBone::~PhysicalBone() {
@@ -2530,8 +2545,7 @@ void PhysicalBone::update_bone_id() {
 		parent_skeleton->bind_physical_bone_to_bone(bone_id, this);
 
 		_fix_joint_offset();
-		_internal_static_body = !static_body; // Force staticness reset
-		_reset_staticness_state();
+		reset_physics_simulation_state();
 	}
 }
 
@@ -2603,11 +2617,12 @@ void PhysicalBone::_start_physics_simulation() {
 	PhysicsServer::get_singleton()->body_set_collision_layer(get_rid(), get_collision_layer());
 	PhysicsServer::get_singleton()->body_set_collision_mask(get_rid(), get_collision_mask());
 	PhysicsServer::get_singleton()->body_set_force_integration_callback(get_rid(), this, "_direct_state_changed");
+	set_as_toplevel(true);
 	_internal_simulate_physics = true;
 }
 
 void PhysicalBone::_stop_physics_simulation() {
-	if (!_internal_simulate_physics || !parent_skeleton) {
+	if (!parent_skeleton) {
 		return;
 	}
 	PhysicsServer::get_singleton()->body_set_mode(get_rid(), PhysicsServer::BODY_MODE_STATIC);
