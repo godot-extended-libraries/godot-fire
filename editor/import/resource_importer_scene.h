@@ -125,6 +125,8 @@ class ResourceImporterScene : public ResourceImporter {
 	};
 
 	void _replace_owner(Node *p_node, Node *p_scene, Node *p_new_owner);
+	Vector3 _get_perpendicular_vector(Vector3 v);
+	Quat _align_vectors(Vector3 a, Vector3 b);
 
 private:
 	void _mark_nodes(Node *p_current, Node *p_owner, Vector<Node *> &r_remove_nodes);
