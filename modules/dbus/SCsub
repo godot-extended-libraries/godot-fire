@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+
+Import('env')
+Import('env_modules')
+
+env_dbus = env_modules.Clone()
+
+env_dbus.Prepend(CPPPATH=["thirdparty/simppl/include"])
+env_dbus.Append(CPPDEFINES=["SIMPPL_HAVE_INTROSPECTION=0"])
+
+# Thirdparty source files
+if env_dbus['builtin_dbus']:
+    pass
+else:
+    thirdparty_dir = "thirdparty/simppl/src/"
+    thirdparty_sources = [
+        "callstate.cpp",
+        "dispatcher.cpp",
+        "error.cpp",
+        "serverresponseholder.cpp",
+        "skeletonbase.cpp",
+        "serverside.cpp",
+        "stubbase.cpp",
+        "timeout.cpp",
+        "util.cpp",
+        "serverrequestdescriptor.cpp",
+        "pendingcall.cpp",
+        "string.cpp",
+        "wstring.cpp",
+        "objectpath.cpp",
+        "filedescriptor.cpp",
+        "clientside.cpp",
+        "serialization.cpp",
+        "bool.cpp",
+    ] 
+    thirdparty_sources = [thirdparty_dir + file for file in thirdparty_sources]
+    env_thirdparty = env_dbus.Clone()
+    env.ParseConfig('pkg-config dbus-1 --cflags --libs')
+    env_dbus.ParseConfig('pkg-config dbus-1 --cflags --libs')
+    env_thirdparty.ParseConfig('pkg-config dbus-1 --cflags --libs')
+    env_thirdparty.disable_warnings()
+    env_thirdparty.add_source_files(env.modules_sources, thirdparty_sources)
+
+# Godot source files
+env_dbus.add_source_files(env.modules_sources, "*.cpp")
