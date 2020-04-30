@@ -80,4 +80,5 @@ void StreamAudio::clear() {
 	}
 	const int32_t data_left = ring_buffer->get().data_left();
 	ring_buffer->get().advance_read(data_left);
+	ring_buffer.unref();
 }
