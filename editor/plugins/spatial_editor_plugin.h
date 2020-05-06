@@ -99,7 +99,7 @@ public:
 	EditorSpatialGizmoPlugin *gizmo_plugin;
 
 	void _set_spatial_node(Node *p_node) { set_spatial_node(Object::cast_to<Spatial>(p_node)); }
-	
+
 protected:
 	static void _bind_methods();
 
@@ -283,7 +283,6 @@ private:
 		_FORCE_INLINE_ bool operator<(const _RayResult &p_rr) const { return depth < p_rr.depth; }
 	};
 
-	void _update_render_info();
 	void _update_name();
 	void _compute_edit(const Point2 &p_point);
 	void _clear_selected();
@@ -312,19 +311,6 @@ private:
 	float get_znear() const;
 	float get_zfar() const;
 	float get_fov() const;
-
-	void _get_children_rids(Node *p_current, Set<RID> &r_set) {
-		MeshInstance *mi = Object::cast_to<MeshInstance>(p_current);
-		if (mi) {
-			Ref<Mesh> mesh = mi->get_mesh();
-			if (mesh.is_valid()) {
-				r_set.insert(mesh->get_rid());
-			}
-		}
-		for (int32_t i = 0; i < p_current->get_child_count(); i++) {
-			_get_children_rids(p_current->get_child(i), r_set);
-		}
-	}
 
 	ObjectID clicked;
 	Vector<_RayResult> selection_results;
