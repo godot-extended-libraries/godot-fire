@@ -734,21 +734,6 @@ void SpatialEditorViewport::_select_region() {
 	}
 }
 
-void SpatialEditorViewport::_update_render_info() {
-	VS::get_singleton()->viewport_selected_render_info_clear(viewport->get_viewport_rid());
-
-	EditorSelection *editor_selection = EditorNode::get_singleton()->get_editor_selection();
-	List<Node *> nodes = editor_selection->get_full_selected_node_list();
-	Set<RID> rids; 
-	for (int32_t i = 0; i < nodes.size(); i++) {
-		Node *node = nodes[i];
-		_get_children_rids(node, rids);
-	}
-	for (Set<RID>::Element *E = rids.front(); E; E = E->next()) {
-		VS::get_singleton()->viewport_queue_selected_render_info(viewport->get_viewport_rid(), E->get());
-	}
-}
-
 void SpatialEditorViewport::_update_name() {
 
 	String view_mode = orthogonal ? TTR("Orthogonal") : TTR("Perspective");
@@ -2510,36 +2495,17 @@ void SpatialEditorViewport::_notification(int p_what) {
 
 		if (show_info) {
 			String text;
-						
-			text += TTR("Selection Info:") + "\n";
-			int32_t objects_drawn = VS::get_singleton()->viewport_get_selected_render_info(viewport->get_viewport_rid(), VS::ViewportRenderInfo(Viewport::RENDER_INFO_OBJECTS_IN_FRAME));
-			text += TTR("Selected Objects Drawn") + ": " + itos(objects_drawn) + "\n";
-			int32_t material_changes = VS::get_singleton()->viewport_get_selected_render_info(viewport->get_viewport_rid(), VS::ViewportRenderInfo(Viewport::RENDER_INFO_MATERIAL_CHANGES_IN_FRAME));
-			text += TTR("Selected Material Changes") + ": " + itos(material_changes) + "\n";
-			int32_t shader_changes = VS::get_singleton()->viewport_get_selected_render_info(viewport->get_viewport_rid(), VS::ViewportRenderInfo(Viewport::RENDER_INFO_SHADER_CHANGES_IN_FRAME));
-			text += TTR("Selected Shader Changes") + ": " + itos(shader_changes) + "\n";
-			int32_t surface_changes = VS::get_singleton()->viewport_get_selected_render_info(viewport->get_viewport_rid(), VS::ViewportRenderInfo(Viewport::RENDER_INFO_SURFACE_CHANGES_IN_FRAME));
-			text += TTR("Selected Surface Changes") + ": " + itos(surface_changes) + "\n";
-			int32_t draw_call_changes = VS::get_singleton()->viewport_get_selected_render_info(viewport->get_viewport_rid(), VS::ViewportRenderInfo(Viewport::RENDER_INFO_DRAW_CALLS_IN_FRAME));
-			text += TTR("Selected Draw Calls") + ": " + itos(draw_call_changes) + "\n";
-			int32_t vertices_changes = VS::get_singleton()->viewport_get_selected_render_info(viewport->get_viewport_rid(), VS::ViewportRenderInfo(Viewport::RENDER_INFO_VERTICES_IN_FRAME));
-			text += TTR("Selected Vertices") + ": " + itos(vertices_changes) + "\n\n";
-
-			text += TTR("Frame Info:") + "\n";
+			text += "X: " + rtos(current_camera->get_translation().x).pad_decimals(1) + "\n";
+			text += "Y: " + rtos(current_camera->get_translation().y).pad_decimals(1) + "\n";
+			text += "Z: " + rtos(current_camera->get_translation().z).pad_decimals(1) + "\n";
+			text += TTR("Pitch") + ": " + itos(Math::round(current_camera->get_rotation_degrees().x)) + "\n";
+			text += TTR("Yaw") + ": " + itos(Math::round(current_camera->get_rotation_degrees().y)) + "\n\n";
 			text += TTR("Objects Drawn") + ": " + itos(viewport->get_render_info(Viewport::RENDER_INFO_OBJECTS_IN_FRAME)) + "\n";
 			text += TTR("Material Changes") + ": " + itos(viewport->get_render_info(Viewport::RENDER_INFO_MATERIAL_CHANGES_IN_FRAME)) + "\n";
 			text += TTR("Shader Changes") + ": " + itos(viewport->get_render_info(Viewport::RENDER_INFO_SHADER_CHANGES_IN_FRAME)) + "\n";
 			text += TTR("Surface Changes") + ": " + itos(viewport->get_render_info(Viewport::RENDER_INFO_SURFACE_CHANGES_IN_FRAME)) + "\n";
 			text += TTR("Draw Calls") + ": " + itos(viewport->get_render_info(Viewport::RENDER_INFO_DRAW_CALLS_IN_FRAME)) + "\n";
-			text += TTR("Vertices") + ": " + itos(viewport->get_render_info(Viewport::RENDER_INFO_VERTICES_IN_FRAME)) + "\n\n";			
-			
-			text += TTR("Camera Info:") + "\n";
-			text += "X: " + rtos(current_camera->get_translation().x).pad_decimals(1) + "\n";
-			text += "Y: " + rtos(current_camera->get_translation().y).pad_decimals(1) + "\n";
-			text += "Z: " + rtos(current_camera->get_translation().z).pad_decimals(1) + "\n";
-			text += TTR("Pitch") + ": " + itos(Math::round(current_camera->get_rotation_degrees().x)) + "\n";
-			text += TTR("Yaw") + ": " + itos(Math::round(current_camera->get_rotation_degrees().y));
-			
+			text += TTR("Vertices") + ": " + itos(viewport->get_render_info(Viewport::RENDER_INFO_VERTICES_IN_FRAME));
 			info_label->set_text(text);
 		}
 
@@ -2577,14 +2543,9 @@ void SpatialEditorViewport::_notification(int p_what) {
 		surface->connect("focus_exited", this, "_surface_focus_exit");
 
 		_init_gizmo_instance(index);
-
-		EditorSelection *editor_selection = EditorNode::get_singleton()->get_editor_selection();
-		editor_selection->connect("selection_changed", this, "_update_render_info");
 	}
 
 	if (p_what == NOTIFICATION_EXIT_TREE) {
-		editor_selection->disconnect("selection_changed", this, "_update_render_info");
-		VS::get_singleton()->viewport_selected_render_info_clear(viewport->get_viewport_rid());
 
 		_finish_gizmo_instances();
 	}
@@ -3431,7 +3392,6 @@ void SpatialEditorViewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_selection_menu_hide"), &SpatialEditorViewport::_selection_menu_hide);
 	ClassDB::bind_method(D_METHOD("can_drop_data_fw"), &SpatialEditorViewport::can_drop_data_fw);
 	ClassDB::bind_method(D_METHOD("drop_data_fw"), &SpatialEditorViewport::drop_data_fw);
-	ClassDB::bind_method(D_METHOD("_update_render_info"), &SpatialEditorViewport::_update_render_info);
 
 	ADD_SIGNAL(MethodInfo("toggle_maximize_view", PropertyInfo(Variant::OBJECT, "viewport")));
 	ADD_SIGNAL(MethodInfo("clicked", PropertyInfo(Variant::OBJECT, "viewport")));

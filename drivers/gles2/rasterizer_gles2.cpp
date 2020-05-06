@@ -293,11 +293,6 @@ void RasterizerGLES2::begin_frame(double frame_step) {
 	storage->info.render_final = storage->info.render;
 	storage->info.render.reset();
 
-	for (Map<RID_Data *, RasterizerStorageGLES2::Info::Render>::Element *E = storage->info.rid_render_info_render.front(); E; E = E->next()) {
-		storage->info.rid_render_info_final[E->key()] = E->get();
-	}
-	storage->info.rid_render_info_render.clear();
-
 	scene->iteration();
 }
 

@@ -5772,23 +5772,12 @@ bool RasterizerStorageGLES2::has_os_feature(const String &p_feature) const {
 void RasterizerStorageGLES2::set_debug_generate_wireframes(bool p_generate) {
 }
 
-void RasterizerStorageGLES2::render_info_begin_capture(Vector<RID> p_rids) {
+void RasterizerStorageGLES2::render_info_begin_capture() {
 
 	info.snap = info.render;
-	info.rid_render_info_snap.clear();
-	for (int32_t i = 0; i < p_rids.size(); i++) {
-		Info::Render render = {};
-		RID_Data *rid_data = p_rids[i].get_data();
-		if (info.rid_render_info_render.has(rid_data)) {
-			render = info.rid_render_info_render[rid_data];
-		} else {
-			info.rid_render_info_render[rid_data] = render;
-		}
-		info.rid_render_info_snap[p_rids[i].get_data()] = render;
-	}
 }
 
-void RasterizerStorageGLES2::render_info_end_capture(Vector<RID> p_rids) {
+void RasterizerStorageGLES2::render_info_end_capture() {
 
 	info.snap.object_count = info.render.object_count - info.snap.object_count;
 	info.snap.draw_call_count = info.render.draw_call_count - info.snap.draw_call_count;
@@ -5798,27 +5787,6 @@ void RasterizerStorageGLES2::render_info_end_capture(Vector<RID> p_rids) {
 	info.snap.vertices_count = info.render.vertices_count - info.snap.vertices_count;
 	info.snap._2d_item_count = info.render._2d_item_count - info.snap._2d_item_count;
 	info.snap._2d_draw_call_count = info.render._2d_draw_call_count - info.snap._2d_draw_call_count;
-
-	for (int32_t i = 0; i < p_rids.size(); i++) {
-		RID_Data *rid_data = p_rids[i].get_data();
-		if (!info.rid_render_info_render.has(rid_data)) {
-			continue;
-		}
-		Info::Render render = info.rid_render_info_render[rid_data];
-		Info::Render snap = {};
-		if (info.rid_render_info_snap.has(rid_data)) {
-			snap = info.rid_render_info_snap[rid_data];
-		}
-		snap.object_count = render.object_count - snap.object_count;
-		snap.draw_call_count = render.draw_call_count - snap.draw_call_count;
-		snap.material_switch_count = render.material_switch_count - snap.material_switch_count;
-		snap.surface_switch_count = render.surface_switch_count - snap.surface_switch_count;
-		snap.shader_rebind_count = render.shader_rebind_count - snap.shader_rebind_count;
-		snap.vertices_count = render.vertices_count - snap.vertices_count;
-		snap._2d_item_count = render._2d_item_count - snap._2d_item_count;
-		snap._2d_draw_call_count = render._2d_draw_call_count - snap._2d_draw_call_count;
-		info.rid_render_info_snap[rid_data] = snap;
-	}
 }
 
 int RasterizerStorageGLES2::get_captured_render_info(VS::RenderInfo p_info) {
@@ -5847,62 +5815,6 @@ int RasterizerStorageGLES2::get_captured_render_info(VS::RenderInfo p_info) {
 		} break;
 		case VS::INFO_2D_DRAW_CALLS_IN_FRAME: {
 			return info.snap._2d_draw_call_count;
-		} break;
-		default: {
-			return get_render_info(p_info);
-		}
-	}
-}
-
-int RasterizerStorageGLES2::get_captured_selected_render_info(Vector<RID> p_rids, VS::RenderInfo p_info) {
-	switch (p_info) {
-		case VS::INFO_OBJECTS_IN_FRAME: {
-			int32_t object_count = 0;
-			for (Map<RID_Data *, Info::Render>::Element *E = info.rid_render_info_snap.front(); E; E = E->next()) {
-				const Info::Render &snap = E->get();
-				object_count += snap.object_count;
-			}
-			return object_count;
-		} break;
-		case VS::INFO_VERTICES_IN_FRAME: {
-			int32_t vertices_count = 0;
-			for (Map<RID_Data *, Info::Render>::Element *E = info.rid_render_info_snap.front(); E; E = E->next()) {
-				const Info::Render &snap = E->get();
-				vertices_count += snap.vertices_count;
-			}
-			return vertices_count;
-		} break;
-		case VS::INFO_MATERIAL_CHANGES_IN_FRAME: {
-			int32_t material_switch_count = 0;
-			for (Map<RID_Data *, Info::Render>::Element *E = info.rid_render_info_snap.front(); E; E = E->next()) {
-				const Info::Render &snap = E->get();
-				material_switch_count += snap.material_switch_count;
-			}
-			return material_switch_count;
-		} break;
-		case VS::INFO_SHADER_CHANGES_IN_FRAME: {
-			int32_t shader_rebind_count = 0;
-			for (Map<RID_Data *, Info::Render>::Element *E = info.rid_render_info_snap.front(); E; E = E->next()) {
-				const Info::Render &snap = E->get();
-				shader_rebind_count += snap.shader_rebind_count;
-			}
-			return shader_rebind_count;
-		} break;
-		case VS::INFO_SURFACE_CHANGES_IN_FRAME: {
-			int32_t surface_switch_count = 0;
-			for (Map<RID_Data *, Info::Render>::Element *E = info.rid_render_info_snap.front(); E; E = E->next()) {
-				const Info::Render &snap = E->get();
-				surface_switch_count += snap.surface_switch_count;
-			}
-			return surface_switch_count;
-		} break;
-		case VS::INFO_DRAW_CALLS_IN_FRAME: {
-			int32_t draw_call_count = 0;
-			for (Map<RID_Data *, Info::Render>::Element *E = info.rid_render_info_snap.front(); E; E = E->next()) {
-				const Info::Render &snap = E->get();
-				draw_call_count += snap.draw_call_count;
-			}
-			return draw_call_count;
 		} break;
 		default: {
 			return get_render_info(p_info);

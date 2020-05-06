@@ -103,8 +103,6 @@ public:
 	m_r m_name(m_type1 arg1, m_type2 arg2) { return BINDBASE->m_name(arg1, arg2); }
 #define BIND2RC(m_r, m_name, m_type1, m_type2) \
 	m_r m_name(m_type1 arg1, m_type2 arg2) const { return BINDBASE->m_name(arg1, arg2); }
-#define BIND3R(m_r, m_name, m_type1, m_type2, m_type3) \
-	m_r m_name(m_type1 arg1, m_type2 arg2, m_type3 arg3) { return BINDBASE->m_name(arg1, arg2, arg3); }
 #define BIND3RC(m_r, m_name, m_type1, m_type2, m_type3) \
 	m_r m_name(m_type1 arg1, m_type2 arg2, m_type3 arg3) const { return BINDBASE->m_name(arg1, arg2, arg3); }
 #define BIND4RC(m_r, m_name, m_type1, m_type2, m_type3, m_type4) \
@@ -490,10 +488,6 @@ public:
 	BIND2(viewport_set_usage, RID, ViewportUsage)
 
 	BIND2R(int, viewport_get_render_info, RID, ViewportRenderInfo)
-	BIND2R(int, viewport_get_selected_render_info, RID, ViewportRenderInfo)
-	BIND2(viewport_queue_selected_render_info, RID, RID);
-	BIND1(viewport_selected_render_info_clear, RID);
-	
 	BIND2(viewport_set_debug_draw, RID, ViewportDebugDraw)
 
 	/* ENVIRONMENT API */
