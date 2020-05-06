@@ -748,9 +748,10 @@ public:
 
 	void set_debug_generate_wireframes(bool p_generate) {}
 
-	void render_info_begin_capture() {}
-	void render_info_end_capture() {}
+	void render_info_begin_capture(Vector<RID> p_rids = Vector<RID>()) {}
+	void render_info_end_capture(Vector<RID> p_rids = Vector<RID>()) {}
 	int get_captured_render_info(VS::RenderInfo p_info) { return 0; }
+	int get_captured_selected_render_info(Vector<RID> p_rids, VS::RenderInfo p_info) { return 0; }
 
 	int get_render_info(VS::RenderInfo p_info) { return 0; }
 	String get_video_adapter_name() const { return String(); }
