@@ -694,8 +694,11 @@ public:
 		VIEWPORT_RENDER_INFO_MAX
 	};
 
-	virtual int viewport_get_render_info(RID p_viewport, ViewportRenderInfo p_info) = 0;
-
+	virtual int viewport_get_render_info(RID p_viewport, ViewportRenderInfo p_info) = 0;	
+	virtual void viewport_queue_selected_render_info(RID p_viewport, RID p_rid) = 0;
+	virtual void viewport_selected_render_info_clear(RID p_viewport) = 0;
+	
+	virtual int viewport_get_selected_render_info(RID p_rid, ViewportRenderInfo p_info) = 0;
 	enum ViewportDebugDraw {
 		VIEWPORT_DEBUG_DRAW_DISABLED,
 		VIEWPORT_DEBUG_DRAW_UNSHADED,

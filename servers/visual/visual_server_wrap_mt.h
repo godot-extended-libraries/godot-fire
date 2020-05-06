@@ -419,6 +419,19 @@ public:
 		return visual_server->viewport_get_render_info(p_viewport, p_info);
 	}
 
+	//this passes directly to avoid stalling, but it's pretty dangerous, so don't call after freeing a viewport
+	virtual int viewport_get_selected_render_info(RID p_viewport, ViewportRenderInfo p_info) {
+		return visual_server->viewport_get_selected_render_info(p_viewport, p_info);
+	}
+
+	virtual void viewport_queue_selected_render_info(RID p_viewport, RID p_rid) {
+		visual_server->viewport_queue_selected_render_info(p_viewport, p_rid);
+	}
+
+	virtual void viewport_selected_render_info_clear(RID p_viewport) {
+		visual_server->viewport_selected_render_info_clear(p_viewport);
+	}
+	
 	FUNC2(viewport_set_debug_draw, RID, ViewportDebugDraw)
 
 	/* ENVIRONMENT API */

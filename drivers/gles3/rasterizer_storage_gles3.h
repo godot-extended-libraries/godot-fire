@@ -169,12 +169,16 @@ public:
 			}
 		} render, render_final, snap;
 
+		Map<RID_Data *, Render> rid_render_info_render, rid_render_info_final, rid_render_info_snap;
+
 		Info() {
 
 			texture_mem = 0;
 			vertex_mem = 0;
 			render.reset();
-			render_final.reset();
+			render_final.reset();		
+			rid_render_info_render.clear();	
+			rid_render_info_final.clear();
 		}
 
 	} info;
@@ -1469,9 +1473,10 @@ public:
 
 	virtual void set_debug_generate_wireframes(bool p_generate);
 
-	virtual void render_info_begin_capture();
-	virtual void render_info_end_capture();
+	virtual void render_info_begin_capture(Vector<RID> p_rids = Vector<RID>());
+	virtual void render_info_end_capture(Vector<RID> p_rids = Vector<RID>());
 	virtual int get_captured_render_info(VS::RenderInfo p_info);
+	virtual int get_captured_selected_render_info(Vector<RID> p_rids, VS::RenderInfo p_info);
 
 	virtual int get_render_info(VS::RenderInfo p_info);
 	virtual String get_video_adapter_name() const;
