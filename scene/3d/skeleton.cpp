@@ -53,6 +53,10 @@ RID SkinReference::get_skeleton() const {
 	return skeleton;
 }
 
+Skeleton *SkinReference::get_skeleton_node() const {
+	return skeleton_node;
+}
+
 Ref<Skin> SkinReference::get_skin() const {
 	return skin;
 }
@@ -415,6 +419,7 @@ void Skeleton::_notification(int p_what) {
 			}
 
 			dirty = false;
+			emit_signal("skeleton_updated");
 
 #ifdef TOOLS_ENABLED
 			emit_signal("pose_updated");
@@ -939,6 +944,8 @@ void Skeleton::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("physical_bones_remove_collision_exception", "exception"), &Skeleton::physical_bones_remove_collision_exception);
 
 #endif // _3D_DISABLED
+
+	ADD_SIGNAL(MethodInfo("skeleton_updated"));
 
 #ifdef TOOLS_ENABLED
 	ADD_SIGNAL(MethodInfo("pose_updated"));
