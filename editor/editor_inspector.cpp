@@ -1483,7 +1483,7 @@ void EditorInspector::update_tree() {
 
 	List<PropertyInfo>
 			plist;
-	object->get_property_list(&plist, true);
+	object->get_property_list(&plist, false);
 
 	HashMap<String, VBoxContainer *> item_path;
 	Map<VBoxContainer *, EditorInspectorSection *> section_map;
