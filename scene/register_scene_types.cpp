@@ -209,10 +209,13 @@
 #include "scene/3d/vehicle_body.h"
 #include "scene/3d/visibility_notifier.h"
 #include "scene/3d/world_environment.h"
-#include "scene/animation/skeleton_ik.h"
 #include "scene/resources/environment.h"
 #include "scene/resources/mesh_library.h"
 #endif
+#include "3d/dmik/twist_constraint.h"
+#include "3d/dmik/direction_constraint.h"
+#include "3d/dmik/kusudama_constraint.h"
+#include "3d/dmik/multi_constraint.h"
 
 static Ref<ResourceFormatSaverText> resource_saver_text;
 static Ref<ResourceFormatLoaderText> resource_loader_text;
@@ -443,7 +446,6 @@ void register_scene_types() {
 	ClassDB::register_class<PhysicalBone>();
 	ClassDB::register_class<SoftBody>();
 
-	ClassDB::register_class<SkeletonIK>();
 	ClassDB::register_class<BoneAttachment>();
 
 	ClassDB::register_class<VehicleBody>();
@@ -576,6 +578,12 @@ void register_scene_types() {
 	ClassDB::register_class<VisibilityEnabler2D>();
 	ClassDB::register_class<Polygon2D>();
 	ClassDB::register_class<Skeleton2D>();
+
+	ClassDB::register_class<TwistConstraint>();
+	ClassDB::register_class<DirectionConstraint>();
+	ClassDB::register_class<KusudamaConstraint>();
+	ClassDB::register_class<MultiConstraint>();
+
 	ClassDB::register_class<Bone2D>();
 	ClassDB::register_class<Light2D>();
 	ClassDB::register_class<LightOccluder2D>();

@@ -1260,8 +1260,8 @@ Error ArrayMesh::mesh_unwrap(const Transform &p_base_transform, float p_texel_si
 				surfaces_tools.write[surface]->add_weights(v.weights);
 			}
 
-			Vector2 uv(gen_uvs[gen_indices[i + j] * 2 + 0], gen_uvs[gen_indices[i + j] * 2 + 1]);
-			surfaces_tools.write[surface]->add_uv(uv);
+			Vector2 new_uv(gen_uvs[gen_indices[i + j] * 2 + 0], gen_uvs[gen_indices[i + j] * 2 + 1]);
+			surfaces_tools.write[surface]->add_uv(new_uv);
 			surfaces_tools.write[surface]->add_vertex(v.vertex);
 		}
 	}

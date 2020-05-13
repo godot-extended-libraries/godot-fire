@@ -714,6 +714,9 @@ void SkeletonEditor::create_editors() {
 	custom_pose_editor->set_label(TTR("Bone Custom Pose"));
 	custom_pose_editor->set_visible(false);
 	add_child(custom_pose_editor);
+
+	constraint_ik_editor = memnew(SkeletonIKMultiConstraintEditor(editor_plugin, editor, skeleton));
+	add_child(constraint_ik_editor);
 }
 
 void SkeletonEditor::_notification(int p_what) {

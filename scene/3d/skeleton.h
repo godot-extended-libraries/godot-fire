@@ -31,7 +31,10 @@
 #ifndef SKELETON_H
 #define SKELETON_H
 
+#include "core/reference.h"
 #include "core/rid.h"
+#include "scene/3d/dmik/multi_constraint.h"
+#include "scene/3d/physics_joint.h"
 #include "scene/3d/spatial.h"
 #include "scene/resources/skin.h"
 
@@ -65,6 +68,8 @@ public:
 	Ref<Skin> get_skin() const;
 	~SkinReference();
 };
+
+struct DMIKTask;
 
 class Skeleton : public Spatial {
 
@@ -214,7 +219,7 @@ public:
 	PhysicalBone *get_physical_bone_parent(int p_bone);
 
 private:
-	/// This is a slow API os it's cached
+	/// This is a slow API as it's cached
 	PhysicalBone *_get_physical_bone_parent(int p_bone);
 	void _rebuild_physical_bones_cache();
 
@@ -224,6 +229,33 @@ public:
 	void physical_bones_add_collision_exception(RID p_exception);
 	void physical_bones_remove_collision_exception(RID p_exception);
 #endif // _3D_DISABLED
+
+	StringName root_bone;
+	StringName effector_bone;
+	float interpolation = 1.0f;
+	float min_distance = 0.01;
+	int max_iterations = 10;
+	DMIKTask *task = nullptr;
+	Ref<MultiConstraint> constraints = memnew(MultiConstraint);
+	float solve_budget_ms = 4.0f;
+	int32_t effector_count = 0;
+	void reload_chain();		
+	void _solve_chain();
+
+	void set_interpolation(float p_interpolation);
+	float get_interpolation() const;
+	void set_min_distance(float p_min_distance);
+	float get_min_distance() const;
+	void set_max_iterations(int p_iterations);
+	int get_max_iterations() const;
+	virtual void set_multi_constraint(const Ref<MultiConstraint> p_constraints);
+	virtual Ref<MultiConstraint> get_multi_constraint() const;
+	bool is_running();
+	void start(bool p_one_time = false);
+	void stop();
+
+	float get_solve_budget_ms() const;
+	void set_solve_budget_ms(float p_solve_budget_ms);
 
 public:
 	Skeleton();

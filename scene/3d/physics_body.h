@@ -275,6 +275,7 @@ private:
 VARIANT_ENUM_CAST(RigidBody::Mode);
 
 class KinematicCollision;
+class Skeleton;
 
 class KinematicBody : public PhysicsBody {
 
