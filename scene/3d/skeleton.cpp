@@ -36,6 +36,98 @@
 #include "scene/3d/physics_body.h"
 #include "scene/resources/surface_tool.h"
 
+#include "core/math/transform.h"
+#include "dmik/ik_axes.h"
+#include "dmik/ik_quat.h"
+#include "dmik/multi_constraint.h"
+#include "dmik/qcp.h"
+#include "dmik/ray.h"
+#include "dmik/twist_constraint.h"
+#include "scene/3d/skeleton.h"
+
+#include "dmik/direction_constraint.h"
+#include "dmik/dmik.h"
+#include "dmik/kusudama_constraint.h"
+
+void Skeleton::set_interpolation(float p_interpolation) {
+	interpolation = p_interpolation;
+}
+
+float Skeleton::get_interpolation() const {
+	return interpolation;
+}
+
+void Skeleton::set_min_distance(float p_min_distance) {
+	min_distance = p_min_distance;
+}
+
+float Skeleton::get_min_distance() const {
+	return min_distance;
+}
+
+void Skeleton::set_max_iterations(int p_iterations) {
+	max_iterations = p_iterations;
+}
+
+int Skeleton::get_max_iterations() const {
+	return max_iterations;
+}
+
+bool Skeleton::is_running() {
+	return is_processing_internal();
+}
+
+void Skeleton::start(bool p_one_time) {
+	ERR_FAIL_MSG("SkeletonIKCMDD starting is not implemented");
+	if (p_one_time) {
+		set_process_internal(false);
+		_solve_chain();
+	} else {
+		set_process_internal(true);
+	}
+}
+
+void Skeleton::stop() {
+	set_process_internal(false);
+}
+
+float Skeleton::get_solve_budget_ms() const {
+	return solve_budget_ms;
+}
+
+void Skeleton::set_solve_budget_ms(float p_solve_budget_ms) {
+	solve_budget_ms = p_solve_budget_ms;
+}
+
+void Skeleton::reload_chain() {
+
+	DMIK::free_task(task);
+	task = NULL;
+
+	task = DMIK::create_simple_task(this, Transform(),
+			-1, -1, get_multi_constraint());
+	if (task) {
+		task->max_iterations = max_iterations;
+		task->min_distance = min_distance;
+	}
+	emit_signal("ik_changed");
+}
+
+void Skeleton::_solve_chain() {
+	if (!task) {
+		return;
+	}
+	DMIK::solve(task, interpolation, false, false, Vector3());
+}
+
+void Skeleton::set_multi_constraint(const Ref<MultiConstraint> p_constraints) {
+	constraints = p_constraints;
+}
+
+Ref<MultiConstraint> Skeleton::get_multi_constraint() const {
+	return constraints;
+}
+
 void SkinReference::_skin_changed() {
 	if (skeleton_node) {
 		skeleton_node->_make_dirty();
@@ -73,6 +165,11 @@ bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
 	String path = p_path;
 	NodePath node_path = path;
 
+	if (path == "multi_constraint") {
+		set_multi_constraint(p_value);
+		return true;
+	}
+
 	String bone_name = path.get_slicec('/', 0);
 	BoneId bone = find_bone(bone_name);
 	if (bone != -1) {
@@ -99,44 +196,56 @@ bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
 			_make_dirty();
 		}
 		return true;
-	}
+	} else if (path.begins_with("bones/")) {
 
-	if (!path.begins_with("bones/"))
-		return false;
+		int which = path.get_slicec('/', 1).to_int();
+		String what = path.get_slicec('/', 2);
 
-	int which = path.get_slicec('/', 1).to_int();
-	String what = path.get_slicec('/', 2);
+		if (which == bones.size() && what == "name") {
 
-	if (which == bones.size() && what == "name") {
+			add_bone(p_value);
+			return true;
+		}
 
-		add_bone(p_value);
-		return true;
-	}
+		ERR_FAIL_INDEX_V(which, bones.size(), false);
 
-	ERR_FAIL_INDEX_V(which, bones.size(), false);
+		if (what == "parent")
+			set_bone_parent(which, p_value);
+		else if (what == "rest")
+			set_bone_rest(which, p_value);
+		else if (what == "enabled")
+			set_bone_enabled(which, p_value);
+		else if (what == "pose")
+			set_bone_pose(which, p_value);
+		else if (what == "bound_children") {
+			Array children = p_value;
 
-	if (what == "parent")
-		set_bone_parent(which, p_value);
-	else if (what == "rest")
-		set_bone_rest(which, p_value);
-	else if (what == "enabled")
-		set_bone_enabled(which, p_value);
-	else if (what == "pose")
-		set_bone_pose(which, p_value);
-	else if (what == "bound_children") {
-		Array children = p_value;
+			if (is_inside_tree()) {
+				bones.write[which].nodes_bound.clear();
 
-		if (is_inside_tree()) {
-			bones.write[which].nodes_bound.clear();
+				for (int i = 0; i < children.size(); i++) {
 
-			for (int i = 0; i < children.size(); i++) {
-
-				NodePath npath = children[i];
-				ERR_CONTINUE(npath.operator String() == "");
-				Node *node = get_node(npath);
-				ERR_CONTINUE(!node);
-				bind_child_node_to_bone(which, node);
+					NodePath npath = children[i];
+					ERR_CONTINUE(npath.operator String() == "");
+					Node *node = get_node(npath);
+					ERR_CONTINUE(!node);
+					bind_child_node_to_bone(which, node);
+				}
 			}
+		}
+
+	} else if (path.begins_with("effectors/")) {
+		int which = path.get_slicec('/', 1).to_int();
+		String what = path.get_slicec('/', 2);
+		ERR_FAIL_COND_V(get_multi_constraint().is_null(), false);
+		ERR_FAIL_INDEX_V(which, get_multi_constraint()->get_effector_count(), false);
+		if (what == "name") {
+			Ref<BoneEffector> effector = get_multi_constraint()->get_effector(which);
+			ERR_FAIL_COND_V(effector.is_null(), false);
+			effector->set_name(p_value);
+			reload_chain();
+		} else {
+			return false;
 		}
 	} else {
 		return false;
@@ -148,6 +257,11 @@ bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
 bool Skeleton::_get(const StringName &p_path, Variant &r_ret) const {
 	String path = p_path;
 	NodePath node_path = path;
+
+	if (path == "multi_constraint") {
+		r_ret = get_multi_constraint();
+		return true;
+	}
 
 	String bone_name = path.get_slicec('/', 0);
 	BoneId bone = find_bone(bone_name);
@@ -163,49 +277,57 @@ bool Skeleton::_get(const StringName &p_path, Variant &r_ret) const {
 			r_ret = bones[bone].pose.basis.get_scale();
 			return true;
 		}
-	}
+	} else if (path.begins_with("bones/")) {
 
-	if (!path.begins_with("bones/"))
-		return false;
+		int which = path.get_slicec('/', 1).to_int();
+		String what = path.get_slicec('/', 2);
 
-	int which = path.get_slicec('/', 1).to_int();
-	String what = path.get_slicec('/', 2);
+		ERR_FAIL_INDEX_V(which, bones.size(), false);
 
-	ERR_FAIL_INDEX_V(which, bones.size(), false);
+		if (what == "name")
+			r_ret = get_bone_name(which);
+		else if (what == "parent")
+			r_ret = get_bone_parent(which);
+		else if (what == "rest")
+			r_ret = get_bone_rest(which);
+		else if (what == "enabled")
+			r_ret = is_bone_enabled(which);
+		else if (what == "pose")
+			r_ret = get_bone_pose(which);
+		else if (what == "bound_children") {
+			Array children;
 
-	if (what == "name")
-		r_ret = get_bone_name(which);
-	else if (what == "parent")
-		r_ret = get_bone_parent(which);
-	else if (what == "rest")
-		r_ret = get_bone_rest(which);
-	else if (what == "enabled")
-		r_ret = is_bone_enabled(which);
-	else if (what == "pose")
-		r_ret = get_bone_pose(which);
-	else if (what == "bound_children") {
-		Array children;
+			for (const List<uint32_t>::Element *E = bones[which].nodes_bound.front(); E; E = E->next()) {
 
-		for (const List<uint32_t>::Element *E = bones[which].nodes_bound.front(); E; E = E->next()) {
+				Object *obj = ObjectDB::get_instance(E->get());
+				ERR_CONTINUE(!obj);
+				Node *node = Object::cast_to<Node>(obj);
+				ERR_CONTINUE(!node);
+				NodePath npath = get_path_to(node);
+				children.push_back(npath);
+			}
 
-			Object *obj = ObjectDB::get_instance(E->get());
-			ERR_CONTINUE(!obj);
-			Node *node = Object::cast_to<Node>(obj);
-			ERR_CONTINUE(!node);
-			NodePath npath = get_path_to(node);
-			children.push_back(npath);
+			r_ret = children;
 		}
 
-		r_ret = children;
-	} else
-		return false;
+	} else if (path.begins_with("effectors/")) {
+		int which = path.get_slicec('/', 1).to_int();
+		String what = path.get_slicec('/', 2);
+		ERR_FAIL_COND_V(get_multi_constraint().is_null(), false);
+		ERR_FAIL_INDEX_V(which, get_multi_constraint()->get_effector_count(), false);
 
-	return true;
+		if (what == "name") {
+			ERR_FAIL_COND_V(get_multi_constraint()->get_effector(which).is_null(), false);
+			r_ret = get_multi_constraint()->get_effector(which)->get_name();
+		}
+	} else {
+		return false;
+	}
+	return r_ret;
 }
 
 void Skeleton::_get_property_list(List<PropertyInfo> *p_list) const {
 	for (int i = 0; i < bones.size(); i++) {
-
 		String prep = "bones/" + itos(i) + "/";
 		p_list->push_back(PropertyInfo(Variant::STRING, prep + "name", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::INT, prep + "parent", PROPERTY_HINT_RANGE, "-1," + itos(bones.size() - 1) + ",1", PROPERTY_USAGE_NOEDITOR));
@@ -213,6 +335,26 @@ void Skeleton::_get_property_list(List<PropertyInfo> *p_list) const {
 		p_list->push_back(PropertyInfo(Variant::BOOL, prep + "enabled", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::TRANSFORM, prep + "pose", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::ARRAY, prep + "bound_children", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
+	}
+	PropertyHint hint;
+	String hint_string;
+	String names("--,");
+	for (int i = 0; i < get_bone_count(); i++) {
+		if (i > 0)
+			names += ",";
+		names += get_bone_name(i);
+	}
+
+	hint = PROPERTY_HINT_ENUM;
+	hint_string = names;
+	p_list->push_back(PropertyInfo(Variant::OBJECT, "multi_constraint", PROPERTY_HINT_RESOURCE_TYPE, "MultiConstraint"));
+	if (get_multi_constraint().is_null()) {
+		return;
+	}
+	for (int i = 0; i < get_multi_constraint()->get_effector_count(); i++) {
+
+		String prep = "effectors/" + itos(i) + "/";
+		p_list->push_back(PropertyInfo(Variant::STRING, prep + "name", hint, hint_string, PROPERTY_USAGE_NOEDITOR));
 	}
 }
 
@@ -273,6 +415,16 @@ void Skeleton::_notification(int p_what) {
 
 	switch (p_what) {
 
+		case NOTIFICATION_ENTER_TREE: {
+			if (constraints.is_null() || (constraints.is_valid() && !constraints->get_constraint_count())) {
+				constraints.instance();
+				constraints->register_constraint(this);
+			}			
+			reload_chain();
+		} break;
+		case NOTIFICATION_EXIT_TREE: {
+			reload_chain();
+		} break;
 		case NOTIFICATION_UPDATE_SKELETON: {
 
 			VisualServer *vs = VisualServer::get_singleton();
@@ -409,8 +561,9 @@ void Skeleton::_notification(int p_what) {
 					}
 
 					E->get()->skeleton_version = version;
-				}
-
+				}	
+				reload_chain();
+				_solve_chain();
 				for (uint32_t i = 0; i < bind_count; i++) {
 					uint32_t bone_index = E->get()->skin_bone_indices_ptrs[i];
 					ERR_CONTINUE(bone_index >= (uint32_t)len);
@@ -898,6 +1051,31 @@ Ref<SkinReference> Skeleton::register_skin(const Ref<Skin> &p_skin) {
 }
 
 void Skeleton::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_interpolation", "interpolation"), &Skeleton::set_interpolation);
+	ClassDB::bind_method(D_METHOD("get_interpolation"), &Skeleton::get_interpolation);
+
+	ClassDB::bind_method(D_METHOD("is_running"), &Skeleton::is_running);
+
+	ClassDB::bind_method(D_METHOD("set_min_distance", "min_distance"), &Skeleton::set_min_distance);
+	ClassDB::bind_method(D_METHOD("get_min_distance"), &Skeleton::get_min_distance);
+
+	ClassDB::bind_method(D_METHOD("set_max_iterations", "iterations"), &Skeleton::set_max_iterations);
+	ClassDB::bind_method(D_METHOD("get_max_iterations"), &Skeleton::get_max_iterations);
+
+	ClassDB::bind_method(D_METHOD("start", "one_time"), &Skeleton::start, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("stop"), &Skeleton::stop);
+
+	ClassDB::bind_method(D_METHOD("set_constraints", "constraints"), &Skeleton::set_multi_constraint);
+	ClassDB::bind_method(D_METHOD("get_constraints"), &Skeleton::get_multi_constraint);
+
+	ClassDB::bind_method(D_METHOD("set_solve_budget_ms", "budget"), &Skeleton::set_solve_budget_ms);
+	ClassDB::bind_method(D_METHOD("get_solve_budget_ms"), &Skeleton::get_solve_budget_ms);
+
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "solve_budget_ms"), "set_solve_budget_ms", "get_solve_budget_ms");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "interpolation", PROPERTY_HINT_RANGE, "0,1,0.001"), "set_interpolation", "get_interpolation");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "min_distance"), "set_min_distance", "get_min_distance");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_iterations"), "set_max_iterations", "get_max_iterations");
+	ADD_SIGNAL(MethodInfo("ik_changed"));
 
 	ClassDB::bind_method(D_METHOD("add_bone", "name"), &Skeleton::add_bone);
 	ClassDB::bind_method(D_METHOD("find_bone", "name"), &Skeleton::find_bone);
@@ -933,7 +1111,7 @@ void Skeleton::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bone_global_pose_override", "bone_idx", "pose", "amount", "persistent"), &Skeleton::set_bone_global_pose_override, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_bone_global_pose", "bone_idx"), &Skeleton::get_bone_global_pose);
 
-	ClassDB::bind_method(D_METHOD("get_bone_custom_pose", "bone_idx"), &Skeleton::get_bone_custom_pose);
+	ClassDB::bind_method(D_METHOD("get_bone_process_order"), &Skeleton::get_bone_process_order);
 	ClassDB::bind_method(D_METHOD("set_bone_custom_pose", "bone_idx", "custom_pose"), &Skeleton::set_bone_custom_pose);
 
 #ifndef _3D_DISABLED
@@ -962,6 +1140,8 @@ Skeleton::Skeleton() {
 }
 
 Skeleton::~Skeleton() {
+	DMIK::free_task(task);
+	task = NULL;
 
 	//some skins may remain bound
 	for (Set<SkinReference *>::Element *E = skin_bindings.front(); E; E = E->next()) {

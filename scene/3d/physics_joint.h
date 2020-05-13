@@ -34,6 +34,8 @@
 #include "scene/3d/physics_body.h"
 #include "scene/3d/spatial.h"
 
+class PhysicsBody;
+
 class Joint : public Spatial {
 
 	GDCLASS(Joint, Spatial);

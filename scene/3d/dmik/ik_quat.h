@@ -1,12 +1,12 @@
 /*************************************************************************/
-/*  skeleton_ik_editor_plugin.h                                          */
+/*  ik_quat.h                                                            */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -28,37 +28,44 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef SKELETON_IK_EDITOR_PLUGIN_H
-#define SKELETON_IK_EDITOR_PLUGIN_H
+#ifndef GODOT_ANIMATION_UNIFIED_BEZIERS_IK_QUAT_H
+#define GODOT_ANIMATION_UNIFIED_BEZIERS_IK_QUAT_H
 
-#include "editor/editor_node.h"
-#include "editor/editor_plugin.h"
+#include "core/math/quat.h"
+#include "core/vector.h"
 
-class SkeletonIK;
-
-class SkeletonIKEditorPlugin : public EditorPlugin {
-
-	GDCLASS(SkeletonIKEditorPlugin, EditorPlugin);
-
-	SkeletonIK *skeleton_ik;
-
-	Button *play_btn;
-	EditorNode *editor;
-
-	void _play();
-
-protected:
-	static void _bind_methods();
-
+class IKQuat : public Quat {
 public:
-	virtual String get_name() const { return "SkeletonIK"; }
-	bool has_main_screen() const { return false; }
-	virtual void edit(Object *p_object);
-	virtual bool handles(Object *p_object) const;
-	virtual void make_visible(bool p_visible);
+	Vector<IKQuat> get_swing_twist(Vector3 p_axis);
 
-	SkeletonIKEditorPlugin(EditorNode *p_node);
-	~SkeletonIKEditorPlugin();
+	void clamp_to_quadrance_angle(float p_cos_half_angle);
+
+	void clamp_to_angle(float p_angle);
+
+	inline IKQuat(float p_x, float p_y, float p_z, float p_w) :
+			Quat(p_x,
+					p_y,
+					p_z,
+					p_w) {
+	}
+
+	IKQuat(Quat p_quat) {
+		x = p_quat.x;
+		y = p_quat.y;
+		z = p_quat.z;
+		w = p_quat.w;
+	}
+
+	IKQuat() {
+	}
+
+	~IKQuat() {
+	}
 };
 
-#endif // SKELETON_IK_EDITOR_PLUGIN_H
+#include <limits>
+#include "core/math/transform.h"
+#include "scene/3d/skeleton.h"
+#include "ray.h"
+
+#endif //GODOT_ANIMATION_UNIFIED_BEZIERS_IK_QUAT_H

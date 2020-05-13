@@ -34,6 +34,10 @@
 #include "editor/editor_node.h"
 #include "editor/editor_plugin.h"
 #include "scene/3d/skeleton.h"
+#include "editor/editor_properties.h"
+#include "effector_editor.h"
+#include "scene/3d/skeleton.h"
+#include "multi_constraint_ik_editor.h"
 
 class EditorInspectorPluginSkeleton;
 class Joint;
@@ -41,6 +45,7 @@ class PhysicalBone;
 class SkeletonEditorPlugin;
 class Button;
 class CheckBox;
+class EffectorTargetTransformEditor;
 
 class BoneTransformEditor : public VBoxContainer {
 	GDCLASS(BoneTransformEditor, VBoxContainer);
@@ -148,6 +153,8 @@ class SkeletonEditor : public VBoxContainer {
 	BoneTransformEditor *rest_editor;
 	BoneTransformEditor *pose_editor;
 	BoneTransformEditor *custom_pose_editor;
+
+	SkeletonIKMultiConstraintEditor *constraint_ik_editor;
 
 	MenuButton *options;
 	EditorFileDialog *file_dialog;

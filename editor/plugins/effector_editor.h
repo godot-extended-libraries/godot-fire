@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  skeleton_ik_editor_plugin.cpp                                        */
+/*  effector_editor.h													 */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,71 +28,68 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "skeleton_ik_editor_plugin.h"
+#ifndef SKELETON_IK_CMDD_EDITOR_PLUGIN_H
+#define SKELETON_IK_CMDD_EDITOR_PLUGIN_H
 
-#include "scene/animation/skeleton_ik.h"
+#include "editor/editor_node.h"
+#include "editor/editor_plugin.h"
+#include "editor/editor_properties.h"
+#include "scene/3d/skeleton.h"
 
-void SkeletonIKEditorPlugin::_play() {
+class EffectorTargetTransformEditor : public VBoxContainer {
+	GDCLASS(EffectorTargetTransformEditor, VBoxContainer);
 
-	if (!skeleton_ik)
-		return;
+	static const int32_t TRANSLATION_COMPONENTS = 3;
+	static const int32_t ROTATION_DEGREES_COMPONENTS = 3;
+	static const int32_t SCALE_COMPONENTS = 3;
+	static const int32_t BASIS_COMPONENTS = 9;
+	static const int32_t BASIS_SPLIT_COMPONENTS = 3;
+	static const int32_t TRANSFORM_COMPONENTS = 12;
+	static const int32_t TRANSFORM_SPLIT_COMPONENTS = 3;
+	static const int32_t TRANSFORM_CONTROL_COMPONENTS = 3;
 
-	if (!skeleton_ik->get_parent_skeleton())
-		return;
+	EditorInspectorSection *section = nullptr;
 
-	if (play_btn->is_pressed()) {
-		skeleton_ik->start();
-	} else {
-		skeleton_ik->stop();
-		skeleton_ik->get_parent_skeleton()->clear_bones_global_pose_override();
-	}
-}
+	GridContainer *translation_grid = nullptr;
+	GridContainer *rotation_grid = nullptr;
+	GridContainer *scale_grid = nullptr;
+	GridContainer *transform_grid = nullptr;
 
-void SkeletonIKEditorPlugin::edit(Object *p_object) {
+	EditorSpinSlider *translation_slider[TRANSLATION_COMPONENTS];
+	EditorSpinSlider *rotation_slider[ROTATION_DEGREES_COMPONENTS];
+	EditorSpinSlider *scale_slider[SCALE_COMPONENTS];
+	EditorSpinSlider *transform_slider[TRANSFORM_COMPONENTS];
 
-	if (p_object != skeleton_ik) {
-		if (skeleton_ik) {
-			play_btn->set_pressed(false);
-			_play();
-		}
-	}
+	Rect2 background_rects[5];
 
-	SkeletonIK *s = Object::cast_to<SkeletonIK>(p_object);
-	if (!s)
-		return;
+	Skeleton *ik = nullptr;
+	String property = "";
 
-	skeleton_ik = s;
-}
+	UndoRedo *undo_redo = nullptr;
 
-bool SkeletonIKEditorPlugin::handles(Object *p_object) const {
+	String label = "";
 
-	return p_object->is_class("SkeletonIK");
-}
+	void create_editors();
+	void setup_spinner(EditorSpinSlider *spinner, const bool is_transform_spinner);
 
-void SkeletonIKEditorPlugin::make_visible(bool p_visible) {
+	void _value_changed(const double p_value, const bool p_from_transform);
 
-	if (p_visible)
-		play_btn->show();
-	else
-		play_btn->hide();
-}
+	Transform compute_transform(const bool p_from_transform) const;
 
-void SkeletonIKEditorPlugin::_bind_methods() {
+protected:
+	void _notification(int p_what);
+	static void _bind_methods();
 
-	ClassDB::bind_method("_play", &SkeletonIKEditorPlugin::_play);
-}
+public:
+	EffectorTargetTransformEditor(Skeleton *p_ik);
 
-SkeletonIKEditorPlugin::SkeletonIKEditorPlugin(EditorNode *p_node) {
+	// Which transform target to modify
+	void set_target(const String &p_prop);
+	void set_label(const String &p_label);
 
-	editor = p_node;
-	play_btn = memnew(Button);
-	play_btn->set_icon(editor->get_gui_base()->get_icon("Play", "EditorIcons"));
-	play_btn->set_text(TTR("Play IK"));
-	play_btn->set_toggle_mode(true);
-	play_btn->hide();
-	play_btn->connect("pressed", this, "_play");
-	add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, play_btn);
-	skeleton_ik = NULL;
-}
+	void _update_properties();
+	void _update_target_transform_properties();
+	void _update_transform_properties(Transform p_transform);
+};
 
-SkeletonIKEditorPlugin::~SkeletonIKEditorPlugin() {}
+#endif // SKELETON_IK_CMDD_EDITOR_PLUGIN_H
