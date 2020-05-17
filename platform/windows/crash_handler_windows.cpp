@@ -30,9 +30,24 @@
 
 #include "crash_handler_windows.h"
 
+#include "core/bind/core_bind.h"
+#include "core/io/http_client.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
+#include "core/ustring.h"
+#include "core/version.h"
+#include "core/version_hash.gen.h"
 #include "main/main.h"
+#include "servers/rendering/rendering_server_raster.h"
+
+#include <map>
+#include <string>
+#include <vector>
+
+#include "thirdparty/crashpad/crashpad/client/crash_report_database.h"
+#include "thirdparty/crashpad/crashpad/client/crashpad_client.h"
+#include "thirdparty/crashpad/crashpad/client/settings.h"
+#include "thirdparty/crashpad/crashpad/third_party/mini_chromium/mini_chromium/base/files/file_path.h"
 
 #ifdef CRASH_HANDLER_EXCEPTION
 
