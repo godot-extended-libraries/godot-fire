@@ -384,7 +384,7 @@ void KusudamaConstraint::update_rotational_freedom() {
 	float axialConstrainedHyperArea = axial_constrained ? (to_tau(twist->get_range()) / Math_TAU) : 1.0f;
 	// quick and dirty solution (should revisit);
 	float total_limit_cone_surface_area_ratio = 0.0f;
-	ERR_FAIL_INDEX_V(direction_count - 1, multi_direction.size());
+	ERR_FAIL_INDEX(direction_count - 1, multi_direction.size());
 	for (int32_t limit_cone_i = 0; limit_cone_i < direction_count; limit_cone_i++) {
 		Ref<DirectionConstraint> direction_limit = multi_direction[limit_cone_i];
 		ERR_CONTINUE(direction_limit.is_null());
@@ -447,13 +447,13 @@ bool KusudamaConstraint::_get(const StringName &p_name, Variant &r_ret) const {
 		if (what == "control_point") {
 			ERR_FAIL_INDEX_V(index, direction_count, false);
 			Ref<DirectionConstraint> direction_limit = get_direction(index);
-			ERR_FAIL_V(direction_limit.is_null(), false);
+			ERR_FAIL_COND_V(direction_limit.is_null(), false);
 			r_ret = direction_limit->get_control_point();
 			return true;
 		} else if (what == "radius") {
 			ERR_FAIL_INDEX_V(index, direction_count, false);
 			Ref<DirectionConstraint> direction_limit = get_direction(index);
-			ERR_FAIL_V(direction_limit.is_null(), false);
+			ERR_FAIL_COND_V(direction_limit.is_null(), false);
 			r_ret = direction_limit->get_radius();
 			return true;
 		}

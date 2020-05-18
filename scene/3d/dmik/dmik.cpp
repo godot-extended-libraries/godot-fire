@@ -29,6 +29,7 @@
 /*************************************************************************/
 
 #include "dmik.h"
+#include "core/engine.h"
 
 void DMIK::QCPSolver(
 		Ref<BoneChain> p_chain,
@@ -39,7 +40,7 @@ void DMIK::QCPSolver(
 		float p_total_iterations) {
 	for (int32_t tip_i = 0; tip_i < p_chain->targets.size(); tip_i++) {
 		Ref<BoneChainItem> start_from = p_chain->targets[tip_i]->chain_item;
-		Ref<BoneChainItem> stop_after = &p_chain->chain_root;
+		Ref<BoneChainItem> stop_after = p_chain->chain_root;
 
 		Ref<BoneChainItem> current_bone = start_from;
 		//if the tip is pinned, it should have already been oriented before this function was called.
@@ -126,7 +127,7 @@ bool DMIK::build_chain(DMIKTask *p_task) {
 	chain->chain_root->bone = p_task->root_bone;
 	chain->chain_root->axes->local_transform = p_task->skeleton->get_bone_rest(chain->chain_root->bone) * p_task->skeleton->get_bone_pose(chain->chain_root->bone);
 	chain->chain_root->pb = p_task->skeleton->get_physical_bone(chain->chain_root->bone);
-	chain->middle_chain_item = nullptr;
+	chain->middle_chain_item = Ref<BoneChainItem>();
 
 	// Holds all IDs that are composing a single chain in reverse order
 	Vector<int> chain_ids;
@@ -181,7 +182,7 @@ bool DMIK::build_chain(DMIKTask *p_task) {
 			}
 		}
 		if (!middle_chain_item_id) {
-			chain->middle_chain_item = nullptr;
+			chain->middle_chain_item = Ref<BoneChainItem>();
 		}
 
 		if (chain->targets.write[effector_i].is_null()) {
