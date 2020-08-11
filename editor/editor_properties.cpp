@@ -2813,7 +2813,16 @@ Variant EditorPropertyResource::get_drag_data_fw(const Point2 &p_point, Control 
 
 bool EditorPropertyResource::_is_drop_valid(const Dictionary &p_drag_data) const {
 
-	String allowed_type = base_type;
+	Vector<String> allowed_types = base_type.split(",");
+	int size = allowed_types.size();
+	for (int i = 0; i < size; i++) {
+		String at = allowed_types[i].strip_edges();
+		if (at == "SpatialMaterial") {
+			allowed_types.push_back("Texture");
+		} else if (at == "ShaderMaterial") {
+			allowed_types.push_back("Shader");
+		}
+	}
 
 	Dictionary drag_data = p_drag_data;
 
@@ -2826,10 +2835,9 @@ bool EditorPropertyResource::_is_drop_valid(const Dictionary &p_drag_data) const
 	}
 
 	if (res.is_valid()) {
-		for (int i = 0; i < allowed_type.get_slice_count(","); i++) {
-			String at = allowed_type.get_slice(",", i).strip_edges();
-			if (res.is_valid() && ClassDB::is_parent_class(res->get_class(), at)) {
-				return true;
+		for (int i = 0; i < allowed_types.size(); i++) {
+			String at = allowed_types[i].strip_edges();
+			if (ClassDB::is_parent_class(res->get_class(), at)) {
 			}
 		}
 	}
@@ -2844,8 +2852,8 @@ bool EditorPropertyResource::_is_drop_valid(const Dictionary &p_drag_data) const
 
 			if (ftype != "") {
 
-				for (int i = 0; i < allowed_type.get_slice_count(","); i++) {
-					String at = allowed_type.get_slice(",", i).strip_edges();
+				for (int i = 0; i < allowed_types.size(); i++) {
+					String at = allowed_types[i].strip_edges();
 					if (ClassDB::is_parent_class(ftype, at)) {
 						return true;
 					}
@@ -2875,25 +2883,49 @@ void EditorPropertyResource::drop_data_fw(const Point2 &p_point, const Variant &
 		res = drag_data["resource"];
 	}
 
-	if (res.is_valid()) {
-		emit_changed(get_edited_property(), res);
-		update_property();
-		return;
-	}
-
-	if (drag_data.has("type") && String(drag_data["type"]) == "files") {
+	if (!res.is_valid() && drag_data.has("type") && String(drag_data["type"]) == "files") {
 
 		Vector<String> files = drag_data["files"];
 
 		if (files.size() == 1) {
 			String file = files[0];
-			RES file_res = ResourceLoader::load(file);
-			if (file_res.is_valid()) {
-				emit_changed(get_edited_property(), file_res);
-				update_property();
-				return;
+			res = ResourceLoader::load(file);
+		}
+	}
+
+	if (res.is_valid()) {
+		bool need_convert = true;
+
+		Vector<String> allowed_types = base_type.split(",");
+		for (int i = 0; i < allowed_types.size(); i++) {
+			String at = allowed_types[i].strip_edges();
+			if (ClassDB::is_parent_class(res->get_class(), at)) {
+				need_convert = false;
+				break;
 			}
 		}
+
+		if (need_convert) {
+			for (int i = 0; i < allowed_types.size(); i++) {
+				String at = allowed_types[i].strip_edges();
+				if (at == "SpatialMaterial" && ClassDB::is_parent_class(res->get_class(), "Texture")) {
+					Ref<SpatialMaterial> mat = memnew(SpatialMaterial);
+					mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, res);
+					res = mat;
+					break;
+				}
+
+				if (at == "ShaderMaterial" && ClassDB::is_parent_class(res->get_class(), "Shader")) {
+					Ref<ShaderMaterial> mat = memnew(ShaderMaterial);
+					mat->set_shader(res);
+					res = mat;
+					break;
+				}
+			}
+		}
+		emit_changed(get_edited_property(), res);
+		update_property();
+		return;
 	}
 }
 
