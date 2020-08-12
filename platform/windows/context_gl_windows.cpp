@@ -33,6 +33,10 @@
 // Author: Juan Linietsky <reduzio@gmail.com>, (C) 2008
 
 #include "context_gl_windows.h"
+#include <EGL/eglext.h>
+#include <GLES3/gl3.h>
+#define WGL_EXT_swap_control 1
+#include <WGL/wgl.h>
 
 #include <dwmapi.h>
 
@@ -51,13 +55,12 @@
 typedef HGLRC(APIENTRY *PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC, HGLRC, const int *);
 
 void ContextGL_Windows::release_current() {
-
-	wglMakeCurrent(hDC, NULL);
+	eglMakeCurrent(mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, mEglContext);
+	//wglMakeCurrent(hDC, NULL);
 }
 
 void ContextGL_Windows::make_current() {
-
-	wglMakeCurrent(hDC, hRC);
+	eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext);
 }
 
 HDC ContextGL_Windows::get_hdc() {
@@ -97,7 +100,13 @@ bool ContextGL_Windows::should_vsync_via_compositor() {
 
 void ContextGL_Windows::swap_buffers() {
 
-	SwapBuffers(hDC);
+	if (eglSwapBuffers(mEglDisplay, mEglSurface) != EGL_TRUE) {
+		cleanup();
+
+		initialize();
+
+		// tell rasterizer to reload textures and stuff?
+	}
 
 	if (use_vsync) {
 		bool vsync_via_compositor_now = should_vsync_via_compositor();
@@ -116,15 +125,13 @@ void ContextGL_Windows::swap_buffers() {
 }
 
 void ContextGL_Windows::set_use_vsync(bool p_use) {
-
-	vsync_via_compositor = p_use && should_vsync_via_compositor();
-
-	if (wglSwapIntervalEXT) {
-		int swap_interval = (p_use && !vsync_via_compositor) ? 1 : 0;
-		wglSwapIntervalEXT(swap_interval);
-	}
-
 	use_vsync = p_use;
+	if (!p_use) {
+		eglSwapInterval(mEglDisplay, 0);
+	}
+	else {
+		eglSwapInterval(mEglDisplay, 1);
+	}
 }
 
 bool ContextGL_Windows::is_using_vsync() const {
@@ -132,94 +139,160 @@ bool ContextGL_Windows::is_using_vsync() const {
 	return use_vsync;
 }
 
+void ContextGL_Windows::cleanup() {
+	if (mEglDisplay != EGL_NO_DISPLAY && mEglSurface != EGL_NO_SURFACE) {
+		eglDestroySurface(mEglDisplay, mEglSurface);
+		mEglSurface = EGL_NO_SURFACE;
+	}
+
+	if (mEglDisplay != EGL_NO_DISPLAY && mEglContext != EGL_NO_CONTEXT) {
+		eglDestroyContext(mEglDisplay, mEglContext);
+		mEglContext = EGL_NO_CONTEXT;
+	}
+
+	if (mEglDisplay != EGL_NO_DISPLAY) {
+		eglTerminate(mEglDisplay);
+		mEglDisplay = EGL_NO_DISPLAY;
+	}
+};
+
 #define _WGL_CONTEXT_DEBUG_BIT_ARB 0x0001
 
 Error ContextGL_Windows::initialize() {
 
-	static PIXELFORMATDESCRIPTOR pfd = {
-		sizeof(PIXELFORMATDESCRIPTOR), // Size Of This Pixel Format Descriptor
-		1,
-		PFD_DRAW_TO_WINDOW | // Format Must Support Window
-				PFD_SUPPORT_OPENGL | // Format Must Support OpenGL
-				PFD_DOUBLEBUFFER,
-		(BYTE)PFD_TYPE_RGBA,
-		(BYTE)(OS::get_singleton()->is_layered_allowed() ? 32 : 24),
-		(BYTE)0, (BYTE)0, (BYTE)0, (BYTE)0, (BYTE)0, (BYTE)0, // Color Bits Ignored
-		(BYTE)(OS::get_singleton()->is_layered_allowed() ? 8 : 0), // Alpha Buffer
-		(BYTE)0, // Shift Bit Ignored
-		(BYTE)0, // No Accumulation Buffer
-		(BYTE)0, (BYTE)0, (BYTE)0, (BYTE)0, // Accumulation Bits Ignored
-		(BYTE)24, // 24Bit Z-Buffer (Depth Buffer)
-		(BYTE)0, // No Stencil Buffer
-		(BYTE)0, // No Auxiliary Buffer
-		(BYTE)PFD_MAIN_PLANE, // Main Drawing Layer
-		(BYTE)0, // Reserved
-		0, 0, 0 // Layer Masks Ignored
+	EGLint configAttribList[] = {
+		EGL_RED_SIZE, 8,
+		EGL_GREEN_SIZE, 8,
+		EGL_BLUE_SIZE, 8,
+		EGL_ALPHA_SIZE, 8,
+		EGL_DEPTH_SIZE, 8,
+		EGL_STENCIL_SIZE, 8,
+		EGL_SAMPLE_BUFFERS, 0,
+		EGL_NONE
 	};
 
-	hDC = GetDC(hWnd);
-	if (!hDC) {
-		return ERR_CANT_CREATE; // Return FALSE
-	}
+	EGLint surfaceAttribList[] = {
+		EGL_NONE, EGL_NONE
+	};
 
-	pixel_format = ChoosePixelFormat(hDC, &pfd);
-	if (!pixel_format) // Did Windows Find A Matching Pixel Format?
-	{
-		return ERR_CANT_CREATE; // Return FALSE
-	}
+	EGLint numConfigs = 0;
+	EGLint majorVersion = 1;
+	EGLint minorVersion;
+	minorVersion = 5;
+	EGLDisplay display = EGL_NO_DISPLAY;
+	EGLContext context = EGL_NO_CONTEXT;
+	EGLSurface surface = EGL_NO_SURFACE;
+	EGLConfig config = nullptr;
+	EGLint contextAttribs[3];
 
-	BOOL ret = SetPixelFormat(hDC, pixel_format, &pfd);
-	if (!ret) // Are We Able To Set The Pixel Format?
-	{
-		return ERR_CANT_CREATE; // Return FALSE
-	}
+	contextAttribs[0] = EGL_CONTEXT_CLIENT_VERSION;
+	contextAttribs[1] = 3;
+	contextAttribs[2] = EGL_NONE;
 
-	hRC = wglCreateContext(hDC);
-	if (!hRC) // Are We Able To Get A Rendering Context?
-	{
-		return ERR_CANT_CREATE; // Return FALSE
-	}
+	try {
 
-	wglMakeCurrent(hDC, hRC);
+		int platform_type = EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE;
 
-	if (opengl_3_context) {
-
-		int attribs[] = {
-			WGL_CONTEXT_MAJOR_VERSION_ARB, 3, //we want a 3.3 context
-			WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-			//and it shall be forward compatible so that we can only use up to date functionality
-			WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-			WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB /*| _WGL_CONTEXT_DEBUG_BIT_ARB*/,
-			0
-		}; //zero indicates the end of the array
-
-		PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = NULL; //pointer to the method
-		wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
-
-		if (wglCreateContextAttribsARB == NULL) //OpenGL 3.0 is not supported
-		{
-			wglDeleteContext(hRC);
-			return ERR_CANT_CREATE;
+		List<String> args = OS::get_singleton()->get_cmdline_args();
+		List<String>::Element* I = args.front();
+		while (I) {
+			if (I->get() == "--angle-backend") {
+				String backend = I->next()->get();
+				if (backend.to_lower() == "vulkan") {
+					platform_type = EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE;
+				}
+			}
+			I = I->next();
 		}
 
-		HGLRC new_hRC = wglCreateContextAttribsARB(hDC, 0, attribs);
-		if (!new_hRC) {
-			wglDeleteContext(hRC);
-			return ERR_CANT_CREATE; // Return false
-		}
-		wglMakeCurrent(hDC, NULL);
-		wglDeleteContext(hRC);
-		hRC = new_hRC;
+		display = EGL_NO_DISPLAY;
 
-		if (!wglMakeCurrent(hDC, hRC)) // Try To Activate The Rendering Context
-		{
-			return ERR_CANT_CREATE; // Return FALSE
-		}
-	}
+		PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(eglGetProcAddress("eglGetPlatformDisplayEXT"));
 
-	wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-	wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC)wglGetProcAddress("wglGetSwapIntervalEXT");
-	//glWrapperInit(wrapper_get_proc_address);
+		if (!eglGetPlatformDisplayEXT) {
+			throw "Failed to get function eglGetPlatformDisplayEXT";
+		}
+
+		if (platform_type == EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE) {
+			EGLint displayAttributes[] = {
+				/*EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
+				EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE, 9,
+				EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE, 3,
+				EGL_NONE,*/
+				// These are the default display attributes, used to request ANGLE's D3D11 renderer.
+				// eglInitialize will only succeed with these attributes if the hardware supports D3D11 Feature Level 10_0+.
+				EGL_PLATFORM_ANGLE_TYPE_ANGLE,
+				platform_type,
+
+				// EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE is an option that enables ANGLE to automatically call
+				// the IDXGIDevice3::Trim method on behalf of the application when it gets suspended.
+				// Calling IDXGIDevice3::Trim when an application is suspended is a Windows Store application certification requirement.
+				EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE,
+				EGL_TRUE,
+
+				EGL_EXPERIMENTAL_PRESENT_PATH_ANGLE,
+				EGL_EXPERIMENTAL_PRESENT_PATH_FAST_ANGLE,
+
+				EGL_NONE,
+			};
+			display = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, displayAttributes);
+		} else {
+			EGLint displayAttributes[] = {
+				/*EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
+				EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE, 9,
+				EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE, 3,
+				EGL_NONE,*/
+				// These are the default display attributes, used to request ANGLE's D3D11 renderer.
+				// eglInitialize will only succeed with these attributes if the hardware supports D3D11 Feature Level 10_0+.
+				EGL_PLATFORM_ANGLE_TYPE_ANGLE,
+				platform_type,
+
+				EGL_NONE,
+			};
+			display = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, displayAttributes);
+		}
+
+		
+		if (display == EGL_NO_DISPLAY) {
+			throw "Failed to get default EGL display";
+		}
+
+		if (eglInitialize(display, &majorVersion, &minorVersion) == EGL_FALSE) {
+			throw "Failed to initialize EGL";
+		}
+
+		if (eglGetConfigs(display, NULL, 0, &numConfigs) == EGL_FALSE) {
+			throw "Failed to get EGLConfig count";
+		}
+
+		if (eglChooseConfig(display, configAttribList, &config, 1, &numConfigs) == EGL_FALSE) {
+			throw "Failed to choose first EGLConfig count";
+		}
+
+		surface = eglCreateWindowSurface(display, config, hWnd, surfaceAttribList);
+		if (surface == EGL_NO_SURFACE) {
+			throw "Failed to create EGL fullscreen surface";
+		}
+
+		context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
+		if (context == EGL_NO_CONTEXT) {
+			throw "Failed to create EGL context";
+		}
+
+		if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
+			throw "Failed to make fullscreen EGLSurface current";
+		}
+	} catch (const char *err) {
+		print_error(String(err));
+		return FAILED;
+	};
+
+	mEglDisplay = display;
+	mEglSurface = surface;
+	mEglContext = context;
+
+	eglQuerySurface(display, surface, EGL_WIDTH, &width);
+	eglQuerySurface(display, surface, EGL_HEIGHT, &height);
 
 	return OK;
 }

@@ -40,6 +40,8 @@
 
 #include <windows.h>
 
+#include <EGL/egl.h>
+
 typedef bool(APIENTRY *PFNWGLSWAPINTERVALEXTPROC)(int interval);
 typedef int(APIENTRY *PFNWGLGETSWAPINTERVALEXTPROC)(void);
 
@@ -71,12 +73,21 @@ public:
 	void swap_buffers();
 
 	Error initialize();
+	void cleanup();
 
 	void set_use_vsync(bool p_use);
 	bool is_using_vsync() const;
 
 	ContextGL_Windows(HWND hwnd, bool p_opengl_3_context);
 	~ContextGL_Windows();
+
+private:
+	EGLDisplay mEglDisplay;
+	EGLContext mEglContext;
+	EGLSurface mEglSurface;
+
+	EGLint width;
+	EGLint height;
 };
 
 #endif

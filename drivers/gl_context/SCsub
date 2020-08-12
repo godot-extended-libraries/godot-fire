@@ -2,7 +2,7 @@
 
 Import("env")
 
-if env["platform"] in ["haiku", "osx", "windows", "x11"]:
+if env["platform"] in ["haiku", "osx", "x11"]:
     # Thirdparty source files
     thirdparty_dir = "#thirdparty/glad/"
     thirdparty_sources = [
@@ -18,6 +18,11 @@ if env["platform"] in ["haiku", "osx", "windows", "x11"]:
     env_thirdparty = env.Clone()
     env_thirdparty.disable_warnings()
     env_thirdparty.add_source_files(env.drivers_sources, thirdparty_sources)
+elif env["platform"] in ["windows"]:
+    thirdparty_dir = "#thirdparty/angle/include"
+    env.Prepend(CPPPATH=[thirdparty_dir])
+    env.Append(LIBPATH=["#thirdparty/angle/out/Release"])
+
 
 # Godot source files
 env.add_source_files(env.drivers_sources, "*.cpp")

@@ -239,7 +239,8 @@ def configure_msvc(env, manual_msvc_config):
 
     LIBS = [
         "winmm",
-        "opengl32",
+        "libEGL.dll",
+        "libGLESv2.dll",
         "dsound",
         "kernel32",
         "ole32",
@@ -259,6 +260,10 @@ def configure_msvc(env, manual_msvc_config):
         "Avrt",
         "dwmapi",
     ]
+    thirdparty_dir = "#thirdparty/angle/include"     
+    env.Prepend(CPPPATH=[thirdparty_dir])
+    env.Append(LIBPATH=["#thirdparty/angle/out/Release"])         
+    env.Append(CPPDEFINES=["GL_GLEXT_PROTOTYPES", "EGL_EGLEXT_PROTOTYPES", "ANGLE_ENABLED"])
     env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in LIBS])
 
     if manual_msvc_config:
