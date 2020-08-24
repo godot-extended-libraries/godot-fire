@@ -158,17 +158,17 @@ bool Skeleton::_get(const StringName &p_path, Variant &r_ret) const {
 
 	return true;
 }
-void Skeleton::_get_property_list(List<PropertyInfo> *p_list) const {
 
+void Skeleton::_get_property_list(List<PropertyInfo> *p_list) const {
 	for (int i = 0; i < bones.size(); i++) {
 
 		String prep = "bones/" + itos(i) + "/";
-		p_list->push_back(PropertyInfo(Variant::STRING, prep + "name"));
-		p_list->push_back(PropertyInfo(Variant::INT, prep + "parent", PROPERTY_HINT_RANGE, "-1," + itos(bones.size() - 1) + ",1"));
-		p_list->push_back(PropertyInfo(Variant::TRANSFORM, prep + "rest"));
-		p_list->push_back(PropertyInfo(Variant::BOOL, prep + "enabled"));
+		p_list->push_back(PropertyInfo(Variant::STRING, prep + "name", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
+		p_list->push_back(PropertyInfo(Variant::INT, prep + "parent", PROPERTY_HINT_RANGE, "-1," + itos(bones.size() - 1) + ",1", PROPERTY_USAGE_NOEDITOR));
+		p_list->push_back(PropertyInfo(Variant::TRANSFORM, prep + "rest", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
+		p_list->push_back(PropertyInfo(Variant::BOOL, prep + "enabled", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::TRANSFORM, prep + "pose", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR));
-		p_list->push_back(PropertyInfo(Variant::ARRAY, prep + "bound_children"));
+		p_list->push_back(PropertyInfo(Variant::ARRAY, prep + "bound_children", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 	}
 }
 
@@ -375,7 +375,11 @@ void Skeleton::_notification(int p_what) {
 			}
 
 			dirty = false;
-			emit_signal("skeleton_updated");
+
+#ifdef TOOLS_ENABLED
+			emit_signal("pose_updated");
+#endif // TOOLS_ENABLED
+
 		} break;
 	}
 }
@@ -624,7 +628,6 @@ int Skeleton::get_process_order(int p_idx) {
 }
 
 void Skeleton::localize_rests() {
-
 	_update_process_order();
 
 	for (int i = bones.size() - 1; i >= 0; i--) {
@@ -897,7 +900,9 @@ void Skeleton::_bind_methods() {
 
 #endif // _3D_DISABLED
 
-	ADD_SIGNAL(MethodInfo("skeleton_updated"));
+#ifdef TOOLS_ENABLED
+	ADD_SIGNAL(MethodInfo("pose_updated"));
+#endif // TOOLS_ENABLED
 
 	BIND_CONSTANT(NOTIFICATION_UPDATE_SKELETON);
 }
@@ -915,4 +920,9 @@ Skeleton::~Skeleton() {
 	for (Set<SkinReference *>::Element *E = skin_bindings.front(); E; E = E->next()) {
 		E->get()->skeleton_node = nullptr;
 	}
+}
+
+Vector<int> Skeleton::get_bone_process_order() {
+	_update_process_order();
+	return process_order;
 }
