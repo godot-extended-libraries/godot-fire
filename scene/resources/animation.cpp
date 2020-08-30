@@ -3266,7 +3266,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	} else {
 		path += ":";
 	}
-
 	Vector<int32_t> types;
 	types.push_back(BEZIER_TRACK_LOC_X);
 	types.push_back(BEZIER_TRACK_LOC_Y);
@@ -3274,17 +3273,33 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	types.push_back(BEZIER_TRACK_SCALE_X);
 	types.push_back(BEZIER_TRACK_SCALE_Y);
 	types.push_back(BEZIER_TRACK_SCALE_Z);
+	types.push_back(BEZIER_TRACK_ROT_X0);
+	types.push_back(BEZIER_TRACK_ROT_X1);
+	types.push_back(BEZIER_TRACK_ROT_X2);
+	types.push_back(BEZIER_TRACK_ROT_Y0);
+	types.push_back(BEZIER_TRACK_ROT_Y1);
+	types.push_back(BEZIER_TRACK_ROT_Y2);
+	types.push_back(BEZIER_TRACK_ROT_Z0);
+	types.push_back(BEZIER_TRACK_ROT_Z1);
+	types.push_back(BEZIER_TRACK_ROT_Z2);
 	Ref<BezierKeyframeReduce> reduce;
 	reduce.instance();
+	Map<String, int32_t> rot_tracks;
 	for (int type_i = 0; type_i < types.size(); type_i++) {
 		Vector<BezierKeyframeReduce::Bezier> curves;
 		NodePath new_path;
 		BezierKeyframeReduce::KeyframeReductionSetting settings;
-		settings.max_error = p_allowed_linear_err * 0.01f;
+		settings.tangent_split_angle_threshold = true;
+		settings.tangent_split_angle_thresholdValue = settings.tangent_split_angle_thresholdValue;
+		// Magic number from https://bitsquid.blogspot.com/2009/11/bitsquid-low-level-animation-system.html
+		settings.max_error = 0.0014;
 		for (int transform_i = 0; transform_i < tt->transforms.size(); transform_i++) {
 			const TKey<TransformKey> &key = tt->transforms[transform_i];
 			real_t time = key.time;
 			Variant value = 0.0f;
+			Quat rot = key.value.rot;
+			rot.normalize();
+			Basis basis = rot;
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
 				value = loc.x;
@@ -3309,14 +3324,47 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				Vector3 scale = key.value.scale;
 				value = scale.z;
 				new_path = path + "scale:z";
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X0) {
+				value = basis.get_row(0).x;
+				new_path = path + "rotation_basis:x0";
+				rot_tracks.insert("x0", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X1) {
+				value = basis.get_row(0).y;
+				new_path = path + "rotation_basis:x1";
+				rot_tracks.insert("x1", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X2) {
+				value = basis.get_row(0).z;
+				new_path = path + "rotation_basis:x2";
+				rot_tracks.insert("x2", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y0) {
+				value = basis.get_row(1).x;
+				new_path = path + "rotation_basis:y0";
+				rot_tracks.insert("y0", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y1) {
+				value = basis.get_row(1).y;
+				new_path = path + "rotation_basis:y1";
+				rot_tracks.insert("y1", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y2) {
+				value = basis.get_row(1).z;
+				new_path = path + "rotation_basis:y2";
+				rot_tracks.insert("y2", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Z0) {
+				value = basis.get_row(2).x;
+				new_path = path + "rotation_basis:z0";
+				rot_tracks.insert("z0", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Z1) {
+				value = basis.get_row(2).y;
+				new_path = path + "rotation_basis:z1";
+				rot_tracks.insert("z1", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Z2) {
+				value = basis.get_row(2).z;
+				new_path = path + "rotation_basis:z2";
+				rot_tracks.insert("z2", get_track_count());
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
 			BezierKeyframeReduce::Vector2Bezier point = BezierKeyframeReduce::Vector2Bezier(time, value);
 			curves.push_back(BezierKeyframeReduce::Bezier(point, Vector2(), Vector2()));
-		}
-		if (!curves.size()) {
-			continue;
 		}
 		Vector<BezierKeyframeReduce::Bezier> out_curves;
 		real_t rate = reduce->reduce(curves, out_curves, settings);
@@ -3328,44 +3376,116 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		} else {
 			print_verbose("Animation: Reduced " + short_path + " to " + rtos(Math::stepify(rate * 100, 0.1f)) + "%");
 		}
-		if (!out_curves.size()) {
-			continue;
-		}
 		int32_t track = add_track(TrackType::TYPE_BEZIER);
 		track_set_path(track, new_path);
-		track_set_interpolation_type(track, tt->interpolation);
 		for (int32_t curve_i = 0; curve_i < out_curves.size(); curve_i++) {
 			BezierKeyframeReduce::Bezier curve = out_curves[curve_i];
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
 	}
+	int32_t track_quat = add_track(TrackType::TYPE_VALUE);
+	track_set_path(track_quat, path + "rotation_quat");
+	track_set_interpolation_type(track_quat, Animation::INTERPOLATION_CUBIC);
+	track_set_interpolation_loop_wrap(track_quat, true);
+	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
+		int32_t current_track = E->get();
+		if (current_track == -1) {
+			continue;
+		}
+		int32_t count = track_get_key_count(current_track);
+		for (int32_t key_i = 0; key_i < count; key_i++) {
+			float time = track_get_key_time(current_track, key_i);
+			Basis rot;
+			if (rot_tracks.has("x0")) {
+				float value = bezier_track_interpolate(rot_tracks["x0"], time);
+				Vector3 row = rot.get_row(0);
+				row.x = value;
+				rot.set_row(0, row);
+			}
+			if (rot_tracks.has("x1")) {
+				float value = bezier_track_interpolate(rot_tracks["x1"], time);
+				Vector3 row = rot.get_row(0);
+				row.y = value;
+				rot.set_row(0, row);
+			}
+			if (rot_tracks.has("x2")) {
+				float value = bezier_track_interpolate(rot_tracks["x2"], time);
+				Vector3 row = rot.get_row(0);
+				row.z = value;
+				rot.set_row(0, row);
+			}
+			if (rot_tracks.has("y0")) {
+				float value = bezier_track_interpolate(rot_tracks["y0"], time);
+				Vector3 row = rot.get_row(1);
+				row.x = value;
+				rot.set_row(1, row);
+			}
+			if (rot_tracks.has("y1")) {
+				float value = bezier_track_interpolate(rot_tracks["y1"], time);
+				Vector3 row = rot.get_row(1);
+				row.y = value;
+				rot.set_row(1, row);
+			}
+			if (rot_tracks.has("y2")) {
+				float value = bezier_track_interpolate(rot_tracks["y2"], time);
+				Vector3 row = rot.get_row(1);
+				row.z = value;
+				rot.set_row(1, row);
+			}
+			if (rot_tracks.has("z0")) {
+				float value = bezier_track_interpolate(rot_tracks["z0"], time);
+				Vector3 row = rot.get_row(2);
+				row.x = value;
+				rot.set_row(2, row);
+			}
+			if (rot_tracks.has("z1")) {
+				float value = bezier_track_interpolate(rot_tracks["z1"], time);
+				Vector3 row = rot.get_row(2);
+				row.y = value;
+				rot.set_row(2, row);
+			}
+			if (rot_tracks.has("z2")) {
+				float value = bezier_track_interpolate(rot_tracks["z2"], time);
+				Vector3 row = rot.get_row(2);
+				row.z = value;
+				rot.set_row(2, row);
+			}
+			track_insert_key(track_quat, time, rot.get_rotation_quat());
+		}
+	}
+	if (rot_tracks.has("z2")) {
+		remove_track(rot_tracks["z2"]);
+	}
+	if (rot_tracks.has("z1")) {
+		remove_track(rot_tracks["z1"]);
+	}
+	if (rot_tracks.has("z0")) {
+		remove_track(rot_tracks["z0"]);
+	}
+	if (rot_tracks.has("y2")) {
+		remove_track(rot_tracks["y2"]);
+	}
+	if (rot_tracks.has("y1")) {
+		remove_track(rot_tracks["y1"]);
+	}
+	if (rot_tracks.has("y0")) {
+		remove_track(rot_tracks["y0"]);
+	}
+	if (rot_tracks.has("x2")) {
+		remove_track(rot_tracks["x2"]);
+	}
+	if (rot_tracks.has("x1")) {
+		remove_track(rot_tracks["x1"]);
+	}
+	if (rot_tracks.has("x0")) {
+		remove_track(rot_tracks["x0"]);
+	}
 }
 
 void Animation::_transform_track_bezier_optimize(int p_idx, float p_allowed_linear_err, float p_allowed_angular_err, float p_max_optimizable_angle) {
-
 	ERR_FAIL_INDEX(p_idx, tracks.size());
 	ERR_FAIL_COND(tracks[p_idx]->type != TYPE_TRANSFORM);
 	_convert_bezier(p_idx, p_allowed_linear_err, p_allowed_angular_err, p_max_optimizable_angle);
-	_convert_rotation(p_idx, p_allowed_linear_err, p_allowed_angular_err, p_max_optimizable_angle);
-}
-
-void Animation::_convert_rotation(int32_t p_idx, float p_allowed_linear_err, float p_allowed_angular_err, float p_max_optimizable_angle) {
-	TransformTrack *tt = static_cast<TransformTrack *>(tracks[p_idx]);
-	const String original_path = track_get_path(p_idx);
-	String path = original_path;
-	if (path.split(":").size() == 2) {
-		String bone_name = path.get_slicec(':', 1);
-		path = path.get_slicec(':', 0) + ":" + bone_name + "/";
-	} else {
-		path += ":";
-	}
-	int32_t track = add_track(TrackType::TYPE_VALUE);
-	track_set_path(track, path + "rotation_quat");
-	for (int transform_i = 0; transform_i < tt->transforms.size(); transform_i++) {
-		const TKey<TransformKey> &key = tt->transforms[transform_i];
-		real_t time = key.time;
-		track_insert_key(track, time, key.value.rot);
-	}
 }
 
 void Animation::optimize(float p_allowed_linear_err, float p_allowed_angular_err, float p_max_optimizable_angle, bool p_convert_bezier) {
@@ -3391,14 +3511,96 @@ void Animation::optimize(float p_allowed_linear_err, float p_allowed_angular_err
 		}
 	}
 
-	track_count = tracks.size();
-	for (int i = 0; i < track_count; i++) {
-		if (tracks[i]->type == TYPE_VALUE) {
-			ValueTrack *vt = static_cast<ValueTrack *>(tracks[i]);
-			if (!vt->values.size() || vt->values[0].value.get_type() != Variant::QUAT) {
-				continue;
-			}
-			_quat_track_optimize(i, p_allowed_linear_err, p_allowed_angular_err, p_max_optimizable_angle);
+	// track_count = tracks.size();
+	// for (int i = 0; i < track_count; i++) {
+	// 	if (tracks[i]->type == TYPE_VALUE) {
+	// 		ValueTrack *vt = static_cast<ValueTrack *>(tracks[i]);
+	// 		if (!vt->values.size() || vt->values[0].value.get_type() != Variant::QUAT) {
+	// 			continue;
+	// 		}
+	// 		_quat_track_optimize(i, p_allowed_linear_err, p_allowed_angular_err, p_max_optimizable_angle);
+	// 	}
+	// }
+	for (int i = 0; i < tracks.size(); i++) {
+		const String original_path = track_get_path(i);
+		String path = original_path;
+		if (path.split(":").size() == 2) {
+			String bone_name = path.get_slicec(':', 1);
+			path = path.get_slicec(':', 0) + ":" + bone_name + "/";
+		} else {
+			path += ":";
+		}
+
+		int32_t scale_x_track = find_track(path + "scale:x");
+		bool scale_x = scale_x_track != -1 && track_get_key_count(scale_x_track) == 2 &&
+					   Math::is_equal_approx(bezier_track_get_key_value(scale_x_track, 0), 1.0f) &&
+					   Math::is_equal_approx(bezier_track_get_key_value(scale_x_track, 1), 1.0f);
+		int32_t scale_y_track = find_track(path + "scale:y");
+		bool scale_y = scale_y_track != -1 && track_get_key_count(scale_y_track) == 2 &&
+					   Math::is_equal_approx(bezier_track_get_key_value(scale_y_track, 0), 1.0f) &&
+					   Math::is_equal_approx(bezier_track_get_key_value(scale_y_track, 1), 1.0f);
+		int32_t scale_z_track = find_track(path + "scale:z");
+		bool scale_z = scale_z_track != -1 && track_get_key_count(scale_z_track) == 2 &&
+					   Math::is_equal_approx(bezier_track_get_key_value(scale_z_track, 0), 1.0f) &&
+					   Math::is_equal_approx(bezier_track_get_key_value(scale_z_track, 1), 1.0f);
+		if (scale_x &&
+				scale_y &&
+				scale_z) {
+			remove_track(scale_z_track);
+			remove_track(scale_y_track);
+			remove_track(scale_x_track);
+			int32_t scale_track = add_track(TrackType::TYPE_VALUE);
+			track_set_path(scale_track, path + "scale");
+			track_insert_key(scale_track, 0.0f, Vector3(1.0f, 1.0f, 1.0f));
+			track_insert_key(scale_track, length, Vector3(1.0f, 1.0f, 1.0f));
+		}
+		int32_t translation_x_track = find_track(path + "translation:x");
+		bool translation_x = translation_x_track != -1 && track_get_key_count(translation_x_track) == 2 &&
+							 Math::is_equal_approx(Math::stepify(bezier_track_get_key_value(translation_x_track, 0), p_allowed_linear_err), 0.0f) &&
+							 Math::is_equal_approx(Math::stepify(bezier_track_get_key_value(translation_x_track, 1), p_allowed_linear_err), 0.0f);
+		int32_t translation_y_track = find_track(path + "translation:y");
+		bool translation_y = translation_y_track != -1 && track_get_key_count(translation_y_track) == 2 &&
+							 Math::is_equal_approx(Math::stepify(bezier_track_get_key_value(translation_y_track, 0), p_allowed_linear_err), 0.0f) &&
+							 Math::is_equal_approx(Math::stepify(bezier_track_get_key_value(translation_y_track, 1), p_allowed_linear_err), 0.0f);
+		int32_t translation_z_track = find_track(path + "translation:z");
+		bool translation_z = translation_z_track != -1 && track_get_key_count(translation_z_track) == 2 &&
+							 Math::is_equal_approx(Math::stepify(bezier_track_get_key_value(translation_z_track, 0), p_allowed_linear_err), 0.0f) &&
+							 Math::is_equal_approx(Math::stepify(bezier_track_get_key_value(translation_z_track, 1), p_allowed_linear_err), 0.0f);
+		if (translation_x &&
+				translation_y &&
+				translation_z) {
+			remove_track(translation_z_track);
+			remove_track(translation_y_track);
+			remove_track(translation_x_track);
+			int32_t translation_track = add_track(TrackType::TYPE_VALUE);
+			track_set_path(translation_track, path + "translation");
+			track_insert_key(translation_track, 0.0f, Vector3());
+			track_insert_key(translation_track, length, Vector3());
+		}
+		int32_t quat_track = find_track(path + "rotation_quat:");
+		bool is_rot_complete = quat_track != -1 && track_get_key_count(quat_track) == 2;
+		Quat rot_start;
+		if (is_rot_complete) {
+			rot_start = track_get_key_value(quat_track, 0);
+		}
+		Quat rot_end;
+		if (is_rot_complete) {
+			rot_end = track_get_key_value(quat_track, 1);
+		}
+		bool remove_quat = is_rot_complete && rot_start.is_equal_approx(Quat()) &&
+						   rot_end.is_equal_approx(Quat());
+		if (scale_x &&
+				scale_y &&
+				scale_z &&
+				translation_x &&
+				translation_y &&
+				translation_z &&
+				remove_quat) {
+			remove_track(quat_track);
+			int32_t translation_track = add_track(TrackType::TYPE_TRANSFORM);
+			track_set_path(translation_track, path + "transform");
+			transform_track_insert_key(translation_track, 0.0f, Vector3(), Quat(), Vector3(1.0f, 1.0f, 1.0f));
+			transform_track_insert_key(translation_track, length, Vector3(), Quat(), Vector3(1.0f, 1.0f, 1.0f));
 		}
 	}
 

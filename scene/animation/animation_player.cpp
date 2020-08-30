@@ -253,15 +253,12 @@ void AnimationPlayer::_ensure_node_caches(AnimationData *p_anim) {
 		int bone_idx = -1;
 
 		if (String(a->track_get_path(i)).get_slice_count(":") == 2 && Object::cast_to<Skeleton>(child)) {
-
 			Skeleton *sk = Object::cast_to<Skeleton>(child);
 			bone_idx = sk->find_bone(String(a->track_get_path(i).get_subname(0)).get_slicec('/', 0));
 			if (bone_idx == -1) {
-
 				continue;
 			}
 		} else if (a->track_get_path(i).get_subname_count() == 1 && Object::cast_to<Skeleton>(child)) {
-
 			Skeleton *sk = Object::cast_to<Skeleton>(child);
 			bone_idx = sk->find_bone(a->track_get_path(i).get_subname(0));
 			if (bone_idx == -1) {
