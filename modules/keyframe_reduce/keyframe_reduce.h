@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -129,15 +129,15 @@ public:
 public:
 	struct KeyframeReductionSetting {
 		// Maximum allowed error when reducing the animation curves.
-		real_t max_error = 0.1; // range(0, 1000) step(0.1)
+		real_t max_error = 0.01f; // range(0, 1000) step(0.1)
 
 		// Step size at which to sample the animation curves."
-		real_t step_size = 1.0; // range(0.1, 100) step(1)
+		real_t step_size = 1.0f; // range(0.1, 100) step(1)
 
 		// Created keyframes have weighted or non-weighted tangents.
 		// Split tangents automatically, works on estimation.
 		bool split_tangents_auto = true;
-		bool weighted_tangents = false;
+		bool weighted_tangents = true;
 		bool tangent_split_existing = false;
 		bool tangent_split_angle_threshold = false;
 		// The threshold to split tangents.
@@ -173,7 +173,6 @@ private:
 	// 	@param Vector2Bezier tan1
 	// 	@param Vector2Bezier tan2
 	void fitCubic(const Vector<Bezier> &p_curves, Vector<Bezier> &r_keyframes, bool p_weighted_tangents, int32_t p_first, int32_t p_last, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2, real_t p_error) {
-
 		//use heuristic if region only has two points in it
 		if (p_last - p_first == 1) {
 			// get points
@@ -379,7 +378,6 @@ private:
 	// @return New root point
 	// @rtype Vector2Bezier
 	Vector2Bezier findRoot(Vector<Vector2Bezier> p_curves, Vector2Bezier p_curve, Vector2Bezier p_u) {
-
 		// generate control vertices for Q'
 		Vector<Vector2Bezier> curve1;
 		for (int32_t curve_i = 0; curve_i < 3; curve_i++) {
@@ -412,7 +410,6 @@ private:
 	// @param float t:
 	// @return  Vector2Bezier point on curve
 	Vector2Bezier evaluate(int32_t p_degree, Vector<Vector2Bezier> p_curves, Vector2Bezier p_t) {
-
 		// copy array
 		Vector<Vector2Bezier> curves = p_curves;
 
@@ -458,12 +455,10 @@ private:
 	// @param dict u:
 	// @return tuple of Max distance and max index
 	Vector2Bezier find_max_error(const Vector<Bezier> &p_existing_curves, int32_t p_first, int32_t p_last, Vector<Vector2Bezier> p_curves, Map<int, Vector2Bezier> p_u) {
-
 		real_t maxDist = 0.0f;
 		real_t maxIndex = Math::floor((p_last - p_first + 1.0f) / 2.0f);
 
 		for (int32_t i = p_first + 1; i < p_last; i++) {
-
 			Vector2Bezier P = evaluate(3, p_curves, p_u[i - p_first]);
 			real_t dist = (P - p_existing_curves[i].time_value).length();
 
@@ -517,7 +512,6 @@ private:
 	// @param list of angles:
 	// @return list of split indices
 	Vector<int32_t> _findTangentSplitAuto(Vector<real_t> p_angles) {
-
 		// get angles from points
 		Vector<int32_t> splits;
 
@@ -560,7 +554,6 @@ private:
 	Vector<int32_t> _find_tangent_split_existing(const Vector<Bezier> p_frames, int32_t p_start, int32_t p_end, real_t p_step) {
 		Vector<int32_t> splits;
 		for (int32_t i = 0; i < p_frames.size(); i++) {
-
 			// get closest index
 			int32_t index = int((i - p_start) / p_step);
 
@@ -580,7 +573,6 @@ private:
 	// @param int/float threshold:
 	// @return list of split indices
 	Vector<int32_t> _find_tangent_split_threshold(Vector<real_t> p_angles, real_t p_threshold) {
-
 		Vector<int32_t> splits;
 		// split based on angles
 		for (int32_t i = 0; i < p_angles.size(); i++) {
@@ -598,7 +590,6 @@ private:
 	// @param list p_split:
 	// @return list of split bezier points
 	Vector<Bezier> _split_points(const Vector<Bezier> &p_curves, Vector<int32_t> &p_split) {
-
 		// validate split
 		if (p_split.empty()) {
 			return p_curves;
@@ -740,7 +731,6 @@ public:
 	// @param KeyframeReductionSetting p_settings
 	// @return float Reduction rate
 	real_t reduce(const Vector<Bezier> &p_points, Vector<Bezier> &r_keyframes, KeyframeReductionSetting p_settings) {
-
 		if (!p_points.size()) {
 			return 0.0f;
 		}
