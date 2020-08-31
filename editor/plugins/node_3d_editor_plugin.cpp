@@ -1236,6 +1236,15 @@ void Node3DEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 						break;
 					}
 
+					if (b->get_alt()) {
+						_edit.mode = TRANSFORM_CONTEXT;
+					}
+
+					if (_edit.mode == TRANSFORM_CONTEXT) {
+						editor->get_scene_tree_dock()->get_tree_editor()->emit_signal("rmb_pressed", get_screen_transform().xform(b->get_position()));
+						break;
+					}
+
 					_edit.mouse_pos = b->get_position();
 					_edit.snap = spatial_editor->is_snap_enabled();
 					_edit.mode = TRANSFORM_NONE;
