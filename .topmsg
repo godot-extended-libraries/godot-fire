@@ -1,0 +1,4 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] remove-unused-nodes-move-to-root
+
+Scene import remove unused nodes and move meshes to be close to root.
