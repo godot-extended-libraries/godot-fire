@@ -2989,6 +2989,7 @@ void Node3DEditorViewport::_menu_option(int p_option) {
 		} break;
 		case VIEW_DISPLAY_NORMAL:
 		case VIEW_DISPLAY_WIREFRAME:
+		case VIEW_DISPLAY_WIREFRAME_SHADED:
 		case VIEW_DISPLAY_OVERDRAW:
 		case VIEW_DISPLAY_SHADELESS:
 		case VIEW_DISPLAY_LIGHTING:
@@ -3008,11 +3009,13 @@ void Node3DEditorViewport::_menu_option(int p_option) {
 			static const int display_options[] = {
 				VIEW_DISPLAY_NORMAL,
 				VIEW_DISPLAY_WIREFRAME,
+				VIEW_DISPLAY_WIREFRAME_SHADED,
 				VIEW_DISPLAY_OVERDRAW,
 				VIEW_DISPLAY_SHADELESS,
 				VIEW_DISPLAY_LIGHTING,
 				VIEW_DISPLAY_NORMAL_BUFFER,
 				VIEW_DISPLAY_WIREFRAME,
+				VIEW_DISPLAY_WIREFRAME_SHADED,
 				VIEW_DISPLAY_DEBUG_SHADOW_ATLAS,
 				VIEW_DISPLAY_DEBUG_DIRECTIONAL_SHADOW_ATLAS,
 				VIEW_DISPLAY_DEBUG_GIPROBE_ALBEDO,
@@ -3030,11 +3033,13 @@ void Node3DEditorViewport::_menu_option(int p_option) {
 			static const Viewport::DebugDraw debug_draw_modes[] = {
 				Viewport::DEBUG_DRAW_DISABLED,
 				Viewport::DEBUG_DRAW_WIREFRAME,
+				Viewport::DEBUG_DRAW_WIREFRAME_SHADED,
 				Viewport::DEBUG_DRAW_OVERDRAW,
 				Viewport::DEBUG_DRAW_UNSHADED,
 				Viewport::DEBUG_DRAW_LIGHTING,
 				Viewport::DEBUG_DRAW_NORMAL_BUFFER,
-				Viewport::DEBUG_DRAW_WIREFRAME,
+				Viewport::DEBUG_DRAW_WIREFRAME,	
+				Viewport::DEBUG_DRAW_WIREFRAME_SHADED,
 				Viewport::DEBUG_DRAW_SHADOW_ATLAS,
 				Viewport::DEBUG_DRAW_DIRECTIONAL_SHADOW_ATLAS,
 				Viewport::DEBUG_DRAW_GI_PROBE_ALBEDO,
@@ -3406,6 +3411,8 @@ Dictionary Node3DEditorViewport::get_state() const {
 		d["display_mode"] = VIEW_DISPLAY_NORMAL;
 	} else if (view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_DISPLAY_WIREFRAME))) {
 		d["display_mode"] = VIEW_DISPLAY_WIREFRAME;
+	} else if (view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_DISPLAY_WIREFRAME_SHADED))) {
+		d["display_mode"] = VIEW_DISPLAY_WIREFRAME_SHADED;
 	} else if (view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_DISPLAY_OVERDRAW))) {
 		d["display_mode"] = VIEW_DISPLAY_OVERDRAW;
 	} else if (view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_DISPLAY_SHADELESS))) {
@@ -3905,6 +3912,7 @@ Node3DEditorViewport::Node3DEditorViewport(Node3DEditor *p_spatial_editor, Edito
 	view_menu->get_popup()->add_separator();
 	view_menu->get_popup()->add_radio_check_shortcut(ED_SHORTCUT("spatial_editor/view_display_normal", TTR("Display Normal")), VIEW_DISPLAY_NORMAL);
 	view_menu->get_popup()->add_radio_check_shortcut(ED_SHORTCUT("spatial_editor/view_display_wireframe", TTR("Display Wireframe")), VIEW_DISPLAY_WIREFRAME);
+	view_menu->get_popup()->add_radio_check_shortcut(ED_SHORTCUT("spatial_editor/view_display_wireframesh_shaded", TTR("Display Wireframe Shaded")), VIEW_DISPLAY_WIREFRAME_SHADED);	
 	view_menu->get_popup()->add_radio_check_shortcut(ED_SHORTCUT("spatial_editor/view_display_overdraw", TTR("Display Overdraw")), VIEW_DISPLAY_OVERDRAW);
 	view_menu->get_popup()->add_radio_check_shortcut(ED_SHORTCUT("spatial_editor/view_display_lighting", TTR("Display Lighting")), VIEW_DISPLAY_LIGHTING);
 	view_menu->get_popup()->add_radio_check_shortcut(ED_SHORTCUT("spatial_editor/view_display_unshaded", TTR("Display Unshaded")), VIEW_DISPLAY_SHADELESS);
@@ -3964,6 +3972,7 @@ Node3DEditorViewport::Node3DEditorViewport(Node3DEditor *p_spatial_editor, Edito
 		// Alternate display modes only work when using the Vulkan renderer; make this explicit.
 		const int normal_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_NORMAL);
 		const int wireframe_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_WIREFRAME);
+		const int wireframe_shaded_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_WIREFRAME_SHADED);
 		const int overdraw_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_OVERDRAW);
 		const int shadeless_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_SHADELESS);
 		const String unsupported_tooltip = TTR("Not available when using the GLES2 renderer.");
@@ -3972,6 +3981,8 @@ Node3DEditorViewport::Node3DEditorViewport(Node3DEditor *p_spatial_editor, Edito
 		view_menu->get_popup()->set_item_tooltip(normal_idx, unsupported_tooltip);
 		view_menu->get_popup()->set_item_disabled(wireframe_idx, true);
 		view_menu->get_popup()->set_item_tooltip(wireframe_idx, unsupported_tooltip);
+		view_menu->get_popup()->set_item_disabled(wireframe_shaded_idx, true);
+		view_menu->get_popup()->set_item_tooltip(wireframe_shaded_idx, unsupported_tooltip);
 		view_menu->get_popup()->set_item_disabled(overdraw_idx, true);
 		view_menu->get_popup()->set_item_tooltip(overdraw_idx, unsupported_tooltip);
 		view_menu->get_popup()->set_item_disabled(shadeless_idx, true);
