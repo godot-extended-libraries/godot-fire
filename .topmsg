@@ -1,0 +1,8 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/bone-parent-to-child
+
+Point bone parent to children. Leaf bones point to parent.
+
+Co-Authored-by MMMaellon
+Co-Authored-by Eron.
+Co-Authored-by Lyuma.
