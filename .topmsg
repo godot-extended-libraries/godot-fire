@@ -1,0 +1,3 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/remove-empties
+Remove 3d empties that don't lead to a non-empty 3d node.
