@@ -1,0 +1,14 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/crash-report
+Add a crash reporter that sends to breakpad.
+
+* Add a function that will crash the engine.
+* Add Breakpad project config variables for the server and handler location.
+* Add video adapter name, Godot version and product name to be sent as annotations.
+* Move defaults to project settings and use globalize_path.
+* Add Google's crashpad to thirdparty folder.
+* Add a confirmation dialog to Crashpad crash report uploading.
+* If the handler or url config is empty, do nothing.
+* Use a global static variable to disable crash reporting because the crash exception handler is a static function.
+* Create scons options for crashpad_url and crashpad_handler_path
+* Split crashpad settings into project and editor ones and have a clearly labelled offswitch.
