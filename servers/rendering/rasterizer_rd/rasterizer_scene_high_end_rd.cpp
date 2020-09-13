@@ -1966,6 +1966,10 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 		}
 	}
 
+	RD::DrawListID draw_list_wireframe = RD::get_singleton()->draw_list_begin(opaque_framebuffer, can_continue_color ? RD::INITIAL_ACTION_CONTINUE : RD::INITIAL_ACTION_KEEP, RD::FINAL_ACTION_READ, can_continue_depth ? RD::INITIAL_ACTION_CONTINUE : RD::INITIAL_ACTION_KEEP, RD::FINAL_ACTION_READ);
+	_render_list(draw_list_wireframe, RD::get_singleton()->framebuffer_get_format(opaque_framebuffer), render_list.elements, render_list.element_count, true, PASS_MODE_COLOR, true, RID(), RID(), true);
+	RD::get_singleton()->draw_list_end();
+
 	RENDER_TIMESTAMP("Render Transparent Pass");
 
 	_setup_environment(p_environment, p_render_buffer, p_cam_projection, p_cam_transform, p_reflection_probe, p_reflection_probe.is_valid(), screen_pixel_size, p_shadow_atlas, !p_reflection_probe.is_valid(), p_default_bg_color, p_cam_projection.get_z_near(), p_cam_projection.get_z_far(), false);
