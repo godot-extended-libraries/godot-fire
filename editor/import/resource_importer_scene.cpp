@@ -1649,7 +1649,6 @@ void ResourceImporterScene::_fix_skeleton(Skeleton3D *p_skeleton, Map<int, Resou
 }
 
 void ResourceImporterScene::_fix_meshes(Map<int, ResourceImporterScene::RestBone> &r_rest_bones, Vector<MeshInstance3D *> p_meshes) {
-
 	for (int32_t mesh_i = 0; mesh_i < p_meshes.size(); mesh_i++) {
 		MeshInstance3D *mi = p_meshes.write[mesh_i];
 		Ref<Skin> skin = mi->get_skin();
@@ -1677,7 +1676,7 @@ void ResourceImporterScene::_fix_meshes(Map<int, ResourceImporterScene::RestBone
 		}
 	}
 }
-Transform ResourceImporterScene::get_bone_global_transform(int p_id, Skeleton3D *p_skeleton, Vector<Vector<Transform> > p_local_transform_array) {
+Transform ResourceImporterScene::get_bone_global_transform(int p_id, Skeleton3D *p_skeleton, Vector<Vector<Transform>> p_local_transform_array) {
 	Transform return_transform;
 	int parent_id = p_skeleton->get_bone_parent(p_id);
 	if (parent_id != -1) {
@@ -1724,7 +1723,6 @@ void ResourceImporterScene::_skeleton_point_to_children(Node *p_scene) {
 }
 
 void ResourceImporterScene::_align_animations(Node *scene, const Map<int, RestBone> &p_rest_bones) {
-
 	if (!scene->has_node(String("AnimationPlayer")))
 		return;
 	Node *n = scene->get_node(String("AnimationPlayer"));
