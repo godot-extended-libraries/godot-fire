@@ -196,7 +196,7 @@ DWORD CrashHandlerException(EXCEPTION_POINTERS *ep) {
 			msg = proj_settings->get("debug/settings/crash_handler/message");
 		}
 
-	fprintf(stderr, "Dumping the backtrace. %s\n", msg.utf8().get_data());
+		fprintf(stderr, "Dumping the backtrace. %s\n", msg.utf8().get_data());
 
 		int n = 0;
 		do {
@@ -224,14 +224,18 @@ DWORD CrashHandlerException(EXCEPTION_POINTERS *ep) {
 		if (dir.dir_exists(database_path) == false) {
 			dir.make_dir_recursive(database_path);
 		}
-		base::FilePath database = base::FilePath(std::wstring(ProjectSettings::get_singleton()->globalize_path(database_path).c_str()));
+		const char *s = ProjectSettings::get_singleton()->globalize_path(database_path).utf8().ptr();
+		size_t len = MultiByteToWideChar(CP_ACP, 0, s, -1, nullptr, 0);
+		wchar_t *wide_string = new wchar_t[len];
+		MultiByteToWideChar(CP_ACP, 0, s, -1, wide_string, (int)len);
+		base::FilePath database = base::FilePath(wide_string);
 		std::unique_ptr<crashpad::CrashReportDatabase> db =
 				crashpad::CrashReportDatabase::Initialize(database);
 
 		if (MessageBoxA(NULL,
 					"Would you like to submit a report about this and "
 					"previous crashes to help improve future versions "
-					"of Godot Engine godotengine.org?\n",
+					"of Godot Engine https://godotengine.org?\n",
 					"Godot Engine has crashed",
 					MB_YESNO | MB_ICONERROR) != IDYES) {
 			return EXCEPTION_CONTINUE_SEARCH;
@@ -297,9 +301,21 @@ void CrashHandler::initialize_crashpad(String p_crashpad_handler_path, String p_
 	if (!dir.dir_exists(database_path)) {
 		dir.make_dir_recursive(database_path);
 	}
-	database = base::FilePath(std::wstring(ProjectSettings::get_singleton()->globalize_path(database_path).c_str()));
-	// Path to the out-of-process handler executable
-	handler = base::FilePath(std::wstring(ProjectSettings::get_singleton()->globalize_path(p_crashpad_handler_path).c_str()));
+	{
+		const char *string = ProjectSettings::get_singleton()->globalize_path(database_path).utf8().ptr();
+		size_t len = MultiByteToWideChar(CP_ACP, 0, string, -1, nullptr, 0);
+		wchar_t *wide_string = new wchar_t[len];
+		MultiByteToWideChar(CP_ACP, 0, string, -1, wide_string, (int)len);
+		database = base::FilePath(wide_string);
+	}
+	{
+		// Path to the out-of-process handler executable
+		const char *string = ProjectSettings::get_singleton()->globalize_path(p_crashpad_handler_path).utf8().ptr();
+		size_t len = MultiByteToWideChar(CP_ACP, 0, string, -1, nullptr, 0);
+		wchar_t *wide_string = new wchar_t[len];
+		MultiByteToWideChar(CP_ACP, 0, string, -1, wide_string, (int)len);
+		handler = base::FilePath(wide_string);
+	}
 	// URL used to submit minidumps to
 	std::string url = p_crashpad_server.utf8().ptr();
 	// Optional annotations passed via --annotations to the handler
