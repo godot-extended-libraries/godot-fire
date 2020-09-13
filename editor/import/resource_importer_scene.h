@@ -134,7 +134,7 @@ private:
 	void _moved_mesh_and_attachments(Node *p_current, Node *p_owner, Map<MeshInstance3D *, Skeleton3D *> &r_moved_meshes,
 			Map<BoneAttachment3D *, Skeleton3D *> &r_moved_attachments);
 	void _duplicate_children(Node *current_node, Node *matching_node, Node *owner, Transform global_xform);
-    
+
 public:
 	struct RestBone {
 		NodePath path;
