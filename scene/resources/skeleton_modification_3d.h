@@ -123,7 +123,7 @@ public:
 	void set_execution_mode(int p_mode);
 	int get_execution_mode() const;
 
-	SkeletonModificationStack3D *get_modification_stack();
+	Ref<SkeletonModificationStack3D> get_modification_stack();
 
 	void set_is_setup(bool p_setup);
 	bool get_is_setup() const;
