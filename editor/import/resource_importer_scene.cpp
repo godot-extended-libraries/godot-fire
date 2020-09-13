@@ -1117,6 +1117,7 @@ void ResourceImporterScene::get_import_options(List<ImportOption> *r_options, in
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "nodes/root_scale", PROPERTY_HINT_RANGE, "0.001,1000,0.001"), 1.0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::STRING, "nodes/custom_script", PROPERTY_HINT_FILE, script_ext_hint), ""));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "nodes/storage", PROPERTY_HINT_ENUM, "Single Scene,Instanced Sub-Scenes"), scenes_out ? 1 : 0));
+	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "nodes/optimizer/remove_empty_spatials", PROPERTY_HINT_NONE), false));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "materials/location", PROPERTY_HINT_ENUM, "Node,Mesh"), (meshes_out || materials_out) ? 1 : 0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "materials/storage", PROPERTY_HINT_ENUM, "Built-In,Files (.material),Files (.tres)", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), materials_out ? 1 : 0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "materials/keep_on_reimport"), materials_out));
@@ -1495,6 +1496,11 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 		_make_external_resources(scene, base_path, external_animations, external_animations_as_text, keep_custom_tracks, external_materials, external_materials_as_text, keep_materials, external_meshes, external_meshes_as_text, anim_map, mat_map, mesh_map);
 	}
 
+	bool scene_optimizer = p_options["nodes/optimizer/remove_empty_spatials"];
+	if (scene_optimizer) {
+		_remove_empty_spatials(scene);
+	}
+
 	progress.step(TTR("Running Custom Script..."), 2);
 
 	String post_import_script_path = p_options["nodes/custom_script"];
@@ -1569,6 +1575,67 @@ ResourceImporterScene *ResourceImporterScene::singleton = nullptr;
 
 ResourceImporterScene::ResourceImporterScene() {
 	singleton = this;
+}
+
+void ResourceImporterScene::_mark_nodes(Node *p_current, Node *p_owner, Vector<Node *> &r_nodes) {
+	Array queue;
+	queue.push_back(p_current);
+	while (queue.size()) {
+		Node *node = queue.pop_back();
+		r_nodes.push_back(node);
+		for (int32_t i = 0; i < node->get_child_count(); i++) {
+			queue.push_back(node->get_child(i));
+		}
+	}
+}
+
+void ResourceImporterScene::_remove_empty_spatials(Node *scene) {
+	Vector<Node *> nodes;
+	_clean_animation_player(scene);
+	_mark_nodes(scene, scene, nodes);
+	nodes.invert();
+	_remove_nodes(scene, nodes);
+}
+
+void ResourceImporterScene::_clean_animation_player(Node *scene) {
+	for (int32_t i = 0; i < scene->get_child_count(); i++) {
+		AnimationPlayer *ap = Object::cast_to<AnimationPlayer>(scene->get_child(i));
+		if (!ap) {
+			continue;
+		}
+		List<StringName> animations;
+		ap->get_animation_list(&animations);
+		for (List<StringName>::Element *E = animations.front(); E; E = E->next()) {
+			Ref<Animation> animation = ap->get_animation(E->get());
+			for (int32_t k = 0; k < animation->get_track_count(); k++) {
+				NodePath path = animation->track_get_path(k);
+				if (!scene->has_node(path)) {
+					animation->remove_track(k);
+				}
+			}
+		}
+	}
+}
+
+void ResourceImporterScene::_remove_nodes(Node *scene, Vector<Node *> &r_nodes) {
+	for (int32_t node_i = 0; node_i < r_nodes.size(); node_i++) {
+		Node *node = r_nodes[node_i];
+		bool is_root = node == scene;
+		bool is_base_spatial = node->get_class_name() == Node3D().get_class_name();
+		int32_t pending_deletion_count = 0;
+		for (int32_t child_i = 0; child_i < node->get_child_count(); child_i++) {
+			if (node->get_child(child_i)->is_queued_for_deletion()) {
+				pending_deletion_count++;
+			}
+		}
+		bool has_children = (node->get_child_count() - pending_deletion_count) > 0;
+		if (!is_root && is_base_spatial && !has_children) {
+			print_verbose("ResourceImporterScene extra node \"" + node->get_name() + "\" was removed");
+			node->queue_delete();
+		} else {
+			print_verbose("ResourceImporterScene node \"" + node->get_name() + "\" was kept");
+		}
+	}
 }
 
 ///////////////////////////////////////

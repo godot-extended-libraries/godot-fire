@@ -120,6 +120,12 @@ class ResourceImporterScene : public ResourceImporter {
 
 	void _replace_owner(Node *p_node, Node *p_scene, Node *p_new_owner);
 
+private:
+	void _mark_nodes(Node *p_current, Node *p_owner, Vector<Node *> &r_remove_nodes);
+	void _clean_animation_player(Node *scene);
+	void _remove_nodes(Node *node, Vector<Node *> &r_nodes);
+	void _remove_empty_spatials(Node *scene);
+
 public:
 	static ResourceImporterScene *get_singleton() { return singleton; }
 
