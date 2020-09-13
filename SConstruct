@@ -116,10 +116,18 @@ opts.Add(EnumVariable("optimize", "Optimization type", "speed", ("speed", "size"
 opts.Add(BoolVariable("tools", "Build the tools (a.k.a. the Godot editor)", True))
 opts.Add(BoolVariable("tests", "Build the unit tests", False))
 opts.Add(BoolVariable("use_lto", "Use link-time optimization", False))
-opts.Add(BoolVariable("use_precise_math_checks", "Math checks use very precise epsilon (debug option)", False,))
+opts.Add(
+    BoolVariable(
+        "use_precise_math_checks",
+        "Math checks use very precise epsilon (debug option)",
+        False,
+    )
+)
 opts.Add("crashpad_url", "Set crashpad crash reporter url", "")
 opts.Add(
-    "crashpad_handler_path", "Set crashpad crash reporter handler path", "res://crashpad_handler.com",
+    "crashpad_handler_path",
+    "Set crashpad crash reporter handler path",
+    "res://crashpad_handler.com",
 )
 
 # Components
@@ -135,15 +143,26 @@ opts.Add(EnumVariable("warnings", "Level of compilation warnings", "all", ("extr
 opts.Add(BoolVariable("werror", "Treat compiler warnings as errors", False))
 opts.Add(BoolVariable("dev", "If yes, alias for verbose=yes warnings=extra werror=yes", False))
 opts.Add(
-    "extra_suffix", "Custom extra suffix added to the base filename of all generated binary files", "",
+    "extra_suffix",
+    "Custom extra suffix added to the base filename of all generated binary files",
+    "",
 )
 opts.Add(BoolVariable("vsproj", "Generate a Visual Studio solution", False))
-opts.Add(EnumVariable("macports_clang", "Build using Clang from MacPorts", "no", ("no", "5.0", "devel"),))
+opts.Add(
+    EnumVariable(
+        "macports_clang",
+        "Build using Clang from MacPorts",
+        "no",
+        ("no", "5.0", "devel"),
+    )
+)
 opts.Add(BoolVariable("disable_3d", "Disable 3D nodes for a smaller executable", False))
 opts.Add(BoolVariable("disable_advanced_gui", "Disable advanced GUI nodes and behaviors", False))
 opts.Add(BoolVariable("no_editor_splash", "Don't use the custom splash screen for the editor", False))
 opts.Add(
-    "system_certs_path", "Use this path as SSL certificates default for editor (for package maintainers)", "",
+    "system_certs_path",
+    "Use this path as SSL certificates default for editor (for package maintainers)",
+    "",
 )
 
 # Thirdparty libraries
@@ -164,7 +183,13 @@ opts.Add(BoolVariable("builtin_mbedtls", "Use the built-in mbedTLS library", Tru
 opts.Add(BoolVariable("builtin_miniupnpc", "Use the built-in miniupnpc library", True))
 opts.Add(BoolVariable("builtin_opus", "Use the built-in Opus library", True))
 opts.Add(BoolVariable("builtin_pcre2", "Use the built-in PCRE2 library", True))
-opts.Add(BoolVariable("builtin_pcre2_with_jit", "Use JIT compiler for the built-in PCRE2 library", True,))
+opts.Add(
+    BoolVariable(
+        "builtin_pcre2_with_jit",
+        "Use JIT compiler for the built-in PCRE2 library",
+        True,
+    )
+)
 opts.Add(BoolVariable("builtin_recast", "Use the built-in Recast library", True))
 opts.Add(BoolVariable("builtin_rvo2", "Use the built-in RVO2 library", True))
 opts.Add(BoolVariable("builtin_squish", "Use the built-in squish library", True))
