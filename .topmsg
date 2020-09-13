@@ -1,0 +1,11 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/object-context-menu
+Add object context menu on control-button-right
+
+Pressing control-right will show the context menu.
+
+Only selected objects will be used by the menu.
+
+No object will be pick-selected while pressing control-right.
+
+Co-authored-by: Martin Capitanio <capnm@capitanio.org>
