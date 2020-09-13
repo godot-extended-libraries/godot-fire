@@ -125,11 +125,16 @@ class ResourceImporterScene : public ResourceImporter {
 	void _replace_owner(Node *p_node, Node *p_scene, Node *p_new_owner);
 
 private:
+	void _mark_nodes(Node *p_current, Node *p_owner, Vector<Node *> &r_remove_nodes);
+	void _clean_animation_player(Node *scene);
+	void _remove_nodes(Node *node, Vector<Node *> &r_nodes);
+	void _remove_empty_spatials(Node *scene);
 	Error _animation_player_move(Node *new_scene, const Node *scene, Map<MeshInstance3D *, Skeleton3D *> &r_moved_meshes);
 	void _move_nodes(Node *new_scene, const Map<MeshInstance3D *, Skeleton3D *> moved_meshes, const Map<BoneAttachment3D *, Skeleton3D *> moved_attachments);
 	void _moved_mesh_and_attachments(Node *p_current, Node *p_owner, Map<MeshInstance3D *, Skeleton3D *> &r_moved_meshes,
 			Map<BoneAttachment3D *, Skeleton3D *> &r_moved_attachments);
 	void _duplicate_children(Node *current_node, Node *matching_node, Node *owner, Transform global_xform);
+    
 public:
 	struct RestBone {
 		NodePath path;
