@@ -1,0 +1,3 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/cubic-interpolation
+Change cubic interpolation of rotations in 3d transform animation track so it is predictable.
