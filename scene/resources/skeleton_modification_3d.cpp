@@ -319,7 +319,7 @@ bool SkeletonModification3D::_print_execution_error(bool p_condition, String p_m
 	return p_condition;
 }
 
-SkeletonModificationStack3D *SkeletonModification3D::get_modification_stack() {
+Ref<SkeletonModificationStack3D> SkeletonModification3D::get_modification_stack() {
 	return stack;
 }
 
