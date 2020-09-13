@@ -122,6 +122,12 @@ class ResourceImporterScene : public ResourceImporter {
 	void _generate_meshes(Node *p_node, const Dictionary &p_mesh_data, bool p_generate_lods, bool p_create_shadow_meshes, LightBakeMode p_light_bake_mode, float p_lightmap_texel_size, const Vector<uint8_t> &p_src_lightmap_cache, Vector<Vector<uint8_t>> &r_lightmap_caches);
 	void _add_shapes(Node *p_node, const List<Ref<Shape3D>> &p_shapes);
 
+private:
+	void _mark_nodes(Node *p_current, Node *p_owner, Vector<Node *> &r_remove_nodes);
+	void _clean_animation_player(Node *scene);
+	void _remove_nodes(Node *node, Vector<Node *> &r_nodes);
+	void _remove_empty_spatials(Node *scene);
+
 public:
 	static ResourceImporterScene *get_singleton() { return singleton; }
 
