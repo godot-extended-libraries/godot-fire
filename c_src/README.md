@@ -10,7 +10,7 @@ require Unifex.CNode
 Unifex.CNode.call(pid, :init, [["godot", "-v"]])
 Unifex.CNode.call(pid, :iteration, [1])
 Unifex.CNode.call(pid, :call, ["get_node_count"])
-Unifex.CNode.call(pid, :finish, [])
+Unifex.CNode.call(pid, :call, ["get_method_list"])
 Unifex.CNode.call(pid, :init, [["godot", "-v"]])
 Unifex.CNode.stop(pid)
 ```
