@@ -31,11 +31,10 @@
 #include "main/main.h"
 #include "os_server.h"
 
-int main(int argc, char *argv[]) {
-
+int godot_main(int argc, char *argv[]) {
 	OS_Server os;
 
-	Error err = Main::setup(argv[0], argc - 1, &argv[1]);
+	int err = Main::setup(argv[0], argc - 1, &argv[1]);
 	if (err != OK)
 		return 255;
 
@@ -44,4 +43,8 @@ int main(int argc, char *argv[]) {
 	Main::cleanup();
 
 	return os.get_exit_code();
+}
+
+int main(int argc, char *argv[]) {
+	return godot_main(argc, argv);
 }

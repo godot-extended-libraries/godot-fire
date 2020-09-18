@@ -132,6 +132,9 @@ def configure(env):
 
     env.Append(CCFLAGS=["-pipe"])
     env.Append(LINKFLAGS=["-pipe"])
+    
+    env.Append(CCFLAGS=["-fPIC"])
+    env.Append(CXXFLAGS=["-fPIC"])
 
     ## Dependencies
 
