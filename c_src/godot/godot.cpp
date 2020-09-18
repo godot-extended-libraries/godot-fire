@@ -2,9 +2,14 @@
 
 static OS_Server os;
 
-UNIFEX_TERM init(UnifexEnv *env, char **in_strings, unsigned int list_length) {
-	MyState *state = unifex_alloc_state(env);
-	int err = Main::setup(in_strings[0], list_length - 1, &in_strings[1]);
+UNIFEX_TERM init(UnifexEnv *env, MyState *state, char **in_strings, unsigned int list_length) {
+	int err = OK;
+	if (state) {
+		UNIFEX_TERM res = init_result_ok(env, state, FAILED);
+		return res;
+	}
+	state = unifex_alloc_state(env);
+	err = Main::setup(in_strings[0], list_length - 1, &in_strings[1]);
 	if (err != OK) {
 		return init_result_ok(env, state, 255);
 	}
@@ -20,6 +25,9 @@ UNIFEX_TERM init(UnifexEnv *env, char **in_strings, unsigned int list_length) {
 }
 
 UNIFEX_TERM iteration(UnifexEnv *env, MyState *state, int delta) {
+	if (!state) {
+		return iteration_result_ok(env, state, 255);
+	}
 	bool err = os.get_main_loop()->iteration(delta);
 	if (err != OK) {
 		return iteration_result_ok(env, state, 255);
@@ -37,7 +45,7 @@ UNIFEX_TERM call(UnifexEnv *env, MyState *state, char *method) {
 	}
 	Variant::CallError call_error;
 	Variant res = os.get_main_loop()->call(method, nullptr, 0, call_error);
-	if(res.get_type() == Variant::STRING) {
+	if (res.get_type() == Variant::STRING) {
 		return call_result_ok(env, state, String(res).utf8().get_data());
 	}
 	return call_result_ok(env, state, "");
