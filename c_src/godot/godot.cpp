@@ -14,7 +14,7 @@ UNIFEX_TERM init(UnifexEnv *env, MyState *state, char **in_strings, unsigned int
 	}
 	if (!Main::start()) {
 		return init_result_fail(env, state, "Godot can't start.");
-	}	
+	}
 	return init_result_ok(env, state, err);
 }
 
@@ -32,21 +32,54 @@ UNIFEX_TERM iteration(UnifexEnv *env, MyState *state, int delta) {
 
 UNIFEX_TERM call(UnifexEnv *env, MyState *state, char *method) {
 	if (!state) {
-        return call_result_fail(env, state, "Godot is not initalized.");
+		return call_result_fail(env, state, "Godot is not initalized.");
 	}
 	if (!os.get_main_loop()->get_script_instance()) {
-        return call_result_fail(env, state, "Godot does not have a script instance.");
+		return call_result_fail(env, state, "Godot does not have a script instance.");
 	}
 	Variant::CallError call_error;
 	Variant res = os.get_main_loop()->call(method, nullptr, 0, call_error);
-	const CharString res_char_string = String(res).utf8();
-	const char *res_string = res_char_string.get_data();
-	return call_result_ok(env, state, res.get_type(), res_string);
+	switch (res.get_type()) {
+		case Variant::NIL: {
+			return call_result_fail(env, state, "Call is invalid.");
+		} break;
+		case Variant::BOOL: {
+			int res_int = res;
+			return call_result_ok_bool(env, state, res_int);
+		} break;
+		case Variant::INT: {
+			int res_int = res;
+			return call_result_ok_int(env, state, res_int);
+		} break;
+		case Variant::REAL: {
+			const CharString res_char_string = String(res).utf8();
+			const char *res_string = res_char_string.get_data();
+			return call_result_ok_string(env, state, res_string);
+			// return call_result_ok_float(env, state, res.get_type(), res_float);
+		} break;
+		case Variant::STRING: {
+			const CharString res_char_string = String(res).utf8();
+			const char *res_string = res_char_string.get_data();
+			return call_result_ok_string(env, state, res_string);
+		} break;
+		case Variant::POOL_STRING_ARRAY:
+			[[fallthrough]];
+		case Variant::POOL_INT_ARRAY:
+			[[fallthrough]];
+		case Variant::POOL_REAL_ARRAY:
+			[[fallthrough]];
+		case Variant::DICTIONARY:
+			[[fallthrough]];
+		default: {
+			return call_result_fail(env, state, "Call is unsupported.");
+		} break;
+	}
+	return call_result_fail(env, state, "Call is invalid.");
 }
 
 void handle_destroy_state(UnifexEnv *env, MyState *state) {
-    UNIFEX_UNUSED(env);
-    UNIFEX_UNUSED(state);
+	UNIFEX_UNUSED(env);
+	UNIFEX_UNUSED(state);
 	os.get_main_loop()->finish();
 	Main::cleanup();
 }
