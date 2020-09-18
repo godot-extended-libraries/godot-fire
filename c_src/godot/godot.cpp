@@ -62,16 +62,10 @@ UNIFEX_TERM call(UnifexEnv *env, MyState *state, char *method) {
 			const char *res_string = res_char_string.get_data();
 			return call_result_ok_string(env, state, res_string);
 		} break;
-		case Variant::POOL_STRING_ARRAY:
-			[[fallthrough]];
-		case Variant::POOL_INT_ARRAY:
-			[[fallthrough]];
-		case Variant::POOL_REAL_ARRAY:
-			[[fallthrough]];
-		case Variant::DICTIONARY:
-			[[fallthrough]];
 		default: {
-			return call_result_fail(env, state, "Call is unsupported.");
+			const CharString res_char_string = (String("Unsupported result: ") + String(res)).utf8();
+			const char *res_string = res_char_string.get_data();
+			return call_result_fail(env, state, res_string);
 		} break;
 	}
 	return call_result_fail(env, state, "Call is invalid.");
