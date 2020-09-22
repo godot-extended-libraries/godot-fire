@@ -298,11 +298,8 @@ void Skeleton::_notification(int p_what) {
 			}
 
 			if (modification_stack.is_valid()) {
-				if (modification_stack->execution_mode == SkeletonModificationStack3D::EXECUTION_MODE::execution_mode_physics_process) {
-					execute_modifications(get_physics_process_delta_time());
-				}
+				execute_modifications(get_physics_process_delta_time(), SkeletonModificationStack3D::EXECUTION_MODE::execution_mode_physics_process);
 			}
-
 		} break;
 #endif // _3D_DISABLED
 
@@ -320,8 +317,8 @@ void Skeleton::_notification(int p_what) {
 #ifndef _3D_DISABLED
 		case NOTIFICATION_INTERNAL_PROCESS: {
 			if (modification_stack.is_valid()) {
-				if (modification_stack->execution_mode == SkeletonModificationStack3D::EXECUTION_MODE::execution_mode_process) {
-					execute_modifications(get_process_delta_time());
+				if (modification_stack.is_valid()) {
+					execute_modifications(get_process_delta_time(), SkeletonModificationStack3D::EXECUTION_MODE::execution_mode_process);
 				}
 			}
 		} break;
@@ -1103,11 +1100,17 @@ Ref<SkeletonModificationStack3D> Skeleton::get_modification_stack() {
 	return modification_stack;
 }
 
-void Skeleton::execute_modifications(float delta) {
+void Skeleton::execute_modifications(float delta, int execution_mode) {
 	if (!modification_stack.is_valid()) {
 		return;
 	}
-	modification_stack->execute(delta);
+
+	// Needed to avoid the issue where the stack looses reference to the skeleton when the scene is saved.
+	if (modification_stack->skeleton != this) {
+		modification_stack->set_skeleton(this);
+	}
+
+	modification_stack->execute(delta, execution_mode);
 }
 
 #endif // _3D_DISABLED
