@@ -54,11 +54,13 @@ void BoneAttachment::_validate_property(PropertyInfo &property) const {
 
 void BoneAttachment::_check_bind() {
 	Skeleton *sk = Object::cast_to<Skeleton>(get_parent());
-	if (sk) {
-		int idx = sk->find_bone(bone_name);
-		if (idx != -1) {
-			sk->bind_child_node_to_bone(idx, this);
-			set_transform(sk->get_bone_global_pose(idx));
+	if (sk && !bound) {
+		if (bone_idx <= -1) {
+			bone_idx = sk->find_bone(bone_name);
+		}
+		if (bone_idx != -1) {
+			sk->connect("bone_pose_changed", this, "on_bone_pose_override");
+			set_transform(sk->get_bone_global_pose(bone_idx));
 			bound = true;
 		}
 	}
@@ -72,25 +74,50 @@ void BoneAttachment::_check_unbind() {
 			if (idx != -1) {
 				sk->unbind_child_node_from_bone(idx, this);
 			}
+			sk->disconnect("bone_pose_changed", this, "on_bone_pose_override");
 		}
 		bound = false;
 	}
 }
 
 void BoneAttachment::set_bone_name(const String &p_name) {
-	if (is_inside_tree()) {
-		_check_unbind();
-	}
-
 	bone_name = p_name;
-
-	if (is_inside_tree()) {
-		_check_bind();
+	Skeleton *sk = Object::cast_to<Skeleton>(get_parent());
+	if (sk) {
+		set_bone_idx(sk->find_bone(bone_name));
 	}
 }
 
 String BoneAttachment::get_bone_name() const {
 	return bone_name;
+}
+
+void BoneAttachment::set_bone_idx(const int &p_idx) {
+	if (is_inside_tree()) {
+		_check_unbind();
+	}
+
+	bone_idx = p_idx;
+
+	Skeleton *sk = Object::cast_to<Skeleton>(get_parent());
+	if (sk) {
+		if (bone_idx <= -1 || bone_idx >= sk->get_bone_count()) {
+			WARN_PRINT("Bone index out of range! Cannot connect BoneAttachment to node!");
+			bone_idx = -1;
+		} else {
+			bone_name = sk->get_bone_name(bone_idx);
+		}
+	}
+
+	if (is_inside_tree()) {
+		_check_bind();
+	}
+
+	_change_notify();
+}
+
+int BoneAttachment::get_bone_idx() const {
+	return bone_idx;
 }
 
 void BoneAttachment::_notification(int p_what) {
@@ -104,6 +131,15 @@ void BoneAttachment::_notification(int p_what) {
 	}
 }
 
+void BoneAttachment::on_bone_pose_override(int p_bone_index) {
+	if (bone_idx == p_bone_index) {
+		Skeleton *sk = Object::cast_to<Skeleton>(get_parent());
+		if (sk) {
+			set_transform(sk->get_bone_global_pose(p_bone_index));
+		}
+	}
+}
+
 BoneAttachment::BoneAttachment() {
 	bound = false;
 }
@@ -112,5 +148,11 @@ void BoneAttachment::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bone_name", "bone_name"), &BoneAttachment::set_bone_name);
 	ClassDB::bind_method(D_METHOD("get_bone_name"), &BoneAttachment::get_bone_name);
 
+	ClassDB::bind_method(D_METHOD("set_bone_idx", "bone_idx"), &BoneAttachment::set_bone_idx);
+	ClassDB::bind_method(D_METHOD("get_bone_idx"), &BoneAttachment::get_bone_idx);
+
+	ClassDB::bind_method(D_METHOD("on_bone_pose_override"), &BoneAttachment::on_bone_pose_override);
+
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "bone_name"), "set_bone_name", "get_bone_name");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "bone_idx"), "set_bone_idx", "get_bone_idx");
 }

@@ -182,7 +182,6 @@ void Skeleton::_get_property_list(List<PropertyInfo> *p_list) const {
 		p_list->push_back(PropertyInfo(Variant::TRANSFORM, prep + "rest", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::BOOL, prep + "enabled", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::TRANSFORM, prep + "pose", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
-		p_list->push_back(PropertyInfo(Variant::ARRAY, prep + "bound_children", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 	}
 	
 #ifndef _3D_DISABLED
@@ -1073,14 +1072,6 @@ void Skeleton::force_update_bone_children_transforms(int p_bone_idx) {
 			b.global_pose_override_amount = 0.0;
 		}
 
-		for (List<ObjectID>::Element *E = b.nodes_bound.front(); E; E = E->next()) {
-			Object *obj = ObjectDB::get_instance(E->get());
-			ERR_CONTINUE(!obj);
-			Spatial *node_3d = Object::cast_to<Spatial>(obj);
-			ERR_CONTINUE(!node_3d);
-			node_3d->set_transform(b.pose_global);
-		}
-
 		// Add the bone's children to the list of bones to be processed
 		int child_bone_size = b.child_bones.size();
 		for (int i = 0; i < child_bone_size; i++) {
@@ -1208,10 +1199,6 @@ void Skeleton::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bone_disable_rest", "bone_idx", "disable"), &Skeleton::set_bone_disable_rest);
 	ClassDB::bind_method(D_METHOD("is_bone_rest_disabled", "bone_idx"), &Skeleton::is_bone_rest_disabled);
 
-	ClassDB::bind_method(D_METHOD("bind_child_node_to_bone", "bone_idx", "node"), &Skeleton::bind_child_node_to_bone);
-	ClassDB::bind_method(D_METHOD("unbind_child_node_from_bone", "bone_idx", "node"), &Skeleton::unbind_child_node_from_bone);
-	ClassDB::bind_method(D_METHOD("get_bound_child_nodes_to_bone", "bone_idx"), &Skeleton::_get_bound_child_nodes_to_bone);
-
 	ClassDB::bind_method(D_METHOD("clear_bones"), &Skeleton::clear_bones);
 
 	ClassDB::bind_method(D_METHOD("get_bone_pose", "bone_idx"), &Skeleton::get_bone_pose);
@@ -1266,6 +1253,8 @@ void Skeleton::_bind_methods() {
 #ifdef TOOLS_ENABLED
 	ADD_SIGNAL(MethodInfo("pose_updated"));
 #endif // TOOLS_ENABLED
+
+	ADD_SIGNAL(MethodInfo("bone_pose_changed", PropertyInfo(Variant::INT, "bone_idx")));
 
 	BIND_CONSTANT(NOTIFICATION_UPDATE_SKELETON);
 }
