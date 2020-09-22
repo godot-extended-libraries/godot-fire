@@ -42,6 +42,7 @@ class BoneAttachment : public Spatial {
 
 	bool override_pose = false;
 	int override_mode = 0;
+	bool _override_dirty = false;
 
 	enum OVERRIDE_MODES {
 		MODE_GLOBAL_POSE,
@@ -58,7 +59,7 @@ class BoneAttachment : public Spatial {
 
 	void _transform_changed();
 	void _update_external_skeleton_cache();
-	Skeleton *_get_Skeleton() const;
+	Skeleton *_get_skeleton();
 
 protected:
 	virtual void _validate_property(PropertyInfo &property) const override;
