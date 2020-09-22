@@ -1143,7 +1143,6 @@ void SkeletonModification3DFABRIK::execute(float delta) {
 
 	while (target_distance > chain_tolerance) {
 		chain_backwards();
-		chain_forwards();
 		chain_apply();
 
 		// update the target distance
@@ -1163,9 +1162,11 @@ void SkeletonModification3DFABRIK::chain_backwards() {
 
 	// Get the direction the final bone is facing in.
 	stack->skeleton->update_bone_rest_forward_vector(final_bone_idx);
-	// Use the global pose so it points in the right direction the bone is currently facing in, not necessarily where the local override is facing.
-	Vector3 direction = stack->skeleton->get_bone_global_pose(final_bone_idx).xform(stack->skeleton->get_bone_axis_forward_vector(final_bone_idx)).normalized();
+	Transform final_bone_direction_trans = final_joint_trans.looking_at(target_global_pose.origin, Vector3(0, 1, 0));
+	final_bone_direction_trans.basis = stack->skeleton->global_pose_z_forward_to_bone_forward(final_bone_idx, final_bone_direction_trans.basis);
+	Vector3 direction = final_bone_direction_trans.basis.xform(stack->skeleton->get_bone_axis_forward_vector(final_bone_idx)).normalized();
 
+	// If set to override, then use the target's Basis rather than the bone's
 	if (fabrik_data_chain[final_joint_idx].use_target_basis) {
 		direction = target_global_pose.basis.xform(stack->skeleton->get_bone_axis_forward_vector(final_bone_idx)).normalized();
 	}
@@ -1214,6 +1215,8 @@ void SkeletonModification3DFABRIK::chain_forwards() {
 }
 
 void SkeletonModification3DFABRIK::chain_apply() {
+	// NOTE: We do not need a forward pass with this FABRIK, because we reset/undo the joint positions to origin
+	// in this function, after we apply rotation.
 	for (int i = 0; i < fabrik_data_chain.size(); i++) {
 		int current_bone_idx = fabrik_data_chain[i].bone_idx;
 		Transform current_trans = stack->skeleton->get_bone_local_pose_override(current_bone_idx);
@@ -1228,9 +1231,7 @@ void SkeletonModification3DFABRIK::chain_apply() {
 				// Rotate the bone towards the target:
 				current_trans.basis.rotate_to_align(forward_vector, current_trans.origin.direction_to(target_global_pose.origin));
 			} else { // Use the target's Basis...
-				Vector3 tmp_scale = current_trans.basis.get_scale();
-				current_trans.basis = target_global_pose.basis.orthonormalized();
-				current_trans.basis.scale(tmp_scale);
+				current_trans.basis = target_global_pose.basis.orthonormalized().scaled(current_trans.basis.get_scale());
 			}
 		} else { // every other bone in the chain...
 
