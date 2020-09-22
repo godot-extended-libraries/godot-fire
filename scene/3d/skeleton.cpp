@@ -340,6 +340,10 @@ void Skeleton::_notification(int p_what) {
 		case NOTIFICATION_READY: {
 			set_physics_process_internal(true);
 			set_process_internal(true);
+			
+			if (modification_stack.is_valid()) {
+				set_modification_stack(modification_stack);
+			}
 		} break;
 #endif // _3D_DISABLED
 
