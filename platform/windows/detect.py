@@ -210,6 +210,7 @@ def configure_msvc(env, manual_msvc_config):
         env.Append(LINKFLAGS=["/SUBSYSTEM:WINDOWS"])
     else:
         env.Append(LINKFLAGS=["/SUBSYSTEM:CONSOLE"])
+        env.AppendUnique(CPPDEFINES=["WINDOWS_SUBSYSTEM_CONSOLE"])
 
     ## Compile/link flags
 
@@ -347,6 +348,7 @@ def configure_mingw(env):
         env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
     else:
         env.Append(LINKFLAGS=["-Wl,--subsystem,console"])
+        env.AppendUnique(CPPDEFINES=["WINDOWS_SUBSYSTEM_CONSOLE"])
 
     ## Compiler configuration
 
@@ -437,7 +439,7 @@ def configure_mingw(env):
     else:
         env.Append(LIBS=["cfgmgr32"])
 
-    ## TODO !!! Reenable when OpenGLES Rendering Device is implemented !!!
+    ## TODO !!! Re-enable when OpenGLES Rendering Device is implemented !!!
     # env.Append(CPPDEFINES=['OPENGL_ENABLED'])
     env.Append(LIBS=["opengl32"])
 
