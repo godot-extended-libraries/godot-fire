@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  bone_attachment_3d.h                                                 */
+/*  bone_attachment.h                                                    */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -34,7 +34,6 @@
 #include "scene/3d/skeleton.h"
 
 class BoneAttachment : public Spatial {
-
 	GDCLASS(BoneAttachment, Spatial);
 
 	bool bound;
@@ -50,13 +49,22 @@ class BoneAttachment : public Spatial {
 		MODE_CUSTOM_POSE
 	};
 
+	bool use_external_skeleton = false;
+	NodePath external_skeleton_node;
+	ObjectID external_skeleton_node_cache;
+
 	void _check_bind();
 	void _check_unbind();
 
 	void _transform_changed();
+	void _update_external_skeleton_cache();
+	Skeleton *_get_Skeleton() const;
 
 protected:
 	virtual void _validate_property(PropertyInfo &property) const override;
+	bool _get(const StringName &p_path, Variant &r_ret) const;
+	bool _set(const StringName &p_path, const Variant &p_value);
+	void _get_property_list(List<PropertyInfo> *p_list) const;
 	void _notification(int p_what);
 
 	static void _bind_methods();
@@ -72,6 +80,11 @@ public:
 	bool get_override_pose() const;
 	void set_override_mode(int p_mode);
 	int get_override_mode() const;
+
+	void set_use_external_skeleton(bool p_external_skeleton);
+	bool get_use_external_skeleton() const;
+	void set_external_skeleton(NodePath p_skeleton);
+	NodePath get_external_skeleton() const;
 
 	virtual void on_bone_pose_update(int p_bone_index);
 
