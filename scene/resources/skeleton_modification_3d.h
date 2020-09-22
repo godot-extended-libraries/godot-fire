@@ -111,6 +111,9 @@ protected:
 
 	bool enabled = true;
 	bool is_setup = false;
+	bool execution_error_found = false;
+
+	bool _print_execution_error(bool p_condition, String p_message);
 
 public:
 	virtual void execute(float delta);
