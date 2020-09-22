@@ -311,6 +311,14 @@ float SkeletonModification3D::clamp_angle(float angle, float min_bound, float ma
 	return angle;
 }
 
+bool SkeletonModification3D::_print_execution_error(bool p_condition, String p_message) {
+	if (p_condition && !execution_error_found) {
+		ERR_PRINT(p_message);
+		execution_error_found = true;
+	}
+	return p_condition;
+}
+
 SkeletonModificationStack3D *SkeletonModification3D::get_modification_stack() {
 	return stack;
 }
@@ -404,9 +412,9 @@ void SkeletonModification3DLookAt::execute(float delta) {
 		return;
 	}
 
-	if (!target_node_cache) {
+	if (target_node_cache) {
+		_print_execution_error(true, "Target cache is out of date. Attempting to update...");
 		update_cache();
-		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
 	}
 
@@ -415,9 +423,12 @@ void SkeletonModification3DLookAt::execute(float delta) {
 	}
 
 	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
-	ERR_FAIL_COND_MSG(!target, "Target node is not a Spatial-based node. Cannot execute modification!");
-	ERR_FAIL_COND_MSG(!target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!");
-	ERR_FAIL_COND_MSG(bone_idx <= -1, "Bone index is invalid. Cannot execute modification!");
+	if (_print_execution_error(!target || !target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!")) {
+		return;
+	}
+	if (_print_execution_error(bone_idx <= -1, "Bone index is invalid. Cannot execute modification!")) {
+		return;
+	}
 
 	Transform new_bone_trans = stack->skeleton->get_bone_local_pose_override(bone_idx);
 	Vector3 target_pos = stack->skeleton->global_pose_to_local_pose(bone_idx, stack->skeleton->world_transform_to_global_pose(target->get_global_transform())).origin;
@@ -444,9 +455,11 @@ void SkeletonModification3DLookAt::execute(float delta) {
 	new_bone_trans.basis.rotate_local(Vector3(0, 1, 0), additional_rotation.y);
 	new_bone_trans.basis.rotate_local(Vector3(0, 0, 1), additional_rotation.z);
 
-	//new_bone_trans = stack->skeleton->global_pose_to_local_pose(bone_idx, new_bone_trans);
 	stack->skeleton->set_bone_local_pose_override(bone_idx, new_bone_trans, stack->strength, true);
 	stack->skeleton->force_update_bone_children_transforms(bone_idx);
+
+	// If we completed it successfully, then we can set execution_error_found to false
+	execution_error_found = false;
 }
 
 void SkeletonModification3DLookAt::setup_modification(SkeletonModificationStack3D *p_stack) {
@@ -454,6 +467,7 @@ void SkeletonModification3DLookAt::setup_modification(SkeletonModificationStack3
 
 	if (stack != nullptr) {
 		is_setup = true;
+		execution_error_found = false;
 		update_cache();
 	}
 }
@@ -465,6 +479,7 @@ void SkeletonModification3DLookAt::set_bone_name(String p_name) {
 			bone_idx = stack->skeleton->find_bone(bone_name);
 		}
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -485,6 +500,7 @@ void SkeletonModification3DLookAt::set_bone_index(int p_bone_idx) {
 			bone_name = stack->skeleton->get_bone_name(p_bone_idx);
 		}
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -500,8 +516,12 @@ void SkeletonModification3DLookAt::update_cache() {
 			if (stack->skeleton->has_node(target_node)) {
 				Node *node = stack->skeleton->get_node(target_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
-						"Cannot update cache: Target node is this modification's skeleton or cannot be found!");
+						"Cannot update target cache: Node is this modification's skeleton or cannot be found!");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update target cache: Node is not in the scene tree!");
 				target_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -685,12 +705,10 @@ void SkeletonModification3DCCDIK::execute(float delta) {
 
 	if (!target_node_cache) {
 		update_target_cache();
-		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
 	}
 	if (!tip_node_cache) {
 		update_tip_cache();
-		WARN_PRINT("Tip cache is out of date. Updating...");
 		return;
 	}
 
@@ -704,10 +722,12 @@ void SkeletonModification3DCCDIK::execute(float delta) {
 	Spatial *node_target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
 	Spatial *node_tip = Object::cast_to<Spatial>(ObjectDB::get_instance(tip_node_cache));
 
-	ERR_FAIL_COND_MSG(!node_target || !node_tip,
-			"Either the target or tip node is not found. Cannot execute without both nodes!");
-	ERR_FAIL_COND_MSG(!node_target->is_inside_tree() || !node_tip->is_inside_tree(),
-			"Either the target or tip node is not in the scene. Cannot execute without both nodes in the scene!");
+	if (_print_execution_error(!node_target || !node_target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!")) {
+		return;
+	}
+	if (_print_execution_error(!node_tip || !node_tip->is_inside_tree(), "Tip node is not in the scene tree. Cannot execute modification!")) {
+		return;
+	}
 
 	if (use_high_quality_solve) {
 		for (int i = 0; i < ccdik_data_chain.size(); i++) {
@@ -720,12 +740,21 @@ void SkeletonModification3DCCDIK::execute(float delta) {
 			_execute_ccdik_joint(i, node_target, node_tip);
 		}
 	}
+
+	execution_error_found = false;
 }
 
 void SkeletonModification3DCCDIK::_execute_ccdik_joint(int p_joint_idx, Spatial *target, Spatial *tip) {
 	CCDIK_Joint_Data ccdik_data = ccdik_data_chain[p_joint_idx];
-	ERR_FAIL_INDEX_MSG(ccdik_data.bone_idx, stack->skeleton->get_bone_count(), "CCDIK joint: bone index not found");
-	ERR_FAIL_COND_MSG(ccdik_data.ccdik_axis_vector.length_squared() == 0, "CCDIK joint: axis vector not set!");
+
+	if (_print_execution_error(ccdik_data.bone_idx < 0 || ccdik_data.bone_idx > stack->skeleton->get_bone_count(),
+				"CCDIK joint: bone index for joint" + itos(p_joint_idx) + " not found. Cannot execute modification!")) {
+		return;
+	}
+	if (_print_execution_error(ccdik_data.ccdik_axis_vector.length_squared() == 0,
+				"CCDIK joint: axis vector for joint" + itos(p_joint_idx) + " is not set. Cannot execute modification!")) {
+		return;
+	}
 
 	Transform bone_trans = stack->skeleton->global_pose_to_local_pose(ccdik_data.bone_idx, stack->skeleton->get_bone_global_pose(ccdik_data.bone_idx));
 	Transform tip_trans = stack->skeleton->global_pose_to_local_pose(ccdik_data.bone_idx, stack->skeleton->world_transform_to_global_pose(tip->get_global_transform()));
@@ -777,6 +806,7 @@ void SkeletonModification3DCCDIK::setup_modification(SkeletonModificationStack3D
 	stack = p_stack;
 	if (stack != nullptr) {
 		is_setup = true;
+		execution_error_found = false;
 		update_target_cache();
 		update_tip_cache();
 	}
@@ -794,8 +824,12 @@ void SkeletonModification3DCCDIK::update_target_cache() {
 			if (stack->skeleton->has_node(target_node)) {
 				Node *node = stack->skeleton->get_node(target_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
-						"Cannot update cache: Target node is this modification's skeleton or cannot be found!");
+						"Cannot update target cache: node is this modification's skeleton or cannot be found!");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update target cache: node is not in scene tree!");
 				target_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -813,8 +847,12 @@ void SkeletonModification3DCCDIK::update_tip_cache() {
 			if (stack->skeleton->has_node(tip_node)) {
 				Node *node = stack->skeleton->get_node(tip_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
-						"Cannot update cache: Tip node is this modification's skeleton or cannot be found!");
+						"Cannot update tip cache: node is this modification's skeleton or cannot be found!");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update tip cache: node is not in scene tree!");
 				tip_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -861,6 +899,7 @@ void SkeletonModification3DCCDIK::ccdik_joint_set_bone_name(int p_joint_idx, Str
 			ccdik_data_chain.write[p_joint_idx].bone_idx = stack->skeleton->find_bone(p_bone_name);
 		}
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -879,6 +918,7 @@ void SkeletonModification3DCCDIK::ccdik_joint_set_bone_index(int p_joint_idx, in
 			ccdik_data_chain.write[p_joint_idx].bone_name = stack->skeleton->get_bone_name(p_bone_idx);
 		}
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -979,6 +1019,7 @@ int SkeletonModification3DCCDIK::get_ccdik_data_chain_length() {
 void SkeletonModification3DCCDIK::set_ccdik_data_chain_length(int p_length) {
 	ERR_FAIL_COND(p_length < 0);
 	ccdik_data_chain.resize(p_length);
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -1132,11 +1173,8 @@ void SkeletonModification3DFABRIK::execute(float delta) {
 		return;
 	}
 
-	// TODO: support a single dummy tip/final bone? This will allow for setting the magnet position on a two bone FABRIK chain.
-
-	if (!target_node_cache) {
+	if (!target_node_cache){
 		update_target_cache();
-		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
 	}
 
@@ -1147,12 +1185,16 @@ void SkeletonModification3DFABRIK::execute(float delta) {
 	// Verify that all joints have a valid bone ID, and that all bone lengths are zero or more
 	// Also, while we are here, apply magnet positions.
 	for (int i = 0; i < fabrik_data_chain.size(); i++) {
-		ERR_FAIL_COND_MSG(fabrik_data_chain[i].bone_idx < 0, "Joint " + itos(i) + " has an invalid bone ID! Cannot execute!");
+		if (_print_execution_error(fabrik_data_chain[i].bone_idx < 0, "FABRIK Joint " + itos(i) + " has an invalid bone ID. Cannot execute!")) {
+			return;
+		}
 
 		if (fabrik_data_chain[i].length < 0 && fabrik_data_chain[i].auto_calculate_length) {
 			fabrik_joint_auto_calculate_length(i);
 		}
-		ERR_FAIL_COND_MSG(fabrik_data_chain[i].length < 0, "Joint " + itos(i) + " has an invalid joint length! Cannot execute!");
+		if (_print_execution_error(fabrik_data_chain[i].length < 0, "FABRIK Joint " + itos(i) + " has an invalid joint length. Cannot execute!")) {
+			return;
+		}
 
 		Transform local_pose_override = stack->skeleton->get_bone_local_pose_override(fabrik_data_chain[i].bone_idx);
 
@@ -1189,6 +1231,7 @@ void SkeletonModification3DFABRIK::execute(float delta) {
 			break;
 		}
 	}
+	execution_error_found = false;
 }
 
 void SkeletonModification3DFABRIK::chain_backwards() {
@@ -1273,6 +1316,7 @@ void SkeletonModification3DFABRIK::setup_modification(SkeletonModificationStack3
 	stack = p_stack;
 	if (stack != nullptr) {
 		is_setup = true;
+		execution_error_found = false;
 		update_target_cache();
 
 		for (int i = 0; i < fabrik_data_chain.size(); i++) {
@@ -1292,8 +1336,12 @@ void SkeletonModification3DFABRIK::update_target_cache() {
 			if (stack->skeleton->has_node(target_node)) {
 				Node *node = stack->skeleton->get_node(target_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
-						"Cannot update cache: Target node is this modification's skeleton or cannot be found!");
+						"Cannot update target cache: node is this modification's skeleton or cannot be found!");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update target cache: node is not in the scene tree!");
 				target_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -1311,8 +1359,12 @@ void SkeletonModification3DFABRIK::update_joint_tip_cache(int p_joint_idx) {
 			if (stack->skeleton->has_node(fabrik_data_chain[p_joint_idx].tip_node)) {
 				Node *node = stack->skeleton->get_node(fabrik_data_chain[p_joint_idx].tip_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
-						"Cannot update tip cache for joint " + itos(p_joint_idx) + ":node is this modification's skeleton or cannot be found!");
+						"Cannot update tip cache for joint " + itos(p_joint_idx) + ": node is this modification's skeleton or cannot be found!");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update tip cache for joint " + itos(p_joint_idx) + ": node is not in scene tree!");
 				fabrik_data_chain.write[p_joint_idx].tip_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -1334,6 +1386,7 @@ int SkeletonModification3DFABRIK::get_fabrik_data_chain_length() {
 void SkeletonModification3DFABRIK::set_fabrik_data_chain_length(int p_length) {
 	ERR_FAIL_COND(p_length < 0);
 	fabrik_data_chain.resize(p_length);
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -1369,6 +1422,7 @@ void SkeletonModification3DFABRIK::fabrik_joint_set_bone_name(int p_joint_idx, S
 			fabrik_data_chain.write[p_joint_idx].bone_idx = stack->skeleton->find_bone(p_bone_name);
 		}
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -1387,6 +1441,7 @@ void SkeletonModification3DFABRIK::fabrik_joint_set_bone_index(int p_joint_idx, 
 			fabrik_data_chain.write[p_joint_idx].bone_name = stack->skeleton->get_bone_name(p_bone_idx);
 		}
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -1410,6 +1465,8 @@ void SkeletonModification3DFABRIK::fabrik_joint_set_length(int p_joint_idx, floa
 	} else {
 		fabrik_data_chain.write[p_joint_idx].length = p_bone_length;
 	}
+
+	execution_error_found = false;
 }
 
 Vector3 SkeletonModification3DFABRIK::fabrik_joint_get_magnet(int p_joint_idx) const {
@@ -1470,6 +1527,7 @@ void SkeletonModification3DFABRIK::fabrik_joint_auto_calculate_length(int p_join
 		}
 		fabrik_data_chain.write[p_joint_idx].length = final_length / bone_children.size();
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -1675,7 +1733,6 @@ void SkeletonModification3DJiggle::execute(float delta) {
 	}
 	if (!target_node_cache) {
 		update_cache();
-		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
 	}
 	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
@@ -1685,6 +1742,8 @@ void SkeletonModification3DJiggle::execute(float delta) {
 	for (int i = 0; i < jiggle_data_chain.size(); i++) {
 		_execute_jiggle_joint(i, target, delta);
 	}
+
+	execution_error_found = false;
 }
 
 void SkeletonModification3DJiggle::_execute_jiggle_joint(int p_joint_idx, Spatial *target, float delta) {
@@ -1694,7 +1753,11 @@ void SkeletonModification3DJiggle::_execute_jiggle_joint(int p_joint_idx, Spatia
 	if (jiggle_data_chain[p_joint_idx].bone_idx <= -2) {
 		jiggle_data_chain.write[p_joint_idx].bone_idx = stack->skeleton->find_bone(jiggle_data_chain[p_joint_idx].bone_name);
 	}
-	ERR_FAIL_COND_MSG(jiggle_data_chain[p_joint_idx].bone_idx <= -1, "Jiggle joint " + itos(p_joint_idx) + " bone index is invalid. Cannot execute modification on joint...");
+	if (_print_execution_error(
+				jiggle_data_chain[p_joint_idx].bone_idx < 0 || jiggle_data_chain[p_joint_idx].bone_idx > stack->skeleton->get_bone_count(),
+				"Jiggle joint " + itos(p_joint_idx) + " bone index is invald. Cannot execute modification!")) {
+		return;
+	}
 
 	Transform new_bone_trans = stack->skeleton->local_pose_to_global_pose(jiggle_data_chain[p_joint_idx].bone_idx, stack->skeleton->get_bone_local_pose_override(jiggle_data_chain[p_joint_idx].bone_idx));
 	Vector3 target_position = stack->skeleton->world_transform_to_global_pose(target->get_global_transform()).origin;
@@ -1739,7 +1802,7 @@ void SkeletonModification3DJiggle::_execute_jiggle_joint(int p_joint_idx, Spatia
 			}
 
 		} else {
-			WARN_PRINT("Jiggle modifier: You cannot detect colliders without the stack mode being set to _physics_process!");
+			WARN_PRINT_ONCE("Jiggle modifier: You cannot detect colliders without the stack mode being set to _physics_process!");
 		}
 	}
 
@@ -1775,6 +1838,7 @@ void SkeletonModification3DJiggle::setup_modification(SkeletonModificationStack3
 
 	if (stack) {
 		is_setup = true;
+		execution_error_found = false;
 
 		if (stack->skeleton) {
 			for (int i = 0; i < jiggle_data_chain.size(); i++) {
@@ -1801,8 +1865,12 @@ void SkeletonModification3DJiggle::update_cache() {
 			if (stack->skeleton->has_node(target_node)) {
 				Node *node = stack->skeleton->get_node(target_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
-						"Cannot update cache: Target node is this modification's skeleton or cannot be found!");
+						"Cannot update target cache: node is this modification's skeleton or cannot be found!");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update target cache: node is not in the scene tree!");
 				target_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -1891,6 +1959,7 @@ int SkeletonModification3DJiggle::get_jiggle_data_chain_length() {
 void SkeletonModification3DJiggle::set_jiggle_data_chain_length(int p_length) {
 	ERR_FAIL_COND(p_length < 0);
 	jiggle_data_chain.resize(p_length);
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -1901,6 +1970,7 @@ void SkeletonModification3DJiggle::jiggle_joint_set_bone_name(int joint_idx, Str
 	if (stack && stack->skeleton) {
 		jiggle_data_chain.write[joint_idx].bone_idx = stack->skeleton->find_bone(p_name);
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -1924,6 +1994,7 @@ void SkeletonModification3DJiggle::jiggle_joint_set_bone_index(int joint_idx, in
 			jiggle_data_chain.write[joint_idx].bone_name = stack->skeleton->get_bone_name(p_bone_idx);
 		}
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -2173,15 +2244,12 @@ void SkeletonModification3DTwoBoneIK::_get_property_list(List<PropertyInfo> *p_l
 void SkeletonModification3DTwoBoneIK::execute(float delta) {
 	ERR_FAIL_COND_MSG(!stack || !is_setup || stack->skeleton == nullptr,
 			"Modification is not setup and therefore cannot execute!");
-	ERR_FAIL_COND_MSG(joint_one_bone_idx <= -1 || joint_two_bone_idx <= -1,
-			"One (or more) of the bones in the TwoBoneIK modification are not set! Cannot execute modification!");
 
 	if (!enabled) {
 		return;
 	}
 	if (!target_node_cache) {
 		update_cache_target();
-		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
 	}
 
@@ -2207,7 +2275,6 @@ void SkeletonModification3DTwoBoneIK::execute(float delta) {
 	if (use_pole_node) {
 		if (!pole_node_cache) {
 			update_cache_pole();
-			WARN_PRINT("Pole cache is out of date. Updating...");
 			return;
 		}
 
@@ -2240,7 +2307,6 @@ void SkeletonModification3DTwoBoneIK::execute(float delta) {
 	if (use_tip_node) {
 		if (!tip_node_cache) {
 			update_cache_tip();
-			WARN_PRINT("Tip cache is out of date. Updating...");
 			return;
 		}
 		Spatial *tip = Object::cast_to<Spatial>(ObjectDB::get_instance(tip_node_cache));
@@ -2328,6 +2394,7 @@ void SkeletonModification3DTwoBoneIK::setup_modification(SkeletonModificationSta
 
 	if (stack != nullptr) {
 		is_setup = true;
+		execution_error_found = false;
 		update_cache_target();
 		update_cache_tip();
 	}
@@ -2345,8 +2412,12 @@ void SkeletonModification3DTwoBoneIK::update_cache_target() {
 			if (stack->skeleton->has_node(target_node)) {
 				Node *node = stack->skeleton->get_node(target_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
-						"Cannot update target cache: Target node is this modification's skeleton or cannot be found!");
+						"Cannot update target cache: Target node is this modification's skeleton or cannot be found. Cannot execute modification");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update target cache: Target node is not in the scene tree. Cannot execute modification!");
 				target_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -2365,7 +2436,11 @@ void SkeletonModification3DTwoBoneIK::update_cache_tip() {
 				Node *node = stack->skeleton->get_node(tip_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
 						"Cannot update tip cache: Tip node is this modification's skeleton or cannot be found!");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update tip cache: Tip node is not in the scene tree. Cannot execute modification!");
 				tip_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -2384,7 +2459,11 @@ void SkeletonModification3DTwoBoneIK::update_cache_pole() {
 				Node *node = stack->skeleton->get_node(pole_node);
 				ERR_FAIL_COND_MSG(!node || stack->skeleton == node,
 						"Cannot update pole cache: Pole node is this modification's skeleton or cannot be found!");
+				ERR_FAIL_COND_MSG(!node->is_inside_tree(),
+						"Cannot update pole cache: Pole node is not in the scene tree. Cannot execute modification!");
 				pole_node_cache = node->get_instance_id();
+
+				execution_error_found = false;
 			}
 		}
 	}
@@ -2487,6 +2566,7 @@ void SkeletonModification3DTwoBoneIK::calculate_joint_lengths() {
 			joint_two_length = 1.0;
 		}
 	}
+	execution_error_found = false;
 }
 
 void SkeletonModification3DTwoBoneIK::set_joint_one_bone_name(String p_bone_name) {
@@ -2494,6 +2574,7 @@ void SkeletonModification3DTwoBoneIK::set_joint_one_bone_name(String p_bone_name
 	if (stack && stack->skeleton) {
 		joint_one_bone_idx = stack->skeleton->find_bone(p_bone_name);
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -2506,6 +2587,7 @@ void SkeletonModification3DTwoBoneIK::set_joint_one_bone_idx(int p_bone_idx) {
 	if (stack && stack->skeleton) {
 		joint_one_bone_name = stack->skeleton->get_bone_name(p_bone_idx);
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -2526,6 +2608,7 @@ void SkeletonModification3DTwoBoneIK::set_joint_two_bone_name(String p_bone_name
 	if (stack && stack->skeleton) {
 		joint_two_bone_idx = stack->skeleton->find_bone(p_bone_name);
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
@@ -2538,6 +2621,7 @@ void SkeletonModification3DTwoBoneIK::set_joint_two_bone_idx(int p_bone_idx) {
 	if (stack && stack->skeleton) {
 		joint_two_bone_name = stack->skeleton->get_bone_name(p_bone_idx);
 	}
+	execution_error_found = false;
 	_change_notify();
 }
 
