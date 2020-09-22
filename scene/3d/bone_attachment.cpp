@@ -106,7 +106,7 @@ void BoneAttachment::_update_external_skeleton_cache() {
 		Node *node = get_node(external_skeleton_node);
 		ERR_FAIL_COND_MSG(!node, "Cannot update external skeleton cache: Node cannot be found!");
 
-		// Make sure it's a skeleton3D
+		// Make sure it's a Skeleton
 		Skeleton *sk = Object::cast_to<Skeleton>(node);
 		ERR_FAIL_COND_MSG(!sk, "Cannot update external skeleton cache: Skeleton Nodepath does not point to a Skeleton node!");
 
@@ -120,7 +120,7 @@ void BoneAttachment::_update_external_skeleton_cache() {
 					Node *node = parent_attachment->get_node(parent_attachment->external_skeleton_node);
 					ERR_FAIL_COND_MSG(!node, "Cannot update external skeleton cache: Parent's Skeleton node cannot be found!");
 
-					// Make sure it's a skeleton3D
+					// Make sure it's a Skeleton
 					Skeleton *sk = Object::cast_to<Skeleton>(node);
 					ERR_FAIL_COND_MSG(!sk, "Cannot update external skeleton cache: Parent Skeleton Nodepath does not point to a Skeleton node!");
 
@@ -290,6 +290,14 @@ int BoneAttachment::get_override_mode() const {
 
 void BoneAttachment::set_use_external_skeleton(bool p_use_external) {
 	use_external_skeleton = p_use_external;
+
+	if (use_external_skeleton) {
+		_check_unbind();
+		_update_external_skeleton_cache();
+		_check_bind();
+		_transform_changed();
+	}
+
 	_change_notify();
 }
 
@@ -359,7 +367,7 @@ void BoneAttachment::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bone_idx", "bone_idx"), &BoneAttachment::set_bone_idx);
 	ClassDB::bind_method(D_METHOD("get_bone_idx"), &BoneAttachment::get_bone_idx);
 
-	ClassDB::bind_method(D_METHOD("on_bone_pose_update"), &BoneAttachment::on_bone_pose_update);
+	ClassDB::bind_method(D_METHOD("on_bone_pose_update", "bone_index"), &BoneAttachment::on_bone_pose_update);
 
 	ClassDB::bind_method(D_METHOD("set_override_pose", "override_pose"), &BoneAttachment::set_override_pose);
 	ClassDB::bind_method(D_METHOD("get_override_pose"), &BoneAttachment::get_override_pose);
