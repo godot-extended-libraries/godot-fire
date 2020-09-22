@@ -98,9 +98,6 @@ void SkeletonModificationStack3D::execute(float delta) {
 		return;
 	}
 
-	// NOTE: is needed for CCDIK.
-	skeleton->clear_bones_local_pose_override();
-
 	for (int i = 0; i < modifications.size(); i++) {
 		if (!modifications[i].is_valid()) {
 			continue;
@@ -187,6 +184,14 @@ float SkeletonModificationStack3D::get_strength() const {
 	return strength;
 }
 
+void SkeletonModificationStack3D::set_execution_mode(int p_mode) {
+	execution_mode = p_mode;
+}
+
+int SkeletonModificationStack3D::get_execution_mode() {
+	return execution_mode;
+}
+
 void SkeletonModificationStack3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup"), &SkeletonModificationStack3D::setup);
 	ClassDB::bind_method(D_METHOD("execute", "delta"), &SkeletonModificationStack3D::execute);
@@ -200,6 +205,9 @@ void SkeletonModificationStack3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_modification_count"), &SkeletonModificationStack3D::set_modification_count);
 	ClassDB::bind_method(D_METHOD("get_modification_count"), &SkeletonModificationStack3D::get_modification_count);
 
+	ClassDB::bind_method(D_METHOD("set_execution_mode", "mode"), &SkeletonModificationStack3D::set_execution_mode);
+	ClassDB::bind_method(D_METHOD("get_execution_mode"), &SkeletonModificationStack3D::get_execution_mode);
+
 	ClassDB::bind_method(D_METHOD("get_is_setup"), &SkeletonModificationStack3D::get_is_setup);
 
 	ClassDB::bind_method(D_METHOD("set_enabled", "enabled"), &SkeletonModificationStack3D::set_enabled);
@@ -210,6 +218,7 @@ void SkeletonModificationStack3D::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "enabled"), "set_enabled", "get_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "strength", PROPERTY_HINT_RANGE, "0, 1, 0.001"), "set_strength", "get_strength");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "execution_mode", PROPERTY_HINT_ENUM, "process, physics_process"), "set_execution_mode", "get_execution_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "modification_count", PROPERTY_HINT_RANGE, "0, 100, 1"), "set_modification_count", "get_modification_count");
 }
 
@@ -219,7 +228,7 @@ SkeletonModificationStack3D::SkeletonModificationStack3D() {
 	is_setup = false;
 	enabled = false;
 	modifications_count = 0;
-	strength = 0;
+	strength = 1.0;
 }
 
 ///////////////////////////////////////
@@ -272,7 +281,7 @@ void SkeletonModification3DLookAt::execute(float delta) {
 		return;
 	}
 
-	if (target_node_cache.is_null()) {
+	if (!target_node_cache) {
 		update_cache();
 		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
@@ -282,8 +291,8 @@ void SkeletonModification3DLookAt::execute(float delta) {
 		bone_idx = stack->skeleton->find_bone(bone_name);
 	}
 
-	Node3D *target = Object::cast_to<Node3D>(ObjectDB::get_instance(target_node_cache));
-	ERR_FAIL_COND_MSG(!target, "Target node is not a Node3D-based node. Cannot execute modification!");
+	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
+	ERR_FAIL_COND_MSG(!target, "Target node is not a Spatial-based node. Cannot execute modification!");
 	ERR_FAIL_COND_MSG(!target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!");
 	ERR_FAIL_COND_MSG(bone_idx <= -1, "Bone index is invalid. Cannot execute modification!");
 
@@ -437,7 +446,7 @@ void SkeletonModification3DLookAt::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "bone_name"), "set_bone_name", "get_bone_name");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "bone_index"), "set_bone_index", "get_bone_index");
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D"), "set_target_node", "get_target_node");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_target_node", "get_target_node");
 	ADD_GROUP("Additional Settings", "");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "lock_rotation_x"), "set_lock_rotation_x", "get_lock_rotation_x");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "lock_rotation_y"), "set_lock_rotation_y", "get_lock_rotation_y");
@@ -547,8 +556,8 @@ void SkeletonModification3DCCDIK::_get_property_list(List<PropertyInfo> *p_list)
 
 		p_list->push_back(PropertyInfo(Variant::BOOL, base_string + "enable_joint_constraint", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 		if (ccdik_data_chain[i].enable_constraint) {
-			p_list->push_back(PropertyInfo(Variant::FLOAT, base_string + "joint_constraint_angle_min", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
-			p_list->push_back(PropertyInfo(Variant::FLOAT, base_string + "joint_constraint_angle_max", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
+			p_list->push_back(PropertyInfo(Variant::REAL, base_string + "joint_constraint_angle_min", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
+			p_list->push_back(PropertyInfo(Variant::REAL, base_string + "joint_constraint_angle_max", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 			p_list->push_back(PropertyInfo(Variant::BOOL, base_string + "joint_constraint_angles_invert", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 		}
 	}
@@ -561,19 +570,27 @@ void SkeletonModification3DCCDIK::execute(float delta) {
 		return;
 	}
 
-	if (target_node_cache.is_null()) {
+	if (!target_node_cache) {
 		update_target_cache();
 		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
 	}
-	if (tip_node_cache.is_null()) {
+	if (!tip_node_cache) {
 		update_tip_cache();
 		WARN_PRINT("Tip cache is out of date. Updating...");
 		return;
 	}
 
-	Node3D *node_target = Object::cast_to<Node3D>(ObjectDB::get_instance(target_node_cache));
-	Node3D *node_tip = Object::cast_to<Node3D>(ObjectDB::get_instance(tip_node_cache));
+	// Reset the local bone overrides for CCDIK affected nodes
+	// TODO: this is needed for CCDIK, but I'm not sure the CCDIK implementation is correct. Will need to investigate.
+	for (int i = 0; i < ccdik_data_chain.size(); i++) {
+		stack->skeleton->set_bone_local_pose_override(ccdik_data_chain[i].bone_idx,
+				stack->skeleton->get_bone_local_pose_override(ccdik_data_chain[i].bone_idx),
+				0.0, false);
+	}
+
+	Spatial *node_target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
+	Spatial *node_tip = Object::cast_to<Spatial>(ObjectDB::get_instance(tip_node_cache));
 
 	ERR_FAIL_COND_MSG(!node_target || !node_tip,
 			"Either the target or tip node is not found. Cannot execute without both nodes!");
@@ -585,7 +602,7 @@ void SkeletonModification3DCCDIK::execute(float delta) {
 	}
 }
 
-void SkeletonModification3DCCDIK::_execute_ccdik_joint(int p_joint_idx, Node3D *target, Node3D *tip) {
+void SkeletonModification3DCCDIK::_execute_ccdik_joint(int p_joint_idx, Spatial *target, Spatial *tip) {
 	CCDIK_Joint_Data ccdik_data = ccdik_data_chain[p_joint_idx];
 	ERR_FAIL_INDEX_MSG(ccdik_data.bone_idx, stack->skeleton->get_bone_count(), "CCDIK joint: bone index not found");
 	ERR_FAIL_COND_MSG(ccdik_data.ccdik_axis_vector.length_squared() == 0, "CCDIK joint: axis vector not set!");
@@ -944,8 +961,8 @@ void SkeletonModification3DCCDIK::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_ccdik_data_chain_length", "length"), &SkeletonModification3DCCDIK::set_ccdik_data_chain_length);
 	ClassDB::bind_method(D_METHOD("get_ccdik_data_chain_length"), &SkeletonModification3DCCDIK::get_ccdik_data_chain_length);
 
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D"), "set_target_node", "get_target_node");
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "tip_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D"), "set_tip_node", "get_tip_node");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_target_node", "get_target_node");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "tip_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_tip_node", "get_tip_node");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "perform_in_local_pose", PROPERTY_HINT_NONE, ""), "set_perform_in_local_pose", "get_perform_in_local_pose");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "ccdik_data_chain_length", PROPERTY_HINT_RANGE, "0,100,1"), "set_ccdik_data_chain_length", "get_ccdik_data_chain_length");
 }
@@ -1033,11 +1050,11 @@ void SkeletonModification3DFABRIK::_get_property_list(List<PropertyInfo> *p_list
 		p_list->push_back(PropertyInfo(Variant::BOOL, base_string + "auto_calculate_length", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 
 		if (!fabrik_data_chain[i].auto_calculate_length) {
-			p_list->push_back(PropertyInfo(Variant::FLOAT, base_string + "length", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
+			p_list->push_back(PropertyInfo(Variant::REAL, base_string + "length", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 		} else {
 			p_list->push_back(PropertyInfo(Variant::BOOL, base_string + "use_tip_node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 			if (fabrik_data_chain[i].use_tip_node) {
-				p_list->push_back(PropertyInfo(Variant::NODE_PATH, base_string + "tip_node", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D", PROPERTY_USAGE_DEFAULT));
+				p_list->push_back(PropertyInfo(Variant::NODE_PATH, base_string + "tip_node", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial", PROPERTY_USAGE_DEFAULT));
 			}
 		}
 
@@ -1061,13 +1078,13 @@ void SkeletonModification3DFABRIK::execute(float delta) {
 
 	// TODO: support a single dummy tip/final bone? This will allow for setting the magnet position on a two bone FABRIK chain.
 
-	if (target_node_cache.is_null()) {
+	if (!target_node_cache) {
 		update_target_cache();
 		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
 	}
 
-	Node3D *node_target = Object::cast_to<Node3D>(ObjectDB::get_instance(target_node_cache));
+	Spatial *node_target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
 	ERR_FAIL_COND_MSG(!node_target, "The target node is not found. Cannot execute!");
 	ERR_FAIL_COND_MSG(!node_target->is_inside_tree(), "The target node is not in the scene. Cannot execute!");
 
@@ -1141,7 +1158,7 @@ void SkeletonModification3DFABRIK::chain_backwards() {
 		Transform current_trans = stack->skeleton->local_pose_to_global_pose(current_bone_idx, stack->skeleton->get_bone_local_pose_override(current_bone_idx));
 
 		float length = fabrik_data_chain[i].length / (next_bone_trans.origin - current_trans.origin).length();
-		current_trans.origin = next_bone_trans.origin.lerp(current_trans.origin, length);
+		current_trans.origin = next_bone_trans.origin.linear_interpolate(current_trans.origin, length);
 
 		// Apply it back to the skeleton
 		stack->skeleton->set_bone_local_pose_override(current_bone_idx, stack->skeleton->global_pose_to_local_pose(current_bone_idx, current_trans), stack->strength, true);
@@ -1162,7 +1179,7 @@ void SkeletonModification3DFABRIK::chain_forwards() {
 		Transform next_bone_trans = stack->skeleton->local_pose_to_global_pose(next_bone_idx, stack->skeleton->get_bone_local_pose_override(next_bone_idx));
 
 		float length = fabrik_data_chain[i].length / (current_trans.origin - next_bone_trans.origin).length();
-		next_bone_trans.origin = current_trans.origin.lerp(next_bone_trans.origin, length);
+		next_bone_trans.origin = current_trans.origin.linear_interpolate(next_bone_trans.origin, length);
 
 		// Apply it back to the skeleton
 		stack->skeleton->set_bone_local_pose_override(next_bone_idx, stack->skeleton->global_pose_to_local_pose(next_bone_idx, next_bone_trans), stack->strength, true);
@@ -1388,8 +1405,8 @@ void SkeletonModification3DFABRIK::fabrik_joint_auto_calculate_length(int p_join
 
 		update_joint_tip_cache(p_joint_idx);
 
-		Node3D *tip_node = Object::cast_to<Node3D>(ObjectDB::get_instance(fabrik_data_chain[p_joint_idx].tip_node_cache));
-		ERR_FAIL_COND_MSG(!tip_node, "Tip node for joint " + itos(p_joint_idx) + "is not a Node3D-based node. Cannot calculate length...");
+		Spatial *tip_node = Object::cast_to<Spatial>(ObjectDB::get_instance(fabrik_data_chain[p_joint_idx].tip_node_cache));
+		ERR_FAIL_COND_MSG(!tip_node, "Tip node for joint " + itos(p_joint_idx) + "is not a Spatial-based node. Cannot calculate length...");
 		ERR_FAIL_COND_MSG(!tip_node->is_inside_tree(), "Tip node for joint " + itos(p_joint_idx) + "is not in the scene tree. Cannot calculate length...");
 
 		Transform node_trans = tip_node->get_global_transform();
@@ -1474,9 +1491,9 @@ void SkeletonModification3DFABRIK::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("fabrik_joint_get_use_target_basis", "joint_idx"), &SkeletonModification3DFABRIK::fabrik_joint_get_use_target_basis);
 	ClassDB::bind_method(D_METHOD("fabrik_joint_set_use_target_basis", "joint_idx", "use_target_basis"), &SkeletonModification3DFABRIK::fabrik_joint_set_use_target_basis);
 
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D"), "set_target_node", "get_target_node");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_target_node", "get_target_node");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "fabrik_data_chain_length", PROPERTY_HINT_RANGE, "0,100,1"), "set_fabrik_data_chain_length", "get_fabrik_data_chain_length");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "chain_tolerance", PROPERTY_HINT_RANGE, "0,100,0.001"), "set_chain_tolerance", "get_chain_tolerance");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "chain_tolerance", PROPERTY_HINT_RANGE, "0,100,0.001"), "set_chain_tolerance", "get_chain_tolerance");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "chain_max_iterations", PROPERTY_HINT_RANGE, "1,50,1"), "set_chain_max_iterations", "get_chain_max_iterations");
 }
 
@@ -1519,6 +1536,13 @@ bool SkeletonModification3DJiggle::_set(const StringName &p_path, const Variant 
 			jiggle_joint_set_gravity(which, p_value);
 		}
 		return true;
+	} else {
+		if (path == "use_colliders") {
+			set_use_colliders(p_value);
+		} else if (path == "collision_mask") {
+			set_collision_mask(p_value);
+		}
+		return true;
 	}
 	return true;
 }
@@ -1549,11 +1573,23 @@ bool SkeletonModification3DJiggle::_get(const StringName &p_path, Variant &r_ret
 			r_ret = jiggle_joint_get_gravity(which);
 		}
 		return true;
+	} else {
+		if (path == "use_colliders") {
+			r_ret = get_use_colliders();
+		} else if (path == "collision_mask") {
+			r_ret = get_collision_mask();
+		}
+		return true;
 	}
 	return true;
 }
 
 void SkeletonModification3DJiggle::_get_property_list(List<PropertyInfo> *p_list) const {
+	p_list->push_back(PropertyInfo(Variant::BOOL, "use_colliders", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
+	if (use_colliders) {
+		p_list->push_back(PropertyInfo(Variant::INT, "collision_mask", PROPERTY_HINT_LAYERS_3D_PHYSICS, "", PROPERTY_USAGE_DEFAULT));
+	}
+
 	for (int i = 0; i < jiggle_data_chain.size(); i++) {
 		String base_string = "joint_data/" + itos(i) + "/";
 
@@ -1562,9 +1598,9 @@ void SkeletonModification3DJiggle::_get_property_list(List<PropertyInfo> *p_list
 		p_list->push_back(PropertyInfo(Variant::BOOL, base_string + "override_defaults", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 
 		if (jiggle_data_chain[i].override_defaults) {
-			p_list->push_back(PropertyInfo(Variant::FLOAT, base_string + "stiffness", PROPERTY_HINT_RANGE, "0, 1000, 0.01", PROPERTY_USAGE_DEFAULT));
-			p_list->push_back(PropertyInfo(Variant::FLOAT, base_string + "mass", PROPERTY_HINT_RANGE, "0, 1000, 0.01", PROPERTY_USAGE_DEFAULT));
-			p_list->push_back(PropertyInfo(Variant::FLOAT, base_string + "damping", PROPERTY_HINT_RANGE, "0, 1, 0.01", PROPERTY_USAGE_DEFAULT));
+			p_list->push_back(PropertyInfo(Variant::REAL, base_string + "stiffness", PROPERTY_HINT_RANGE, "0, 1000, 0.01", PROPERTY_USAGE_DEFAULT));
+			p_list->push_back(PropertyInfo(Variant::REAL, base_string + "mass", PROPERTY_HINT_RANGE, "0, 1000, 0.01", PROPERTY_USAGE_DEFAULT));
+			p_list->push_back(PropertyInfo(Variant::REAL, base_string + "damping", PROPERTY_HINT_RANGE, "0, 1, 0.01", PROPERTY_USAGE_DEFAULT));
 			p_list->push_back(PropertyInfo(Variant::BOOL, base_string + "use_gravity", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 			if (jiggle_data_chain[i].use_gravity) {
 				p_list->push_back(PropertyInfo(Variant::VECTOR3, base_string + "gravity", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
@@ -1579,13 +1615,13 @@ void SkeletonModification3DJiggle::execute(float delta) {
 	if (!enabled) {
 		return;
 	}
-	if (target_node_cache.is_null()) {
+	if (!target_node_cache) {
 		update_cache();
 		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
 	}
-	Node3D *target = Object::cast_to<Node3D>(ObjectDB::get_instance(target_node_cache));
-	ERR_FAIL_COND_MSG(!target, "Target node is not a Node3D-based node. Cannot execute modification!");
+	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
+	ERR_FAIL_COND_MSG(!target, "Target node is not a Spatial-based node. Cannot execute modification!");
 	ERR_FAIL_COND_MSG(!target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!");
 
 	for (int i = 0; i < jiggle_data_chain.size(); i++) {
@@ -1593,7 +1629,7 @@ void SkeletonModification3DJiggle::execute(float delta) {
 	}
 }
 
-void SkeletonModification3DJiggle::_execute_jiggle_joint(int p_joint_idx, Node3D *target, float delta) {
+void SkeletonModification3DJiggle::_execute_jiggle_joint(int p_joint_idx, Spatial *target, float delta) {
 	// Adopted from: https://wiki.unity3d.com/index.php/JiggleBone
 	// With modifications by TwistedTwigleg.
 
@@ -1618,6 +1654,36 @@ void SkeletonModification3DJiggle::_execute_jiggle_joint(int p_joint_idx, Node3D
 	jiggle_data_chain.write[p_joint_idx].dynamic_position += jiggle_data_chain[p_joint_idx].velocity + jiggle_data_chain[p_joint_idx].force;
 	jiggle_data_chain.write[p_joint_idx].dynamic_position += new_bone_trans.origin - jiggle_data_chain[p_joint_idx].last_position;
 	jiggle_data_chain.write[p_joint_idx].last_position = new_bone_trans.origin;
+
+	// Collision detection/response
+	// (Does not run in the editor, unlike the 2D version. Not sure why though...)
+	if (use_colliders) {
+		if (stack->execution_mode == SkeletonModificationStack3D::EXECUTION_MODE::execution_mode_physics_process) {
+			Ref<World> world_3d = stack->skeleton->get_world();
+			ERR_FAIL_COND(world_3d.is_null());
+			PhysicsDirectSpaceState *space_state = PhysicsServer::get_singleton()->space_get_direct_state(world_3d->get_space());
+			PhysicsDirectSpaceState::RayResult ray_result;
+
+			// Convert to world transforms, which is what the physics server needs
+			Transform new_bone_trans_world = stack->skeleton->global_pose_to_world_transform(new_bone_trans);
+			Transform dynamic_position_world = stack->skeleton->global_pose_to_world_transform(Transform(Basis(), jiggle_data_chain[p_joint_idx].dynamic_position));
+
+			// Add exception support?
+			bool ray_hit = space_state->intersect_ray(new_bone_trans_world.origin, dynamic_position_world.get_origin(),
+					ray_result, Set<RID>(), collision_mask);
+
+			if (ray_hit) {
+				jiggle_data_chain.write[p_joint_idx].dynamic_position = jiggle_data_chain[p_joint_idx].last_noncollision_position;
+				jiggle_data_chain.write[p_joint_idx].acceleration = Vector3(0, 0, 0);
+				jiggle_data_chain.write[p_joint_idx].velocity = Vector3(0, 0, 0);
+			} else {
+				jiggle_data_chain.write[p_joint_idx].last_noncollision_position = jiggle_data_chain[p_joint_idx].dynamic_position;
+			}
+
+		} else {
+			WARN_PRINT("Jiggle modifier: You cannot detect colliders without the stack mode being set to _physics_process!");
+		}
+	}
 
 	// Get the forward direction that the basis is facing in right now.
 	stack->skeleton->update_bone_rest_forward_vector(jiggle_data_chain[p_joint_idx].bone_idx);
@@ -1737,6 +1803,23 @@ void SkeletonModification3DJiggle::set_gravity(Vector3 p_gravity) {
 
 Vector3 SkeletonModification3DJiggle::get_gravity() const {
 	return gravity;
+}
+
+void SkeletonModification3DJiggle::set_use_colliders(bool p_use_collider) {
+	use_colliders = p_use_collider;
+	_change_notify();
+}
+
+bool SkeletonModification3DJiggle::get_use_colliders() const {
+	return use_colliders;
+}
+
+void SkeletonModification3DJiggle::set_collision_mask(int p_mask) {
+	collision_mask = p_mask;
+}
+
+int SkeletonModification3DJiggle::get_collision_mask() const {
+	return collision_mask;
 }
 
 // Jiggle joint data functions
@@ -1867,6 +1950,11 @@ void SkeletonModification3DJiggle::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_gravity", "gravity"), &SkeletonModification3DJiggle::set_gravity);
 	ClassDB::bind_method(D_METHOD("get_gravity"), &SkeletonModification3DJiggle::get_gravity);
 
+	ClassDB::bind_method(D_METHOD("set_use_colliders", "use_colliders"), &SkeletonModification3DJiggle::set_use_colliders);
+	ClassDB::bind_method(D_METHOD("get_use_colliders"), &SkeletonModification3DJiggle::get_use_colliders);
+	ClassDB::bind_method(D_METHOD("set_collision_mask", "mask"), &SkeletonModification3DJiggle::set_collision_mask);
+	ClassDB::bind_method(D_METHOD("get_collision_mask"), &SkeletonModification3DJiggle::get_collision_mask);
+
 	// Jiggle joint data functions
 	ClassDB::bind_method(D_METHOD("jiggle_joint_set_bone_name", "joint_idx", "name"), &SkeletonModification3DJiggle::jiggle_joint_set_bone_name);
 	ClassDB::bind_method(D_METHOD("jiggle_joint_get_bone_name", "joint_idx"), &SkeletonModification3DJiggle::jiggle_joint_get_bone_name);
@@ -1885,12 +1973,12 @@ void SkeletonModification3DJiggle::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("jiggle_joint_set_gravity", "joint_idx", "gravity"), &SkeletonModification3DJiggle::jiggle_joint_set_gravity);
 	ClassDB::bind_method(D_METHOD("jiggle_joint_get_gravity", "joint_idx"), &SkeletonModification3DJiggle::jiggle_joint_get_gravity);
 
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D"), "set_target_node", "get_target_node");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_target_node", "get_target_node");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "jiggle_data_chain_length", PROPERTY_HINT_RANGE, "0,100,1"), "set_jiggle_data_chain_length", "get_jiggle_data_chain_length");
 	ADD_GROUP("Default Joint Settings", "");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "stiffness"), "set_stiffness", "get_stiffness");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "mass"), "set_mass", "get_mass");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "damping", PROPERTY_HINT_RANGE, "0, 1, 0.01"), "set_damping", "get_damping");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "stiffness"), "set_stiffness", "get_stiffness");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "mass"), "set_mass", "get_mass");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "damping", PROPERTY_HINT_RANGE, "0, 1, 0.01"), "set_damping", "get_damping");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_gravity"), "set_use_gravity", "get_use_gravity");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "gravity"), "set_gravity", "get_gravity");
 	ADD_GROUP("", "");
@@ -1978,18 +2066,18 @@ bool SkeletonModification3DTwoBoneIK::_get(const StringName &p_path, Variant &r_
 void SkeletonModification3DTwoBoneIK::_get_property_list(List<PropertyInfo> *p_list) const {
 	p_list->push_back(PropertyInfo(Variant::BOOL, "use_tip_node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 	if (use_tip_node) {
-		p_list->push_back(PropertyInfo(Variant::NODE_PATH, "tip_node", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D", PROPERTY_USAGE_DEFAULT));
+		p_list->push_back(PropertyInfo(Variant::NODE_PATH, "tip_node", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial", PROPERTY_USAGE_DEFAULT));
 	}
 
 	p_list->push_back(PropertyInfo(Variant::BOOL, "auto_calculate_joint_length", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 	if (!auto_calculate_joint_length) {
-		p_list->push_back(PropertyInfo(Variant::FLOAT, "joint_one_length", PROPERTY_HINT_RANGE, "-1, 10000, 0.001", PROPERTY_USAGE_DEFAULT));
-		p_list->push_back(PropertyInfo(Variant::FLOAT, "joint_two_length", PROPERTY_HINT_RANGE, "-1, 10000, 0.001", PROPERTY_USAGE_DEFAULT));
+		p_list->push_back(PropertyInfo(Variant::REAL, "joint_one_length", PROPERTY_HINT_RANGE, "-1, 10000, 0.001", PROPERTY_USAGE_DEFAULT));
+		p_list->push_back(PropertyInfo(Variant::REAL, "joint_two_length", PROPERTY_HINT_RANGE, "-1, 10000, 0.001", PROPERTY_USAGE_DEFAULT));
 	}
 
 	p_list->push_back(PropertyInfo(Variant::BOOL, "use_pole_node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 	if (use_pole_node) {
-		p_list->push_back(PropertyInfo(Variant::NODE_PATH, "pole_node", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D", PROPERTY_USAGE_DEFAULT));
+		p_list->push_back(PropertyInfo(Variant::NODE_PATH, "pole_node", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial", PROPERTY_USAGE_DEFAULT));
 	}
 
 	p_list->push_back(PropertyInfo(Variant::STRING, "joint_one_bone_name", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
@@ -2007,7 +2095,7 @@ void SkeletonModification3DTwoBoneIK::execute(float delta) {
 	if (!enabled) {
 		return;
 	}
-	if (target_node_cache.is_null()) {
+	if (!target_node_cache) {
 		update_cache_target();
 		WARN_PRINT("Target cache is out of date. Updating...");
 		return;
@@ -2022,8 +2110,8 @@ void SkeletonModification3DTwoBoneIK::execute(float delta) {
 	// http://theorangeduck.com/page/simple-two-joint
 	// https://www.alanzucconi.com/2018/05/02/ik-2d-2/
 	// With modifications by TwistedTwigleg
-	Node3D *target = Object::cast_to<Node3D>(ObjectDB::get_instance(target_node_cache));
-	ERR_FAIL_COND_MSG(!target, "Target node is not a Node3D-based node. Cannot execute modification!");
+	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
+	ERR_FAIL_COND_MSG(!target, "Target node is not a Spatial-based node. Cannot execute modification!");
 	ERR_FAIL_COND_MSG(!target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!");
 	Transform target_trans = stack->skeleton->world_transform_to_global_pose(target->get_global_transform());
 
@@ -2033,14 +2121,14 @@ void SkeletonModification3DTwoBoneIK::execute(float delta) {
 	// Make the first joint look at the pole, and the second look at the target. That way, the
 	// TwoBoneIK solver has to really only handle extension/contraction, which should make it align with the pole.
 	if (use_pole_node) {
-		if (pole_node_cache.is_null()) {
+		if (!pole_node_cache) {
 			update_cache_pole();
 			WARN_PRINT("Pole cache is out of date. Updating...");
 			return;
 		}
 
-		Node3D *pole = Object::cast_to<Node3D>(ObjectDB::get_instance(pole_node_cache));
-		ERR_FAIL_COND_MSG(!pole, "Pole node is not a Node3D-based node. Cannot execute modification!");
+		Spatial *pole = Object::cast_to<Spatial>(ObjectDB::get_instance(pole_node_cache));
+		ERR_FAIL_COND_MSG(!pole, "Pole node is not a Spatial-based node. Cannot execute modification!");
 		ERR_FAIL_COND_MSG(!pole->is_inside_tree(), "Pole node is not in the scene tree. Cannot execute modification!");
 		Transform pole_trans = stack->skeleton->world_transform_to_global_pose(pole->get_global_transform());
 
@@ -2062,13 +2150,13 @@ void SkeletonModification3DTwoBoneIK::execute(float delta) {
 
 	Transform bone_two_tip_trans;
 	if (use_tip_node) {
-		if (tip_node_cache.is_null()) {
+		if (!tip_node_cache) {
 			update_cache_tip();
 			WARN_PRINT("Tip cache is out of date. Updating...");
 			return;
 		}
-		Node3D *tip = Object::cast_to<Node3D>(ObjectDB::get_instance(tip_node_cache));
-		ERR_FAIL_COND_MSG(!tip, "Tip node is not a Node3D-based node. Cannot execute modification!");
+		Spatial *tip = Object::cast_to<Spatial>(ObjectDB::get_instance(tip_node_cache));
+		ERR_FAIL_COND_MSG(!tip, "Tip node is not a Spatial-based node. Cannot execute modification!");
 		ERR_FAIL_COND_MSG(!tip->is_inside_tree(), "Tip node is not in the scene tree. Cannot execute modification!");
 		bone_two_tip_trans = stack->skeleton->world_transform_to_global_pose(tip->get_global_transform());
 	} else {
@@ -2276,12 +2364,12 @@ void SkeletonModification3DTwoBoneIK::calculate_joint_lengths() {
 	joint_one_length = bone_one_rest_trans.origin.distance_to(bone_two_rest_trans.origin);
 
 	if (use_tip_node) {
-		if (tip_node_cache.is_null()) {
+		if (!tip_node_cache) {
 			update_cache_tip();
 			WARN_PRINT("Tip cache is out of date. Updating...");
 		}
 
-		Node3D *tip = Object::cast_to<Node3D>(ObjectDB::get_instance(tip_node_cache));
+		Spatial *tip = Object::cast_to<Spatial>(ObjectDB::get_instance(tip_node_cache));
 		if (tip) {
 			Transform bone_tip_trans = stack->skeleton->world_transform_to_global_pose(tip->get_global_transform());
 			joint_two_length = bone_two_rest_trans.origin.distance_to(bone_tip_trans.origin);
@@ -2398,7 +2486,7 @@ void SkeletonModification3DTwoBoneIK::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_joint_two_length", "bone_length"), &SkeletonModification3DTwoBoneIK::set_joint_two_length);
 	ClassDB::bind_method(D_METHOD("get_joint_two_length"), &SkeletonModification3DTwoBoneIK::get_joint_two_length);
 
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Node3D"), "set_target_node", "get_target_node");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_target_node", "get_target_node");
 	ADD_GROUP("", "");
 }
 
