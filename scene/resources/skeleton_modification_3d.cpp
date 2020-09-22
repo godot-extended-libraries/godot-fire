@@ -412,7 +412,8 @@ void SkeletonModification3DLookAt::execute(float delta) {
 		return;
 	}
 
-	if (!target_node_cache) {
+	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
+	if (!target) {
 		_print_execution_error(true, "Target cache is out of date. Attempting to update...");
 		update_cache();
 		return;
@@ -422,7 +423,6 @@ void SkeletonModification3DLookAt::execute(float delta) {
 		bone_idx = stack->skeleton->find_bone(bone_name);
 	}
 
-	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
 	if (_print_execution_error(!target || !target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!")) {
 		return;
 	}
@@ -1681,13 +1681,13 @@ void SkeletonModification3DJiggle::execute(float delta) {
 	if (!enabled) {
 		return;
 	}
-	if (!target_node_cache) {
+	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
+	if (!target) {
+		_print_execution_error(true, "Target cache is out of date. Attempting to update...");
 		update_cache();
 		return;
 	}
-	Spatial *target = Object::cast_to<Spatial>(ObjectDB::get_instance(target_node_cache));
-	ERR_FAIL_COND_MSG(!target, "Target node is not a Spatial-based node. Cannot execute modification!");
-	ERR_FAIL_COND_MSG(!target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!");
+	_print_execution_error(!target || !target->is_inside_tree(), "Target node is not in the scene tree. Cannot execute modification!");
 
 	for (int i = 0; i < jiggle_data_chain.size(); i++) {
 		_execute_jiggle_joint(i, target, delta);
