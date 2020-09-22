@@ -109,7 +109,6 @@ private:
 		bool local_pose_override_reset;
 		Transform local_pose_override;
 
-		List<ObjectID> nodes_bound;
 		Vector<int> child_bones;
 
 		// The forward direction vector and rest bone forward acis are cached because they do not change
@@ -148,20 +147,6 @@ private:
 	bool dirty;
 
 	uint64_t version;
-
-	// bind helpers
-	Array _get_bound_child_nodes_to_bone(int p_bone) const {
-
-		Array bound;
-		List<Node *> children;
-		get_bound_child_nodes_to_bone(p_bone, &children);
-
-		for (int i = 0; i < children.size(); i++) {
-
-			bound.push_back(children[i]);
-		}
-		return bound;
-	}
 
 	void _update_process_order();
 
@@ -218,13 +203,9 @@ public:
 	Transform get_bone_rest(int p_bone) const;
 	Transform get_bone_global_pose(int p_bone) const;
 
-	void set_bone_enabled(int p_bone, bool p_enabled);
 	bool is_bone_enabled(int p_bone) const;
-
-	void bind_child_node_to_bone(int p_bone, Node *p_node);
-	void unbind_child_node_from_bone(int p_bone, Node *p_node);
-	void get_bound_child_nodes_to_bone(int p_bone, List<Node *> *p_bound) const;
-
+	void set_bone_enabled(int p_bone, bool p_enabled);
+	
 	void clear_bones();
 
 	// posing api
