@@ -106,11 +106,29 @@ void BoneAttachment::_update_external_skeleton_cache() {
 		Node *node = get_node(external_skeleton_node);
 		ERR_FAIL_COND_MSG(!node, "Cannot update external skeleton cache: Node cannot be found!");
 
-		// Make sure it's a Skeleton
+		// Make sure it's a skeleton3D
 		Skeleton *sk = Object::cast_to<Skeleton>(node);
-		ERR_FAIL_COND_MSG(!sk, "Cannot update external skeleton cache: Nodepath does not point to a Skeleton node!");
+		ERR_FAIL_COND_MSG(!sk, "Cannot update external skeleton cache: Skeleton Nodepath does not point to a Skeleton node!");
 
 		external_skeleton_node_cache = node->get_instance_id();
+	} else {
+		if (external_skeleton_node.is_empty()) {
+			BoneAttachment *parent_attachment = Object::cast_to<BoneAttachment>(get_parent());
+			if (parent_attachment) {
+				parent_attachment->_update_external_skeleton_cache();
+				if (parent_attachment->has_node(parent_attachment->external_skeleton_node)) {
+					Node *node = parent_attachment->get_node(parent_attachment->external_skeleton_node);
+					ERR_FAIL_COND_MSG(!node, "Cannot update external skeleton cache: Parent's Skeleton node cannot be found!");
+
+					// Make sure it's a skeleton3D
+					Skeleton *sk = Object::cast_to<Skeleton>(node);
+					ERR_FAIL_COND_MSG(!sk, "Cannot update external skeleton cache: Parent Skeleton Nodepath does not point to a Skeleton node!");
+
+					external_skeleton_node_cache = node->get_instance_id();
+					external_skeleton_node = get_path_to(node);
+				}
+			}
+		}
 	}
 }
 
