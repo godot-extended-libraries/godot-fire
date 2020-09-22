@@ -32,7 +32,15 @@
 
 void BoneAttachment::_validate_property(PropertyInfo &property) const {
 	if (property.name == "bone_name") {
-		Skeleton *parent = _get_Skeleton();
+		// Because it is a constant function, we cannot use the _get_skeleton_3d function.
+		Skeleton *parent = nullptr;
+		if (use_external_skeleton) {
+			if (external_skeleton_node_cache) {
+				parent = Object::cast_to<Skeleton>(ObjectDB::get_instance(external_skeleton_node_cache));
+			}
+		} else {
+			parent = Object::cast_to<Skeleton>(get_parent());
+		}
 
 		if (parent) {
 			String names;
@@ -107,7 +115,7 @@ void BoneAttachment::_update_external_skeleton_cache() {
 }
 
 void BoneAttachment::_check_bind() {
-	Skeleton *sk = _get_Skeleton();
+	Skeleton *sk = _get_skeleton();
 
 	if (sk && !bound) {
 		if (bone_idx <= -1) {
@@ -115,21 +123,21 @@ void BoneAttachment::_check_bind() {
 		}
 		if (bone_idx != -1) {
 			sk->connect("bone_pose_changed", this, "on_bone_pose_override");
-			if (use_external_skeleton) {
-				call_deferred("set_global_transform", sk->global_pose_to_world_transform(sk->get_bone_global_pose(bone_idx)));
-			} else {
-				call_deferred("set_transform", sk->get_bone_global_pose(bone_idx));
-			}
-
 			bound = true;
+			call_deferred("on_bone_pose_update", bone_idx);
 		}
 	}
 }
 
-Skeleton *BoneAttachment::_get_Skeleton() const {
+Skeleton *BoneAttachment::_get_skeleton() {
 	if (use_external_skeleton) {
 		if (external_skeleton_node_cache) {
 			return Object::cast_to<Skeleton>(ObjectDB::get_instance(external_skeleton_node_cache));
+		} else {
+			_update_external_skeleton_cache();
+			if (external_skeleton_node_cache) {
+				return Object::cast_to<Skeleton>(ObjectDB::get_instance(external_skeleton_node_cache));
+			}
 		}
 	} else {
 		return Object::cast_to<Skeleton>(get_parent());
@@ -139,7 +147,7 @@ Skeleton *BoneAttachment::_get_Skeleton() const {
 
 void BoneAttachment::_check_unbind() {
 	if (bound) {
-		Skeleton *sk = _get_Skeleton();
+		Skeleton *sk = _get_skeleton();
 
 		if (sk) {
 			sk->disconnect("bone_pose_changed", this, "on_bone_pose_override");
@@ -149,8 +157,12 @@ void BoneAttachment::_check_unbind() {
 }
 
 void BoneAttachment::_transform_changed() {
+	if (!is_inside_tree()) {
+		return;
+	}
+
 	if (override_pose) {
-		Skeleton *sk = _get_Skeleton();
+		Skeleton *sk = _get_skeleton();
 
 		ERR_FAIL_COND_MSG(!sk, "Cannot override pose: Skeleton not found!");
 		ERR_FAIL_INDEX_MSG(bone_idx, sk->get_bone_count(), "Cannot override pose: Bone index is out of range!");
@@ -172,7 +184,7 @@ void BoneAttachment::_transform_changed() {
 
 void BoneAttachment::set_bone_name(const String &p_name) {
 	bone_name = p_name;
-	Skeleton *sk = _get_Skeleton();
+	Skeleton *sk = _get_skeleton();
 	if (sk) {
 		set_bone_idx(sk->find_bone(bone_name));
 	}
@@ -189,7 +201,7 @@ void BoneAttachment::set_bone_idx(const int &p_idx) {
 
 	bone_idx = p_idx;
 
-	Skeleton *sk = _get_Skeleton();
+	Skeleton *sk = _get_skeleton();
 	if (sk) {
 		if (bone_idx <= -1 || bone_idx >= sk->get_bone_count()) {
 			WARN_PRINT("Bone index out of range! Cannot connect BoneAttachment to node!");
@@ -213,9 +225,10 @@ int BoneAttachment::get_bone_idx() const {
 void BoneAttachment::set_override_pose(bool p_override) {
 	override_pose = p_override;
 	set_notify_local_transform(override_pose);
+	set_process_internal(override_pose);
 
 	if (!override_pose) {
-		Skeleton *sk = _get_Skeleton();
+		Skeleton *sk = _get_skeleton();
 		if (sk) {
 			if (override_mode == OVERRIDE_MODES::MODE_GLOBAL_POSE) {
 				sk->set_bone_global_pose_override(bone_idx, Transform(), 0.0, false);
@@ -236,7 +249,7 @@ bool BoneAttachment::get_override_pose() const {
 
 void BoneAttachment::set_override_mode(int p_mode) {
 	if (override_pose) {
-		Skeleton *sk = _get_Skeleton();
+		Skeleton *sk = _get_skeleton();
 		if (sk) {
 			if (override_mode == OVERRIDE_MODES::MODE_GLOBAL_POSE) {
 				sk->set_bone_global_pose_override(bone_idx, Transform(), 0.0, false);
@@ -289,12 +302,17 @@ void BoneAttachment::_notification(int p_what) {
 		case NOTIFICATION_LOCAL_TRANSFORM_CHANGED: {
 			_transform_changed();
 		} break;
+		case NOTIFICATION_INTERNAL_PROCESS: {
+			if (_override_dirty) {
+				_override_dirty = false;
+			}
+		}
 	}
 }
 
 void BoneAttachment::on_bone_pose_update(int p_bone_index) {
 	if (bone_idx == p_bone_index) {
-		Skeleton *sk = _get_Skeleton();
+		Skeleton *sk = _get_skeleton();
 		if (sk) {
 			if (!override_pose) {
 				if (use_external_skeleton) {
@@ -303,22 +321,10 @@ void BoneAttachment::on_bone_pose_update(int p_bone_index) {
 					set_transform(sk->get_bone_global_pose(bone_idx));
 				}
 			} else {
-				set_notify_local_transform(false);
-				if (override_mode == OVERRIDE_MODES::MODE_LOCAL_POSE) {
-					if (use_external_skeleton) {
-						set_global_transform(sk->global_pose_to_world_transform(sk->local_pose_to_global_pose(bone_idx, sk->get_bone_local_pose_override(bone_idx))));
-					} else {
-						set_transform(sk->local_pose_to_global_pose(bone_idx, sk->get_bone_local_pose_override(bone_idx)));
-					}
-				} else if (override_mode == OVERRIDE_MODES::MODE_CUSTOM_POSE) {
-					if (use_external_skeleton) {
-						set_global_transform(sk->global_pose_to_world_transform(sk->local_pose_to_global_pose(bone_idx, sk->get_bone_custom_pose(bone_idx))));
-					} else {
-						set_transform(sk->local_pose_to_global_pose(bone_idx, sk->get_bone_custom_pose(bone_idx)));
-					}
+				if (!_override_dirty) {
+					_transform_changed();
+					_override_dirty = true;
 				}
-
-				set_notify_local_transform(true);
 			}
 		}
 	}
