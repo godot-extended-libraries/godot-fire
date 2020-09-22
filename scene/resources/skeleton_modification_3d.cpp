@@ -1193,27 +1193,6 @@ void SkeletonModification3DFABRIK::chain_backwards() {
 	}
 }
 
-void SkeletonModification3DFABRIK::chain_forwards() {
-	// Set root at the initial position.
-	int origin_bone_idx = fabrik_data_chain[0].bone_idx;
-	Transform root_transform = stack->skeleton->local_pose_to_global_pose(origin_bone_idx, stack->skeleton->get_bone_local_pose_override(origin_bone_idx));
-	root_transform.origin = origin_global_pose.origin;
-	stack->skeleton->set_bone_local_pose_override(origin_bone_idx, stack->skeleton->global_pose_to_local_pose(origin_bone_idx, root_transform), stack->strength, true);
-
-	for (int i = 0; i < fabrik_data_chain.size() - 1; i++) {
-		int current_bone_idx = fabrik_data_chain[i].bone_idx;
-		Transform current_trans = stack->skeleton->local_pose_to_global_pose(current_bone_idx, stack->skeleton->get_bone_local_pose_override(current_bone_idx));
-		int next_bone_idx = fabrik_data_chain[i + 1].bone_idx;
-		Transform next_bone_trans = stack->skeleton->local_pose_to_global_pose(next_bone_idx, stack->skeleton->get_bone_local_pose_override(next_bone_idx));
-
-		float length = fabrik_data_chain[i].length / (current_trans.origin - next_bone_trans.origin).length();
-		next_bone_trans.origin = current_trans.origin.linear_interpolate(next_bone_trans.origin, length);
-
-		// Apply it back to the skeleton
-		stack->skeleton->set_bone_local_pose_override(next_bone_idx, stack->skeleton->global_pose_to_local_pose(next_bone_idx, next_bone_trans), stack->strength, true);
-	}
-}
-
 void SkeletonModification3DFABRIK::chain_apply() {
 	// NOTE: We do not need a forward pass with this FABRIK, because we reset/undo the joint positions to origin
 	// in this function, after we apply rotation.
