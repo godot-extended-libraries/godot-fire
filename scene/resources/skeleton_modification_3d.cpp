@@ -587,12 +587,6 @@ void SkeletonModification3DLookAt::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "bone_name"), "set_bone_name", "get_bone_name");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "bone_index"), "set_bone_index", "get_bone_index");
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_target_node", "get_target_node");
-	ADD_GROUP("Additional Settings", "");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "lock_rotation_x"), "set_lock_rotation_x", "get_lock_rotation_x");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "lock_rotation_y"), "set_lock_rotation_y", "get_lock_rotation_y");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "lock_rotation_z"), "set_lock_rotation_z", "get_lock_rotation_z");
-	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "rotation_offset"), "set_rotation_offset", "get_rotation_offset");
-	ADD_GROUP("", "");
 }
 
 SkeletonModification3DLookAt::SkeletonModification3DLookAt() {
@@ -1032,7 +1026,6 @@ void SkeletonModification3DCCDIK::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_target_node", "get_target_node");
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "tip_nodepath", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_tip_node", "get_tip_node");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "perform_in_local_pose", PROPERTY_HINT_NONE, ""), "set_perform_in_local_pose", "get_perform_in_local_pose");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "ccdik_data_chain_length", PROPERTY_HINT_RANGE, "0,100,1"), "set_ccdik_data_chain_length", "get_ccdik_data_chain_length");
 }
 
@@ -1263,7 +1256,7 @@ void SkeletonModification3DFABRIK::chain_forwards() {
 		Transform next_bone_trans = stack->skeleton->local_pose_to_global_pose(next_bone_idx, stack->skeleton->get_bone_local_pose_override(next_bone_idx));
 
 		float length = fabrik_data_chain[i].length / (current_trans.origin - next_bone_trans.origin).length();
-		next_bone_trans.origin = current_trans.origin.lerp(next_bone_trans.origin, length);
+		next_bone_trans.origin = current_trans.origin.linear_interpolate(next_bone_trans.origin, length);
 
 		// Apply it back to the skeleton
 		stack->skeleton->set_bone_local_pose_override(next_bone_idx, stack->skeleton->global_pose_to_local_pose(next_bone_idx, next_bone_trans), stack->strength, true);
