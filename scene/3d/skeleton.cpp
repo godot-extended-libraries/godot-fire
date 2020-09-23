@@ -163,7 +163,7 @@ void Skeleton::_get_property_list(List<PropertyInfo> *p_list) const {
 			PropertyInfo(Variant::OBJECT, "modification_stack",
 					PROPERTY_HINT_RESOURCE_TYPE,
 					"SkeletonModificationStack3D",
-					PROPERTY_USAGE_DEFAULT));
+					PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_DO_NOT_SHARE_ON_DUPLICATE));
 #endif //_3D_DISABLED
 }
 
@@ -210,6 +210,7 @@ void Skeleton::_notification(int p_what) {
 			Bone *bonesptr = bones.ptrw();
 
 			int len = bones.size();
+			dirty = false;
 
 			// Update bone transforms
 			force_update_all_bone_transforms();
@@ -1017,6 +1018,8 @@ void Skeleton::force_update_bone_children_transforms(int p_bone_idx) {
 		for (int i = 0; i < child_bone_size; i++) {
 			bones_to_process.push_back(b.child_bones[i]);
 		}
+		
+		emit_signal(SceneStringNames::get_singleton()->bone_pose_changed, current_bone_idx);
 	}
 }
 
