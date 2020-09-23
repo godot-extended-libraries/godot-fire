@@ -139,7 +139,7 @@ void BoneAttachment::_check_bind() {
 			bone_idx = sk->find_bone(bone_name);
 		}
 		if (bone_idx != -1) {
-			sk->connect("bone_pose_changed", this, "on_bone_pose_override");
+			sk->connect("bone_pose_changed", this, "on_bone_pose_update");
 			set_transform(sk->get_bone_global_pose(bone_idx));
 			bound = true;
 		}
@@ -167,11 +167,7 @@ void BoneAttachment::_check_unbind() {
 		Skeleton *sk = Object::cast_to<Skeleton>(get_parent());
 
 		if (sk) {
-			int idx = sk->find_bone(bone_name);
-			if (idx != -1) {
-				sk->unbind_child_node_from_bone(idx, this);
-			}
-			sk->disconnect("bone_pose_changed", this, "on_bone_pose_override");
+			sk->disconnect("bone_pose_changed", this, "on_bone_pose_update");
 		}
 		bound = false;
 	}
