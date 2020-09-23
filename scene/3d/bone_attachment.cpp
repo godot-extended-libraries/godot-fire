@@ -133,16 +133,15 @@ void BoneAttachment::_update_external_skeleton_cache() {
 }
 
 void BoneAttachment::_check_bind() {
-	Skeleton *sk = _get_skeleton();
-
+	Skeleton *sk = Object::cast_to<Skeleton>(get_parent());
 	if (sk && !bound) {
 		if (bone_idx <= -1) {
 			bone_idx = sk->find_bone(bone_name);
 		}
 		if (bone_idx != -1) {
 			sk->connect("bone_pose_changed", this, "on_bone_pose_override");
+			set_transform(sk->get_bone_global_pose(bone_idx));
 			bound = true;
-			call_deferred("on_bone_pose_update", bone_idx);
 		}
 	}
 }
@@ -165,7 +164,7 @@ Skeleton *BoneAttachment::_get_skeleton() {
 
 void BoneAttachment::_check_unbind() {
 	if (bound) {
-		Skeleton *sk = _get_skeleton();
+		Skeleton *sk = Object::cast_to<Skeleton>(get_parent());
 
 		if (sk) {
 			sk->disconnect("bone_pose_changed", this, "on_bone_pose_override");
