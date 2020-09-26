@@ -1,0 +1,5 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/3.2/opensubdiv
+OpenSubdiv support for mesh instances
+
+Add uvs and smooth normal generation.
