@@ -1,0 +1,10 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/3.2/color-management
+
+Add color management module for ICC support.
+
+This module adds Color Management to engine settings. It depends on LittleCMS
+
+Added Rasterizer API for display color management.
+
+Use VisualServer::set_screen_lut to set a 3D texture for color management.
