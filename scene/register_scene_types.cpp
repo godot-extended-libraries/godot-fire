@@ -155,6 +155,7 @@
 #include "scene/resources/rectangle_shape_2d.h"
 #include "scene/resources/resource_format_text.h"
 #include "scene/resources/segment_shape_2d.h"
+#include "scene/resources/skeleton_modification_3d.h"
 #include "scene/resources/sky.h"
 #include "scene/resources/sphere_shape.h"
 #include "scene/resources/surface_tool.h"
@@ -634,6 +635,15 @@ void register_scene_types() {
 	ClassDB::register_class<PlaneShape>();
 	ClassDB::register_class<ConvexPolygonShape>();
 	ClassDB::register_class<ConcavePolygonShape>();
+
+	ClassDB::register_class<SkeletonModificationStack3D>();
+	ClassDB::register_class<SkeletonModification3D>();
+	ClassDB::register_class<SkeletonModification3DLookAt>();
+	ClassDB::register_class<SkeletonModification3DCCDIK>();
+	ClassDB::register_class<SkeletonModification3DFABRIK>();
+	ClassDB::register_class<SkeletonModification3DJiggle>();
+	ClassDB::register_class<SkeletonModification3DTwoBoneIK>();
+	ClassDB::register_class<SkeletonModification3DStackHolder>();
 
 	OS::get_singleton()->yield(); //may take time to init
 
