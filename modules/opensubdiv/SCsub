@@ -28,11 +28,11 @@ if env["builtin_opensubdiv"] and not env["disable_3d"]:
 
     env_opensubdiv.Append(CPPDEFINES=["_USE_MATH_DEFINES"])
     env_opensubdiv.Append(CPPPATH=[thirdparty_dir])
+    if not env.msvc:
+        env_opensubdiv.Append(CXXFLAGS=["-Wno-class-memaccess"])
 
     env_thirdparty = env_opensubdiv.Clone()
     env_thirdparty.disable_warnings()
-    if not env.msvc:
-        env_thirdparty.Append(CXXFLAGS=["-Wno-class-memaccess"])
     env_thirdparty.add_source_files(env.modules_sources, thirdparty_sources)
 
 # Godot source files
