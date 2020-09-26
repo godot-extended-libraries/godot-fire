@@ -369,7 +369,7 @@ void OpenSubdivMeshSubdivision::update_skinning(RID p_skeleton) {
 	VisualServer *visual_server = VisualServer::get_singleton();
 
 	PoolByteArray subdiv_buffer = visual_server->mesh_surface_get_array(subdiv_mesh, 0);
-	ERR_FAIL_COND(subdiv_buffer.size() != subdiv_vertex_count * sizeof(Vector3));
+	ERR_FAIL_COND(subdiv_buffer.size() != subdiv_vertex_count * int(sizeof(Vector3)));
 	PoolByteArray::Write subdiv_buffer_write = subdiv_buffer.write();
 
 	// Apply skinning
