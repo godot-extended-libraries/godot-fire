@@ -105,7 +105,7 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 		Ref<ArrayMesh> array_mesh = p_mesh;
 		if (array_mesh.is_valid() && (array_mesh->surface_get_format(surface_i) & Mesh::ARRAY_FORMAT_TEX_UV) == 0) {
 			array_mesh->mesh_unwrap(Transform(), 1.0f);
-		} 
+		}
 		if (array_mesh.is_valid() && (array_mesh->surface_get_format(surface_i) & Mesh::ARRAY_FORMAT_BONES)) {
 			has_bones = true;
 		}
