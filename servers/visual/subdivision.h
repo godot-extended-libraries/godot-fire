@@ -56,6 +56,8 @@ public:
 
 	virtual MeshSubdivision *create_mesh_subdivision(Ref<Mesh> p_mesh, int p_level) = 0;
 	virtual void destroy_mesh_subdivision(MeshSubdivision *p_mesh_subdivision) = 0;
+	SubdivisionSystem() {}
+	virtual ~SubdivisionSystem() {}
 };
 
 #endif // SUBDIVISION_H

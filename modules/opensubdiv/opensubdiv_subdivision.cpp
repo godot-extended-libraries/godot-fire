@@ -285,7 +285,6 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 		{
 			Far::TopologyLevel const &last_level = refiner->GetLevel(p_level);
 			int face_count_out = last_level.GetNumFaces();
-			int index_count_out = face_count_out * 3;
 
 			int vertex_index_offset = subdiv_vertex_count - last_level.GetNumVertices();
 
@@ -311,7 +310,6 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 	// Create all subdivision surfaces
 	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
 		const PoolIntArray &index_array_out = index_arrays_out[surface_index];
-		const PoolVector3Array &normal_array_out = normal_arrays_out[surface_index];
 
 		Array subdiv_mesh_arrays;
 		subdiv_mesh_arrays.resize(Mesh::ARRAY_MAX);
@@ -457,8 +455,6 @@ void OpenSubdivMeshSubdivision::update_skinning(RID p_skeleton) {
 
 	// Update vertex arrays for each surface
 	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
-		const SurfaceData &surface = surface_data[surface_index];
-
 		if (surface_index == 0) {
 			// Main surface, interpolate vertex primvar data
 			Vertex *src = (Vertex *)subdiv_buffer_write.ptr();
