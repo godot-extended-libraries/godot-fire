@@ -1,0 +1,5 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/3.2/color-correction
+Color correction now uses a 3D texture. Breaks games that use the existing color correction.
+
+Co-authored-by: Ilaria Cislaghi <cislaghi.ilaria@gmail.com>
