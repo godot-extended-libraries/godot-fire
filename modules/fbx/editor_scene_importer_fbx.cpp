@@ -158,12 +158,11 @@ Node *EditorSceneImporterFBX::import_scene(const String &p_path, uint32_t p_flag
 
 		// safety for version handling
 		if (doc.IsSafeToImport()) {
-			Spatial * spatial = _generate_scene(p_path, &doc, p_flags, p_bake_fps, 8);
+			Spatial *spatial = _generate_scene(p_path, &doc, p_flags, p_bake_fps, 8);
 
 			// todo: move to document shutdown (will need to be validated after moving; this code has been validated already)
-			for( Assimp::FBX::TokenPtr token : tokens)
-			{
-				if(token) {
+			for (Assimp::FBX::TokenPtr token : tokens) {
+				if (token) {
 					delete token;
 					token = nullptr;
 				}
@@ -385,8 +384,7 @@ EditorSceneImporterFBX::_generate_scene(const String &p_path,
 	BuildDocumentNodes(nullptr, state, p_document, 0L, nullptr);
 
 	// Build document skinning information
-	for(uint64_t skin_id : p_document->GetSkinIDs())
-	{
+	for (uint64_t skin_id : p_document->GetSkinIDs()) {
 		// Validate the parser
 		Assimp::FBX::LazyObject *lazy_skin = p_document->GetObject(skin_id);
 		ERR_CONTINUE_MSG(lazy_skin == nullptr, "invalid lazy object [serious parser bug]");
@@ -397,20 +395,18 @@ EditorSceneImporterFBX::_generate_scene(const String &p_path,
 
 		const std::vector<const Assimp::FBX::Connection *> source_to_destination = p_document->GetConnectionsBySourceSequenced(skin_id);
 		const std::vector<const Assimp::FBX::Connection *> destination_to_source = p_document->GetConnectionsByDestinationSequenced(skin_id);
-		Assimp::FBX::MeshGeometry * mesh = nullptr;
+		Assimp::FBX::MeshGeometry *mesh = nullptr;
 		uint64_t mesh_id = 0;
 
 		// Most likely only contains the mesh link for the skin
 		// The mesh geometry.
-		for( const Assimp::FBX::Connection * con : source_to_destination)
-		{
+		for (const Assimp::FBX::Connection *con : source_to_destination) {
 			// do something
-			print_verbose( "src: " + itos(con->src) );
-			Assimp::FBX::Object * ob = con->DestinationObject();
-			mesh = dynamic_cast<Assimp::FBX::MeshGeometry*>(ob);
+			print_verbose("src: " + itos(con->src));
+			Assimp::FBX::Object *ob = con->DestinationObject();
+			mesh = dynamic_cast<Assimp::FBX::MeshGeometry *>(ob);
 
-			if(mesh)
-			{
+			if (mesh) {
 				mesh_id = mesh->ID();
 				break;
 			}
@@ -421,23 +417,22 @@ EditorSceneImporterFBX::_generate_scene(const String &p_path,
 
 		// NOTE: this will ONLY work on skinned bones (it is by design.)
 		// A cluster is a skinned bone so SKINS won't contain unskinned bones so we need to pre-add all bones and parent them in a step beforehand.
-		for( const Assimp::FBX::Connection * con : destination_to_source)
-		{
-			Assimp::FBX::Object * ob = con->SourceObject();
+		for (const Assimp::FBX::Connection *con : destination_to_source) {
+			Assimp::FBX::Object *ob = con->SourceObject();
 
 			//
 			// Read the FBX Document bone information
 			//
 
 			// Get bone weight data
-			const Assimp::FBX::Cluster * deformer = dynamic_cast<const Assimp::FBX::Cluster*>(ob);
+			const Assimp::FBX::Cluster *deformer = dynamic_cast<const Assimp::FBX::Cluster *>(ob);
 			ERR_CONTINUE_MSG(deformer == nullptr, "invalid bone cluster");
 
 			const uint64_t deformer_id = deformer->ID();
 			std::vector<const Assimp::FBX::Connection *> connections = p_document->GetConnectionsByDestinationSequenced(deformer_id);
 
 			// Weight data always has a node in the scene lets grab the limb's node in the scene :) (reverse set to true since it's the opposite way around)
-			const Assimp::FBX::ModelLimbNode * limb_node = ProcessDOMConnection<Assimp::FBX::ModelLimbNode>(p_document, deformer_id, true);
+			const Assimp::FBX::ModelLimbNode *limb_node = ProcessDOMConnection<Assimp::FBX::ModelLimbNode>(p_document, deformer_id, true);
 
 			ERR_CONTINUE_MSG(limb_node == nullptr, "unable to resolve model for skinned bone");
 
@@ -507,7 +502,6 @@ EditorSceneImporterFBX::_generate_scene(const String &p_path,
 		}
 	}
 
-
 	// do we globally allow for import of materials
 	// (prevents overwrite of materials; so you can handle them explicitly)
 	if (state.enable_material_import) {
@@ -550,9 +544,9 @@ EditorSceneImporterFBX::_generate_scene(const String &p_path,
 			const Assimp::FBX::FbxPose *active_skin = lazy_skin->Get<Assimp::FBX::FbxPose>();
 
 			if (active_skin) {
-				const std::vector<Assimp::FBX::FbxPoseNode*> &bind_poses = active_skin->GetBindPoses();
+				const std::vector<Assimp::FBX::FbxPoseNode *> &bind_poses = active_skin->GetBindPoses();
 
-				for (Assimp::FBX::FbxPoseNode* pose_node : bind_poses) {
+				for (Assimp::FBX::FbxPoseNode *pose_node : bind_poses) {
 					Transform t = pose_node->GetBindPose();
 					uint64_t fbx_node_id = pose_node->GetNodeID();
 					if (state.fbx_bone_map.has(fbx_node_id)) {
@@ -706,8 +700,7 @@ EditorSceneImporterFBX::_generate_scene(const String &p_path,
 			Transform ignore_t;
 			Ref<FBXSkeleton> skeleton = bone->fbx_skeleton;
 
-			if(!bone->cluster)
-			{
+			if (!bone->cluster) {
 				continue; // some bones have no skin this is OK.
 			}
 
@@ -735,13 +728,10 @@ EditorSceneImporterFBX::_generate_scene(const String &p_path,
 		const bool valid_armature = mesh->valid_armature_id;
 		const uint64_t armature = mesh->armature_id;
 
-		if(mesh_weights > 0)
-		{
+		if (mesh_weights > 0) {
 			// this is a bug, it means the weights were found but the skeleton wasn't
 			ERR_CONTINUE_MSG(!valid_armature, "[doc] fbx armature is missing");
-		}
-		else
-		{
+		} else {
 			continue; // safe to continue not a bug just a normal mesh
 		}
 
@@ -1452,7 +1442,6 @@ void EditorSceneImporterFBX::BuildDocumentBones(Ref<FBXBone> p_parent_bone,
 				// insert limb by ID into list.
 				state.fbx_bone_map.insert(limb_node->ID(), bone_element);
 			}
-
 
 			// recursion call - child nodes
 			BuildDocumentBones(bone_element, state, p_doc, model->ID());
