@@ -70,8 +70,43 @@ SkinReference::~SkinReference() {
 }
 
 bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
-
 	String path = p_path;
+	NodePath node_path = path;
+
+	String bone_name = path.get_slicec('/', 0);
+	BoneId bone = find_bone(bone_name);
+	if (bone != -1) {
+		StringName property = path.get_slicec('/', 1);
+		if (property == "translation") {
+			ERR_FAIL_INDEX_V(bone, bones.size(), false);
+			Transform pose = bones[bone].pose;
+			pose.origin = p_value;
+			bones.write[bone].pose = pose;
+		} else if (property == "rotation_degrees") {
+			ERR_FAIL_INDEX_V(bone, bones.size(), false);
+			Transform pose = bones[bone].pose;
+			Vector3 scale = pose.basis.get_scale();
+			Quat rot;
+			Vector3 rot_euler;
+			Vector3 rot_degrees = p_value;
+			rot_euler.x = Math::deg2rad(rot_degrees.x);
+			rot_euler.y = Math::deg2rad(rot_degrees.y);
+			rot_euler.z = Math::deg2rad(rot_degrees.z);
+			rot.set_euler(rot_euler);
+			pose.basis.set_quat_scale(rot, scale);
+			bones.write[bone].pose = pose;
+		} else if (property == "scale") {
+			ERR_FAIL_INDEX_V(bone, bones.size(), false);
+			Transform pose = bones[bone].pose;
+			Quat quat = pose.basis.get_rotation_quat();
+			pose.basis.set_quat_scale(quat, p_value);
+			bones.write[bone].pose = pose;
+		}
+		if (is_inside_tree()) {
+			_make_dirty();
+		}
+		return true;
+	}
 
 	if (!path.begins_with("bones/"))
 		return false;
@@ -118,8 +153,29 @@ bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
 }
 
 bool Skeleton::_get(const StringName &p_path, Variant &r_ret) const {
-
 	String path = p_path;
+	NodePath node_path = path;
+
+	String bone_name = path.get_slicec('/', 0);
+	BoneId bone = find_bone(bone_name);
+	if (bone != -1) {
+		StringName property = path.get_slicec('/', 1);
+		if (property == "translation") {
+			r_ret = bones[bone].pose.origin;
+			return true;
+		} else if (property == "rotation_degrees") {
+			Vector3 rot_degrees;
+			Vector3 rot_euler = bones[bone].pose.basis.get_euler();
+			rot_degrees.x = Math::rad2deg(rot_euler.x);
+			rot_degrees.y = Math::rad2deg(rot_euler.y);
+			rot_degrees.z = Math::rad2deg(rot_euler.z);
+			r_ret = rot_degrees;
+			return true;
+		} else if (property == "scale") {
+			r_ret = bones[bone].pose.basis.get_scale();
+			return true;
+		}
+	}
 
 	if (!path.begins_with("bones/"))
 		return false;
