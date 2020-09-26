@@ -1,0 +1,9 @@
+From: K. S. Ernest (iFire) Lee <ernest.lee@chibifire.com>
+Subject: [PATCH] extended/3.2/unfold-editor
+Added ability to unfold editor sections when dragging and dropping.
+
+Also added editor setting to control the delay used before unfold occurs.
+
+Co-authored-by: Eric M <itsjusteza@gmail.com>
+
+https://github.com/godotengine/godot/pull/41138
