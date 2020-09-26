@@ -47,8 +47,6 @@ class OpenSubdivMeshSubdivision : public MeshSubdivision {
 	Vector<SurfaceData> surface_data;
 	int subdiv_vertex_count = 0;
 	int subdiv_uv_count = 0;
-	int subdiv_bone_count = 0;
-	int subdiv_weight_count = 0;
 
 	OpenSubdiv::Far::TopologyRefiner *refiner;
 
@@ -66,5 +64,7 @@ class OpenSubdivSubdivisionSystem : public SubdivisionSystem {
 public:
 	virtual MeshSubdivision *create_mesh_subdivision(Ref<Mesh> p_mesh, int p_level);
 	virtual void destroy_mesh_subdivision(MeshSubdivision *p_mesh_subdivision);
+	OpenSubdivSubdivisionSystem() {}
+	virtual ~OpenSubdivSubdivisionSystem() {}
 };
 #endif
