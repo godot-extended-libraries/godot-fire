@@ -376,6 +376,11 @@ void Skeleton::_notification(int p_what) {
 
 			dirty = false;
 			emit_signal("skeleton_updated");
+
+#ifdef TOOLS_ENABLED
+			emit_signal("pose_updated");
+#endif // TOOLS_ENABLED
+
 		} break;
 	}
 }
@@ -898,6 +903,10 @@ void Skeleton::_bind_methods() {
 #endif // _3D_DISABLED
 
 	ADD_SIGNAL(MethodInfo("skeleton_updated"));
+
+#ifdef TOOLS_ENABLED
+	ADD_SIGNAL(MethodInfo("pose_updated"));
+#endif // TOOLS_ENABLED
 
 	BIND_CONSTANT(NOTIFICATION_UPDATE_SKELETON);
 }
