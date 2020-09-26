@@ -233,9 +233,9 @@ FBXMaterial::MaterialInfo FBXMaterial::extract_material_info(const Assimp::FBX::
 }
 
 template <class T>
-T extract_from_prop(Assimp::FBX::PropertyPtr prop, const T& p_default, const std::string &p_name, const String &p_type) {
+T extract_from_prop(Assimp::FBX::PropertyPtr prop, const T &p_default, const std::string &p_name, const String &p_type) {
 	ERR_FAIL_COND_V_MSG(prop == nullptr, p_default, "invalid property passed to extractor");
-	const Assimp::FBX::TypedProperty<T>* val = dynamic_cast<const Assimp::FBX::TypedProperty<T>*>(prop);
+	const Assimp::FBX::TypedProperty<T> *val = dynamic_cast<const Assimp::FBX::TypedProperty<T> *>(prop);
 
 	ERR_FAIL_COND_V_MSG(val == nullptr, p_default, "The FBX is corrupted, the property `" + String(p_name.c_str()) + "` is a `" + String(typeid(*prop).name()) + "` but should be a " + p_type);
 	// Make sure to not lost any eventual opacity.
@@ -276,8 +276,7 @@ Ref<SpatialMaterial> FBXMaterial::import_material(ImportState &state) {
 		if (desc == PROPERTY_DESC_IGNORE) {
 			print_verbose("The FBX material parameter: `" + String(name.c_str()) + "` is ignored.");
 			continue;
-		} else
-		{
+		} else {
 			print_verbose("FBX Material parameter: " + String(name.c_str()));
 		}
 
@@ -322,7 +321,7 @@ Ref<SpatialMaterial> FBXMaterial::import_material(ImportState &state) {
 				}
 			} break;
 			case PROPERTY_DESC_METALLIC: {
-				spatial_material->set_metallic( std::min(1.0f, extract_from_prop(prop, 1.0f, name, "float")));
+				spatial_material->set_metallic(std::min(1.0f, extract_from_prop(prop, 1.0f, name, "float")));
 			} break;
 			case PROPERTY_DESC_ROUGHNESS: {
 				spatial_material->set_roughness(std::min(1.0f, extract_from_prop(prop, 1.0f, name, "float")));
