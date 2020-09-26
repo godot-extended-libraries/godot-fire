@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  audio_effect_stream_effect.cpp                                       */
+/*  audio_effect_stream.cpp                                              */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -99,7 +99,6 @@ AudioEffectStreamInstance::AudioEffectStreamInstance() {
 AudioEffectStreamInstance::~AudioEffectStreamInstance() {
 	output_ring_buffer.unref();
 }
-
 
 void AudioEffectStreamInstance::set_streaming(bool val) {
 	is_streaming = val;
