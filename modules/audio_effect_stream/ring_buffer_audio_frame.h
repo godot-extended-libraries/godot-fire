@@ -31,13 +31,13 @@
 #ifndef RING_BUFFER_AUDIO_FRAME_H
 #define RING_BUFFER_AUDIO_FRAME_H
 
-#include "core/vector.h"
-#include "core/reference.h"
 #include "core/math/audio_frame.h"
+#include "core/reference.h"
+#include "core/vector.h"
 
 struct AudioFrame;
 
-class RingBufferAudioFrame : public Reference{
+class RingBufferAudioFrame : public Reference {
 	GDCLASS(RingBufferAudioFrame, Reference);
 	RingBuffer<AudioFrame> ring;
 

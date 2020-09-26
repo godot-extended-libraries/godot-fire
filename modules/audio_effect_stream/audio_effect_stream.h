@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  audio_effect_stream_opus.h                                           */
+/*  audio_effect_stream.h                                                */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -34,8 +34,8 @@
 #include "core/engine.h"
 #include "servers/audio_server.h"
 
-#include "servers/audio/audio_effect.h"
 #include "ring_buffer_audio_frame.h"
+#include "servers/audio/audio_effect.h"
 
 class AudioEffectStream;
 
@@ -52,7 +52,6 @@ class AudioEffectStreamInstance : public AudioEffectInstance {
 	};
 
 public:
-
 	void init();
 	virtual void process(const AudioFrame *p_src_frames, AudioFrame *p_dst_frames, int p_frame_count);
 	virtual bool process_silence() const;
