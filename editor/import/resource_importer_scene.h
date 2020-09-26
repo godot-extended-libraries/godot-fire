@@ -32,11 +32,11 @@
 #define RESOURCEIMPORTERSCENE_H
 
 #include "core/io/resource_importer.h"
+#include "scene/3d/mesh_instance.h"
+#include "scene/3d/skeleton.h"
 #include "scene/resources/animation.h"
 #include "scene/resources/mesh.h"
 #include "scene/resources/shape.h"
-#include "scene/3d/skeleton.h"
-#include "scene/3d/mesh_instance.h"
 
 class Material;
 class EditorSceneImporter : public Reference {
