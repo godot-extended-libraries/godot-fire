@@ -136,7 +136,7 @@ public:
 	Vector3 get_translation() const;
 	Vector3 get_rotation() const;
 	Vector3 get_rotation_degrees() const;
-	Quat get_rotation_quat() const ;
+	Quat get_rotation_quat() const;
 	Vector3 get_scale() const;
 
 	void set_transform(const Transform &p_transform);
