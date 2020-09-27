@@ -1035,7 +1035,7 @@ struct _VariantCall {
 	VCALL_PTR0R(Basis, get_orthogonal_index);
 	VCALL_PTR0R(Basis, orthonormalized);
 	VCALL_PTR2R(Basis, slerp);
-	VCALL_PTR2R(Basis, is_equal_approx); // TODO: Break compatibility in 4.0 to change this to an instance method (a.is_equal_approx(b) as VCALL_PTR1R) for consistency.
+	VCALL_PTR1R(Basis, is_equal_approx);
 	VCALL_PTR0R(Basis, get_rotation_quat);
 
 	static void _call_Basis_rotate_to_align(Variant &r_ret, Variant &p_self, const Variant **p_args) {
@@ -2368,7 +2368,7 @@ void register_variant_methods() {
 	ADDFUNC1R(BASIS, VECTOR3, Basis, xform_inv, VECTOR3, "v", varray());
 	ADDFUNC0R(BASIS, INT, Basis, get_orthogonal_index, varray());
 	ADDFUNC2R(BASIS, BASIS, Basis, slerp, BASIS, "b", FLOAT, "t", varray());
-	ADDFUNC2R(BASIS, BOOL, Basis, is_equal_approx, BASIS, "b", FLOAT, "epsilon", varray(CMP_EPSILON)); // TODO: Replace in 4.0, see other TODO.
+	ADDFUNC1R(BASIS, BOOL, Basis, is_equal_approx, BASIS, "b", varray());
 	ADDFUNC0R(BASIS, QUAT, Basis, get_rotation_quat, varray());
 	ADDFUNC2R(BASIS, NIL, Basis, rotate_to_align, VECTOR3, "start_direction", VECTOR3, "end_direction", varray());
 
