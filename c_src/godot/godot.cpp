@@ -18,8 +18,7 @@ UNIFEX_TERM init(UnifexEnv *env, MyState *state, char **in_strings, unsigned int
 	return init_result_ok(env, state, err);
 }
 
-UNIFEX_TERM iteration(UnifexEnv *env, MyState *state, int delta) {
-	// delta should be a float
+UNIFEX_TERM iteration(UnifexEnv *env, MyState *state, double delta) {
 	if (!state) {
 		return iteration_result_fail(env, state, "Godot is not initalized.");
 	}

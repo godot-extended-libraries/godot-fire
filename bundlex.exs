@@ -15,9 +15,10 @@
          compiler_flags: ["-DSERVER_ENABLED", "-DUNIX_ENABLED", "-fpermissive", "-DTOOLS_ENABLED", "-Wno-unused-parameter"],
          interface: [:cnode],
          preprocessor: Unifex,
-         lib_dirs: ["bin"],
-         libs: ["godot_server.osx.tools.64"],
-         language: :cpp
+         lib_dirs: [Path.absname("bin")],
+         libs: ["godot_server.x11.opt.tools.64"],
+         language: :cpp,
+         linker_flags: ["-Wl,-rpath=bin"],
        ]
      ]
    end
