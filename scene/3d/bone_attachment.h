@@ -62,7 +62,7 @@ class BoneAttachment : public Spatial {
 	Skeleton *_get_skeleton();
 
 protected:
-	virtual void _validate_property(PropertyInfo &property) const override;
+	virtual void _validate_property(PropertyInfo &property) const;
 	bool _get(const StringName &p_path, Variant &r_ret) const;
 	bool _set(const StringName &p_path, const Variant &p_value);
 	void _get_property_list(List<PropertyInfo> *p_list) const;
@@ -71,6 +71,8 @@ protected:
 	static void _bind_methods();
 
 public:
+	String get_configuration_warning() const;
+
 	void set_bone_name(const String &p_name);
 	String get_bone_name() const;
 

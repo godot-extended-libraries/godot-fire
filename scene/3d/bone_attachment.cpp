@@ -100,6 +100,36 @@ void BoneAttachment::_get_property_list(List<PropertyInfo> *p_list) const {
 	}
 }
 
+String BoneAttachment::get_configuration_warning() const {
+	String warning = Spatial::get_configuration_warning();
+
+	if (use_external_skeleton) {
+		if (!external_skeleton_node_cache) {
+			if (warning != String()) {
+				warning += "\n\n";
+			}
+			warning += TTR("External Skeleton3D node not set! Please set a path to an external Skeleton3D node.");
+		}
+	} else {
+		Skeleton *parent = Object::cast_to<Skeleton>(get_parent());
+		if (!parent) {
+			if (warning != String()) {
+				warning += "\n\n";
+			}
+			warning += TTR("Parent node is not a Skeleton3D node! Please use an extenral Skeleton3D if you intend to use the BoneAttachment3D without it being a child of a Skeleton3D node.");
+		}
+	}
+
+	if (bone_idx == -1) {
+		if (warning != String()) {
+			warning += "\n\n";
+		}
+		warning += TTR("BoneAttachment3D node is not bound to any bones! Please select a bone to attach this node.");
+	}
+
+	return warning;
+}
+
 void BoneAttachment::_update_external_skeleton_cache() {
 	external_skeleton_node_cache = ObjectID();
 	if (has_node(external_skeleton_node)) {
@@ -307,6 +337,7 @@ bool BoneAttachment::get_use_external_skeleton() const {
 void BoneAttachment::set_external_skeleton(NodePath p_path) {
 	external_skeleton_node = p_path;
 	_update_external_skeleton_cache();
+	_change_notify();
 }
 
 NodePath BoneAttachment::get_external_skeleton() const {
