@@ -394,6 +394,7 @@ SpriteBase3D::SpriteBase3D() {
 	VS::get_singleton()->material_set_param(material, "uv1_scale", Vector3(1, 1, 1));
 	VS::get_singleton()->material_set_param(material, "uv2_offset", Vector3(0, 0, 0));
 	VS::get_singleton()->material_set_param(material, "uv2_scale", Vector3(1, 1, 1));
+	VS::get_singleton()->material_set_param(material, "alpha_scissor_threshold", 0.98);
 
 	mesh = VisualServer::get_singleton()->mesh_create();
 
@@ -1223,11 +1224,15 @@ StringName AnimatedSprite3D::get_animation() const {
 
 String AnimatedSprite3D::get_configuration_warning() const {
 
+	String warning = SpriteBase3D::get_configuration_warning();
 	if (frames.is_null()) {
-		return TTR("A SpriteFrames resource must be created or set in the \"Frames\" property in order for AnimatedSprite3D to display frames.");
+		if (warning != String()) {
+			warning += "\n\n";
+		}
+		warning += TTR("A SpriteFrames resource must be created or set in the \"Frames\" property in order for AnimatedSprite3D to display frames.");
 	}
 
-	return String();
+	return warning;
 }
 
 void AnimatedSprite3D::_bind_methods() {
