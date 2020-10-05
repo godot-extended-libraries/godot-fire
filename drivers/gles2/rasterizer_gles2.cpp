@@ -429,7 +429,7 @@ void RasterizerGLES2::blit_render_target_to_screen(RID p_render_target, const Re
 
 	if (!state.screen_lut.is_valid()) {
 		// draw normally
-	    canvas->_set_texture_rect_mode(true);
+		canvas->_set_texture_rect_mode(true);
 
 		canvas->state.canvas_shader.set_custom_shader(0);
 		canvas->state.canvas_shader.bind();
