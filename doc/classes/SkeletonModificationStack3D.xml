@@ -5,7 +5,7 @@
 	</brief_description>
 	<description>
 		This resource is used by the Skeleton and holds a stack of [SkeletonModification3D]s. The SkeletonModificationStack3D controls the order of the modifications, which controls how they are applied. Modification order is especially important for full-body IK setups, as you need to execute the modifications in the correct order to get the desired results. For example, you want to execute a modification on the spine [i]before[/i] the arms on a humanoid skeleton.
-		Additionally, the SkeletonModificationStack3D also controls how strongly the modifications are applied to the [Skeleton3D] node.
+		Additionally, the SkeletonModificationStack3D also controls how strongly the modifications are applied to the [Skeleton] node.
 	</description>
 	<tutorials>
 	</tutorials>
@@ -69,7 +69,7 @@
 			<return type="Skeleton3D">
 			</return>
 			<description>
-				Returns the [Skeleton3D] node that the SkeletonModificationStack3D is bound to.
+				Returns the [Skeleton] node that the SkeletonModificationStack3D is bound to.
 			</description>
 		</method>
 		<method name="set_modification">
@@ -87,13 +87,13 @@
 			<return type="void">
 			</return>
 			<description>
-				Sets up the modification stack so it can execute. This function should be called by [Skeleton3D] and shouldn't be called unless you know what you are doing.
+				Sets up the modification stack so it can execute. This function should be called by [Skeleton] and shouldn't be called unless you know what you are doing.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="enabled" type="bool" setter="set_enabled" getter="get_enabled" default="false">
-			When true, the modification's in the stack will be called. This is handled automatically through the [Skeleton3D] node.
+			When true, the modification's in the stack will be called. This is handled automatically through the [Skeleton] node.
 		</member>
 		<member name="modification_count" type="int" setter="set_modification_count" getter="get_modification_count" default="0">
 			The amount of modifications in the stack.

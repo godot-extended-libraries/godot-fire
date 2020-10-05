@@ -114,7 +114,7 @@
 			<argument index="1" name="bone_idx" type="int">
 			</argument>
 			<description>
-				Sets the bone index, [code]bone_index[/code], of the Jiggle joint at [code]joint_idx[/code]. When possible, this will also update the [code]bone_name[/code] of the Jiggle joint based on data provided by the [Skeleton3D].
+				Sets the bone index, [code]bone_index[/code], of the Jiggle joint at [code]joint_idx[/code]. When possible, this will also update the [code]bone_name[/code] of the Jiggle joint based on data provided by the [Skeleton].
 			</description>
 		</method>
 		<method name="set_jiggle_joint_bone_name">
@@ -125,7 +125,7 @@
 			<argument index="1" name="name" type="String">
 			</argument>
 			<description>
-				Sets the bone name, [code]bone_name[/code], of the Jiggle joint at [code]joint_idx[/code]. When possible, this will also update the [code]bone_index[/code] of the Jiggle joint based on data provided by the [Skeleton3D].
+				Sets the bone name, [code]bone_name[/code], of the Jiggle joint at [code]joint_idx[/code]. When possible, this will also update the [code]bone_index[/code] of the Jiggle joint based on data provided by the [Skeleton].
 			</description>
 		</method>
 		<method name="set_jiggle_joint_damping">

@@ -6,7 +6,7 @@
 	<description>
 		This [SkeletonModification3D] uses an algorithm typically called TwoBoneIK. This algorithm works by leveraging the law of cosigns and the lengths of the bones to figure out what rotation the bones currently have, and what rotation they need to make a complete triangle, where the first bone, the second bone, and the target form the three verticies of the triangle. Because the algorithm works by making a triangle, it can only opperate on two bones.
 		TwoBoneIK is great for arms, legs, and really any joints that can be represented by just two bones that bend to reach a target. This solver is more lightweight than [SkeletonModification3DFABRIK], but gives similar, natural looking results.
-		A [Node3D]-based node can be used to define the pole, or bend direction, allowing control over which direction the joint takes when bending to reach the target when the target is within reach.
+		A [Spatial]-based node can be used to define the pole, or bend direction, allowing control over which direction the joint takes when bending to reach the target when the target is within reach.
 	</description>
 	<tutorials>
 	</tutorials>
@@ -118,7 +118,7 @@
 			<argument index="0" name="bone_idx" type="int">
 			</argument>
 			<description>
-				Sets the bone index, [code]bone_index[/code], of the first bone. When possible, this will also update the [code]bone_name[/code] of the first bone based on data provided by the [Skeleton3D].
+				Sets the bone index, [code]bone_index[/code], of the first bone. When possible, this will also update the [code]bone_name[/code] of the first bone based on data provided by the [Skeleton].
 			</description>
 		</method>
 		<method name="set_joint_one_bone_name">
@@ -127,7 +127,7 @@
 			<argument index="0" name="bone_name" type="String">
 			</argument>
 			<description>
-				Sets the bone name, [code]bone_name[/code], of the first bone. When possible, this will also update the [code]bone_index[/code] of the first bone based on data provided by the [Skeleton3D].
+				Sets the bone name, [code]bone_name[/code], of the first bone. When possible, this will also update the [code]bone_index[/code] of the first bone based on data provided by the [Skeleton].
 			</description>
 		</method>
 		<method name="set_joint_one_length">
@@ -154,7 +154,7 @@
 			<argument index="0" name="bone_idx" type="int">
 			</argument>
 			<description>
-				Sets the bone index, [code]bone_index[/code], of the second bone. When possible, this will also update the [code]bone_name[/code] of the second bone based on data provided by the [Skeleton3D].
+				Sets the bone index, [code]bone_index[/code], of the second bone. When possible, this will also update the [code]bone_name[/code] of the second bone based on data provided by the [Skeleton].
 			</description>
 		</method>
 		<method name="set_joint_two_bone_name">
@@ -163,7 +163,7 @@
 			<argument index="0" name="bone_name" type="String">
 			</argument>
 			<description>
-				Sets the bone name, [code]bone_name[/code], of the second bone. When possible, this will also update the [code]bone_index[/code] of the second bone based on data provided by the [Skeleton3D].
+				Sets the bone name, [code]bone_name[/code], of the second bone. When possible, this will also update the [code]bone_index[/code] of the second bone based on data provided by the [Skeleton].
 			</description>
 		</method>
 		<method name="set_joint_two_length">
