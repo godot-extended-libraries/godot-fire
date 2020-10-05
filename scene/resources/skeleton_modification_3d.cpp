@@ -217,7 +217,7 @@ void SkeletonModificationStack3D::_bind_methods() {
 
 SkeletonModificationStack3D::SkeletonModificationStack3D() {
 	skeleton = nullptr;
-	modifications = Vector<Ref<SkeletonModification3D>>();
+	modifications = Vector<Ref<SkeletonModification3D> >();
 	is_setup = false;
 	enabled = false;
 	modifications_count = 0;
@@ -1132,7 +1132,7 @@ void SkeletonModification3DFABRIK::execute(float delta) {
 		return;
 	}
 
-	if (!target_node_cache){
+	if (!target_node_cache) {
 		update_target_cache();
 		return;
 	}

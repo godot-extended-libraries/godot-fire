@@ -349,7 +349,6 @@ Transform Skeleton::get_bone_global_pose(int p_bone) const {
 	return bones[p_bone].pose_global;
 }
 
-
 void Skeleton::clear_bones_local_pose_override() {
 	for (int i = 0; i < bones.size(); i += 1) {
 		bones.write[i].local_pose_override_amount = 0;
@@ -535,7 +534,6 @@ int Skeleton::get_bone_parent(int p_bone) const {
 
 	return bones[p_bone].parent;
 }
-
 
 Vector<int> Skeleton::get_bone_children(int p_bone) const {
 	ERR_FAIL_INDEX_V(p_bone, bones.size(), Vector<int>());
@@ -920,7 +918,6 @@ Ref<SkinReference> Skeleton::register_skin(const Ref<Skin> &p_skin) {
 
 	return skin_ref;
 }
-
 
 void Skeleton::force_update_all_bone_transforms() {
 	_update_process_order();

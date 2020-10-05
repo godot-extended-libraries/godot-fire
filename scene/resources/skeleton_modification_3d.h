@@ -66,7 +66,7 @@ public:
 	void set_execution_mode(int p_mode);
 	int get_execution_mode();
 
-	Vector<Ref<SkeletonModification3D>> modifications;
+	Vector<Ref<SkeletonModification3D> > modifications;
 	int modifications_count = 0;
 
 	void setup();
