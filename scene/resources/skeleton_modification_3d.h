@@ -371,7 +371,7 @@ private:
 		String bone_name = "";
 		int bone_idx = -1;
 
-		bool_defaults = false;
+		bool override_defaults = false;
 		float stiffness = 3;
 		float mass = 0.75;
 		float damping = 0.75;
