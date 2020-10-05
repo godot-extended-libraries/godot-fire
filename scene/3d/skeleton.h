@@ -204,7 +204,7 @@ public:
 
 	bool is_bone_enabled(int p_bone) const;
 	void set_bone_enabled(int p_bone, bool p_enabled);
-	
+
 	void clear_bones();
 
 	// posing api

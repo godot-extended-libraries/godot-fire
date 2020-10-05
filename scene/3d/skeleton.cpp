@@ -153,7 +153,7 @@ void Skeleton::_get_property_list(List<PropertyInfo> *p_list) const {
 		p_list->push_back(PropertyInfo(Variant::BOOL, prep + "enabled", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::TRANSFORM, prep + "pose", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 	}
-	
+
 #ifndef _3D_DISABLED
 	p_list->push_back(
 			PropertyInfo(Variant::OBJECT, "modification_stack",
@@ -301,7 +301,7 @@ void Skeleton::_notification(int p_what) {
 		case NOTIFICATION_READY: {
 			set_physics_process_internal(true);
 			set_process_internal(true);
-			
+
 			if (modification_stack.is_valid()) {
 				set_modification_stack(modification_stack);
 			}
@@ -1011,7 +1011,7 @@ void Skeleton::force_update_bone_children_transforms(int p_bone_idx) {
 		for (int i = 0; i < child_bone_size; i++) {
 			bones_to_process.push_back(b.child_bones[i]);
 		}
-		
+
 		emit_signal(SceneStringNames::get_singleton()->bone_pose_changed, current_bone_idx);
 	}
 }
