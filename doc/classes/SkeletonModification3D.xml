@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="SkeletonModification3D" inherits="Resource" version="4.0">
 	<brief_description>
-		A resource that operates on bones in a [Skeleton3D].
+		A resource that operates on bones in a [Skeleton].
 	</brief_description>
 	<description>
-		This resource provides an interface that can be expanded so code that operates on bones in a [Skeleton3D] can be mixed and matched together to create complex interactions.
+		This resource provides an interface that can be expanded so code that operates on bones in a [Skeleton] can be mixed and matched together to create complex interactions.
 		This is used to provide Godot with a flexible and powerful Inverse Kinematics solution that can be adapted for many different uses.
 	</description>
 	<tutorials>

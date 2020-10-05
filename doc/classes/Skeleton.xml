@@ -260,7 +260,7 @@
 			</argument>
 			<description>
 				Adds a collision exception to the physical bone.
-				Works just like the [RigidBody3D] node.
+				Works just like the [RigidBody] node.
 			</description>
 		</method>
 		<method name="physical_bones_remove_collision_exception">
@@ -270,16 +270,16 @@
 			</argument>
 			<description>
 				Removes a collision exception to the physical bone.
-				Works just like the [RigidBody3D] node.
+				Works just like the [RigidBody] node.
 			</description>
 		</method>
 		<method name="physical_bones_start_simulation">
 			<return type="void">
 			</return>
-			<argument index="0" name="bones" type="StringName[]" default="[  ]">
+			<argument index="0" name="bones" type="Array" default="[  ]">
 			</argument>
 			<description>
-				Tells the [PhysicalBone3D] nodes in the Skeleton to start simulating and reacting to the physics world.
+				Tells the [PhysicalBone] nodes in the Skeleton to start simulating and reacting to the physics world.
 				Optionally, a list of bone names can be passed-in, allowing only the passed-in bones to be simulated.
 			</description>
 		</method>
@@ -287,7 +287,7 @@
 			<return type="void">
 			</return>
 			<description>
-				Tells the [PhysicalBone3D] nodes in the Skeleton to stop simulating.
+				Tells the [PhysicalBone] nodes in the Skeleton to stop simulating.
 			</description>
 		</method>
 		<method name="register_skin">
@@ -331,7 +331,7 @@
 			</argument>
 			<description>
 				Sets the custom pose transform, [code]custom_pose[/code], for the bone at [code]bone_idx[/code]. This pose is an addition to the bone rest pose.
-				[b]Note[/b]: The pose transform needs to be in bone space. Use [method world_transform_to_global_pose] to convert a world transform, like one you can get from a [Node3D], to bone space.
+				[b]Note[/b]: The pose transform needs to be in bone space. Use [method world_transform_to_global_pose] to convert a world transform, like one you can get from a [Spatial], to bone space.
 			</description>
 		</method>
 		<method name="set_bone_disable_rest">
@@ -359,7 +359,7 @@
 			<description>
 				Sets the global pose transform, [code]pose[/code], for the bone at [code]bone_idx[/code].
 				[code]amount[/code] is the interpolation strengh that will be used when applying the pose, and [code]persistent[/code] determines if the applied pose will remain.
-				[b]Note[/b]: The pose transform needs to be a global pose! Use [method world_transform_to_global_pose] to convert a world transform, like one you can get from a [Node3D], to a global pose.
+				[b]Note[/b]: The pose transform needs to be a global pose! Use [method world_transform_to_global_pose] to convert a world transform, like one you can get from a [Spatial], to a global pose.
 			</description>
 		</method>
 		<method name="set_bone_local_pose_override">
@@ -400,7 +400,7 @@
 			</argument>
 			<description>
 				Sets the pose transform for bone [code]bone_idx[/code].
-				[b]Note[/b]: The pose transform needs to be in bone space. Use [method world_transform_to_global_pose] to convert a world transform, like one you can get from a [Node3D], to bone space.
+				[b]Note[/b]: The pose transform needs to be in bone space. Use [method world_transform_to_global_pose] to convert a world transform, like one you can get from a [Spatial], to bone space.
 			</description>
 		</method>
 		<method name="set_bone_rest">
