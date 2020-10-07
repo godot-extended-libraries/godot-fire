@@ -350,7 +350,7 @@ MeshInstance3D *FBXMeshData::create_fbx_mesh(const ImportState &state, const Ass
 }
 
 void FBXMeshData::sanitize_vertex_weights() {
-#warning "port to 4.0 max weight count"
+// "port to 4.0 max weight count"
 	const int max_bones = 4;
 
 	for (const Vertex *v = vertex_weights.next(nullptr); v != nullptr; v = vertex_weights.next(v)) {

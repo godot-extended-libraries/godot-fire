@@ -214,7 +214,7 @@ FBXMaterial::MaterialInfo FBXMaterial::extract_material_info(const Assimp::FBX::
 				mat_info.features.push_back(StandardMaterial3D::Feature::FEATURE_AMBIENT_OCCLUSION);
 				break;
 				// todo: PORT 4.0
-#warning "these need ported"
+// "these need ported"
 //			case StandardMaterial3D::TextureParam::TEXTURE_NORMAL:
 //				mat_info.features.push_back(StandardMaterial3D::Feature::FEATURE_DEPTH_MAPPING);
 //				break;
