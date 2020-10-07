@@ -12,9 +12,7 @@ from collections import OrderedDict
 
 # Local
 import methods
-import gles_builders
-import version
-from platform_methods import run_in_subprocess
+import glsl_builders
 
 # Scan possible build platforms
 
@@ -318,39 +316,17 @@ if selected_platform in platform_list:
     from SCons import __version__ as scons_raw_version
 
     scons_ver = env._get_major_minor_revision(scons_raw_version)
-    if scons_ver >= (3, 1, 1):
-        env.Tool("compilation_db", toolpath=["misc/scons"])
-        env.Alias("compiledb", env.CompilationDatabase("compile_commands.json"))
+
+    if scons_ver >= (4, 0, 0):
+        env.Tool("compilation_db")
+        env.Alias("compiledb", env.CompilationDatabase())
 
     if env["dev"]:
         env["verbose"] = True
         env["warnings"] = "extra"
         env["werror"] = True
-
-    if env["vsproj"]:
-        env.vs_incs = []
-        env.vs_srcs = []
-
-        def AddToVSProject(sources):
-            for x in sources:
-                if type(x) == type(""):
-                    fname = env.File(x).path
-                else:
-                    fname = env.File(x)[0].path
-                pieces = fname.split(".")
-                if len(pieces) > 0:
-                    basename = pieces[0]
-                    basename = basename.replace("\\\\", "/")
-                    if os.path.isfile(basename + ".h"):
-                        env.vs_incs = env.vs_incs + [basename + ".h"]
-                    elif os.path.isfile(basename + ".hpp"):
-                        env.vs_incs = env.vs_incs + [basename + ".hpp"]
-                    if os.path.isfile(basename + ".c"):
-                        env.vs_srcs = env.vs_srcs + [basename + ".c"]
-                    elif os.path.isfile(basename + ".cpp"):
-                        env.vs_srcs = env.vs_srcs + [basename + ".cpp"]
-
-        env.AddToVSProject = AddToVSProject
+        if env["tools"]:
+            env["tests"] = True
 
     env.extra_suffix = ""
 
@@ -448,7 +424,13 @@ if selected_platform in platform_list:
     # Configure compiler warnings
     if env.msvc:
         # Truncations, narrowing conversions, signed/unsigned comparisons...
-        disable_nonessential_warnings = ["/wd4267", "/wd4244", "/wd4305", "/wd4018", "/wd4800"]
+        disable_nonessential_warnings = [
+            "/wd4267",
+            "/wd4244",
+            "/wd4305",
+            "/wd4018",
+            "/wd4800",
+        ]
         if env["warnings"] == "extra":
             env.Append(CCFLAGS=["/Wall"])  # Implies /W4
         elif env["warnings"] == "all":
@@ -596,6 +578,19 @@ if selected_platform in platform_list:
     env["LIBSUFFIX"] = suffix + env["LIBSUFFIX"]
     env["SHLIBSUFFIX"] = suffix + env["SHLIBSUFFIX"]
 
+    if env["crashpad_url"]:
+        env.Append(CPPDEFINES=['DEFAULT_CRASHPAD_SERVER_URL="' + env["crashpad_url"] + '"'])
+    if env["crashpad_handler_path"]:
+        env.Append(CPPDEFINES=['DEFAULT_CRASHPAD_HANDLER_PATH="' + env["crashpad_handler_path"] + '"'])
+    if env.use_ptrcall:
+        env.Append(CPPDEFINES=["PTRCALL_ENABLED"])
+    if env["tools"]:
+        env.Append(CPPDEFINES=["TOOLS_ENABLED"])
+    if env["disable_3d"]:
+        if env["tools"]:
+            print(
+                "Build option 'disable_3d=yes' cannot be used with 'tools=yes' (editor), only with 'tools=no' (export template)."
+            )
     if env.use_ptrcall:
         env.Append(CPPDEFINES=["PTRCALL_ENABLED"])
     if env["tools"]:
@@ -659,8 +654,7 @@ if selected_platform in platform_list:
 
     Export("env")
 
-    # build subdirs, the build order is dependent on link order.
-
+    # Build subdirs, the build order is dependent on link order.
     SConscript("core/SCsub")
     SConscript("servers/SCsub")
     SConscript("scene/SCsub")
