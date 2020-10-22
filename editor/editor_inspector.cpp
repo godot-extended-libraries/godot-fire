@@ -1147,7 +1147,6 @@ void EditorInspectorSection::_notification(int p_what) {
 		}
 	}
 }
-
 Size2 EditorInspectorSection::get_minimum_size() const {
 
 	Size2 ms;
