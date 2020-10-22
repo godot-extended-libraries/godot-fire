@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  rasterizer_gles2.h                                                   */
+/*  color_profile.cpp                                                    */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,63 +28,74 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef RASTERIZERGLES2_H
-#define RASTERIZERGLES2_H
+#include "color_profile.h"
 
-#include "rasterizer_canvas_gles2.h"
-#include "rasterizer_scene_gles2.h"
-#include "rasterizer_storage_gles2.h"
-#include "servers/visual/rasterizer.h"
+bool ColorProfile::is_valid() {
 
-#include "shaders/lut_transform.glsl.gen.h"
+	return profile_valid && profile != NULL;
+}
 
-class RasterizerGLES2 : public Rasterizer {
+void ColorProfile::_set_profile(cmsHPROFILE p_profile) {
 
-	static Rasterizer *_create_current();
+	if (is_valid()) {
+		cmsCloseProfile(profile);
+	}
 
-	RasterizerStorageGLES2 *storage;
-	RasterizerCanvasGLES2 *canvas;
-	RasterizerSceneGLES2 *scene;
+	profile = p_profile;
+	profile_valid = p_profile != NULL;
+}
 
-	double time_total;
-	float time_scale;
+ColorProfile::Handle ColorProfile::get_profile_handle() {
 
-	struct State {
-		RID screen_lut;
-		Vector2 lut_texel_count;
-		Vector2 lut_chunk_count;
-		LutTransformShaderGLES2 lut_shader;
-	} state;
+	if (!is_valid()) {
+		ERR_PRINT("Trying to call get_profile_handle() on an invalid ColorProfile instance.");
+		return Handle();
+	}
+	return Handle(profile);
+}
 
-public:
-	virtual RasterizerStorage *get_storage();
-	virtual RasterizerCanvas *get_canvas();
-	virtual RasterizerScene *get_scene();
+void ColorProfile::load_predef(Predef p_predef) {
 
-	virtual void set_boot_image(const Ref<Image> &p_image, const Color &p_color, bool p_scale, bool p_use_filter = true);
-	virtual void set_shader_time_scale(float p_scale);
-	virtual void set_screen_lut(const Ref<Image> &p_lut, int p_h_slices, int p_v_slices);
+	switch (p_predef) {
+		case PREDEF_SRGB:
+			_set_profile(cmsCreate_sRGBProfile());
+			break;
+		default:
+			ERR_PRINT("ColorProfile creation failure: Unknown predefined profile\n");
+			break;
+	}
+}
 
-	virtual void initialize();
-	virtual void begin_frame(double frame_step);
-	virtual void set_current_render_target(RID p_render_target);
-	virtual void restore_render_target(bool p_3d_was_drawn);
-	virtual void clear_render_target(const Color &p_color);
-	virtual void blit_render_target_to_screen(RID p_render_target, const Rect2 &p_screen_rect, int p_screen = 0);
-	virtual void output_lens_distorted_to_screen(RID p_render_target, const Rect2 &p_screen_rect, float p_k1, float p_k2, const Vector2 &p_eye_center, float p_oversample);
-	virtual void end_frame(bool p_swap_buffers);
-	virtual void finalize();
+void ColorProfile::load_from_file(const String &p_file) {
 
-	static Error is_viable();
-	static void make_current();
-	static void register_config();
+	CharString utf_path = p_file.utf8();
+	cmsHPROFILE p = cmsOpenProfileFromFile(utf_path.ptr(), "r");
+	if (p == NULL) {
+		ERR_PRINTS("Failed to load ICC profile from file: " + p_file + ".");
+	}
+	_set_profile(p);
+}
 
-	virtual bool is_low_end() const { return true; }
+ColorProfile::ColorProfile() {
 
-	virtual const char *gl_check_for_error(bool p_print_error = true);
+	profile_valid = false;
+}
 
-	RasterizerGLES2();
-	~RasterizerGLES2();
-};
+ColorProfile::ColorProfile(Predef p_predef) {
 
-#endif // RASTERIZERGLES2_H
+	profile_valid = false;
+	load_predef(p_predef);
+}
+
+ColorProfile::ColorProfile(const String &p_file) {
+
+	profile_valid = false;
+	load_from_file(p_file);
+}
+
+ColorProfile::~ColorProfile() {
+
+	if (is_valid()) {
+		cmsCloseProfile(profile);
+	}
+}
