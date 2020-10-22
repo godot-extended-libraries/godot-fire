@@ -1144,6 +1144,11 @@ void _OS::move_window_to_foreground() {
 	OS::get_singleton()->move_window_to_foreground();
 }
 
+int64_t _OS::get_native_handle(HandleType p_handle_type) {
+
+	return (int64_t)OS::get_singleton()->get_native_handle(p_handle_type);
+}
+
 bool _OS::is_debug_build() const {
 
 #ifdef DEBUG_ENABLED
@@ -1291,6 +1296,8 @@ void _OS::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_real_window_size"), &_OS::get_real_window_size);
 	ClassDB::bind_method(D_METHOD("center_window"), &_OS::center_window);
 	ClassDB::bind_method(D_METHOD("move_window_to_foreground"), &_OS::move_window_to_foreground);
+
+	ClassDB::bind_method(D_METHOD("get_native_handle", "handle_type"), &_OS::get_native_handle);
 
 	ClassDB::bind_method(D_METHOD("set_borderless_window", "borderless"), &_OS::set_borderless_window);
 	ClassDB::bind_method(D_METHOD("get_borderless_window"), &_OS::get_borderless_window);
@@ -1502,6 +1509,12 @@ void _OS::_bind_methods() {
 	BIND_ENUM_CONSTANT(MONTH_OCTOBER);
 	BIND_ENUM_CONSTANT(MONTH_NOVEMBER);
 	BIND_ENUM_CONSTANT(MONTH_DECEMBER);
+
+	BIND_ENUM_CONSTANT(APPLICATION_HANDLE);
+	BIND_ENUM_CONSTANT(DISPLAY_HANDLE);
+	BIND_ENUM_CONSTANT(WINDOW_HANDLE);
+	BIND_ENUM_CONSTANT(WINDOW_VIEW);
+	BIND_ENUM_CONSTANT(OPENGL_CONTEXT);
 
 	BIND_ENUM_CONSTANT(SCREEN_ORIENTATION_LANDSCAPE);
 	BIND_ENUM_CONSTANT(SCREEN_ORIENTATION_PORTRAIT);
@@ -2501,11 +2514,13 @@ Error _Directory::rename(String p_from, String p_to) {
 	ERR_FAIL_COND_V_MSG(!d, ERR_UNCONFIGURED, "Directory must be opened before use.");
 	if (!p_from.is_rel_path()) {
 		DirAccess *d = DirAccess::create_for_path(p_from);
+		ERR_FAIL_COND_V_MSG(!d->file_exists(p_from), ERR_DOES_NOT_EXIST, "File does not exist.");
 		Error err = d->rename(p_from, p_to);
 		memdelete(d);
 		return err;
 	}
 
+	ERR_FAIL_COND_V_MSG(!d->file_exists(p_from), ERR_DOES_NOT_EXIST, "File does not exist.");
 	return d->rename(p_from, p_to);
 }
 Error _Directory::remove(String p_name) {

@@ -56,6 +56,10 @@ RID SkinReference::get_skeleton() const {
 	return skeleton;
 }
 
+Skeleton *SkinReference::get_skeleton_node() const {
+	return skeleton_node;
+}
+
 Ref<Skin> SkinReference::get_skin() const {
 	return skin;
 }
@@ -269,6 +273,8 @@ void Skeleton::_notification(int p_what) {
 				}
 			}
 
+			dirty = false;
+			emit_signal("skeleton_updated");
 #ifdef TOOLS_ENABLED
 			emit_signal(SceneStringNames::get_singleton()->pose_updated);
 #endif // TOOLS_ENABLED
@@ -1190,6 +1196,8 @@ void Skeleton::_bind_methods() {
 #endif // TOOLS_ENABLED
 
 	ADD_SIGNAL(MethodInfo("bone_pose_changed", PropertyInfo(Variant::INT, "bone_idx")));
+
+	ADD_SIGNAL(MethodInfo("skeleton_updated"));
 
 	BIND_CONSTANT(NOTIFICATION_UPDATE_SKELETON);
 }
