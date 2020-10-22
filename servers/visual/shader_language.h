@@ -80,9 +80,14 @@ public:
 		TK_TYPE_USAMPLER3D,
 		TK_TYPE_SAMPLERCUBE,
 		TK_TYPE_SAMPLEREXT,
+		TK_TYPE_CLUSTERDATA,
+		TK_TYPE_LIGHTDATA,
+		TK_TYPE_DIRECTIONALLIGHTDATA,
+		TK_TYPE_LIGHTMAPCAPTURE,
 		TK_INTERPOLATION_FLAT,
 		TK_INTERPOLATION_SMOOTH,
 		TK_CONST,
+		TK_STRUCT,
 		TK_PRECISION_LOW,
 		TK_PRECISION_MID,
 		TK_PRECISION_HIGH,
@@ -202,6 +207,11 @@ public:
 		TYPE_USAMPLER3D,
 		TYPE_SAMPLERCUBE,
 		TYPE_SAMPLEREXT,
+		TYPE_CLUSTERDATA,
+		TYPE_LIGHTDATA,
+		TYPE_DIRECTIONALLIGHTDATA,
+		TYPE_LIGHTMAPCAPTURE,
+		TYPE_STRUCT,
 	};
 
 	enum DataPrecision {
@@ -257,6 +267,7 @@ public:
 		OP_POST_DECREMENT,
 		OP_CALL,
 		OP_CONSTRUCT,
+		OP_STRUCT,
 		OP_INDEX,
 		OP_MAX
 	};
@@ -301,11 +312,14 @@ public:
 			TYPE_MEMBER,
 			TYPE_ARRAY,
 			TYPE_ARRAY_DECLARATION,
+			TYPE_STRUCT,
 		};
 
 		Type type;
 
 		virtual DataType get_datatype() const { return TYPE_VOID; }
+		virtual String get_datatype_name() const { return ""; }
+
 		Node(Type t) :
 				next(NULL),
 				type(t) {}
@@ -326,20 +340,25 @@ public:
 		DataType return_cache;
 		DataPrecision return_precision_cache;
 		Operator op;
+		StringName struct_name;
 		Vector<Node *> arguments;
 		virtual DataType get_datatype() const { return return_cache; }
+		virtual String get_datatype_name() const { return String(struct_name); }
 
 		OperatorNode() :
 				Node(TYPE_OPERATOR),
 				return_cache(TYPE_VOID),
 				return_precision_cache(PRECISION_DEFAULT),
-				op(OP_EQUAL) {}
+				op(OP_EQUAL),
+				struct_name("") {}
 	};
 
 	struct VariableNode : public Node {
 		DataType datatype_cache;
 		StringName name;
+		StringName struct_name;
 		virtual DataType get_datatype() const { return datatype_cache; }
+		virtual String get_datatype_name() const { return String(struct_name); }
 		bool is_const;
 
 		VariableNode() :
@@ -351,6 +370,7 @@ public:
 	struct VariableDeclarationNode : public Node {
 		DataPrecision precision;
 		DataType datatype;
+		String struct_name;
 		bool is_const;
 
 		struct Declaration {
@@ -370,12 +390,14 @@ public:
 
 	struct ArrayNode : public Node {
 		DataType datatype_cache;
+		StringName struct_name;
 		StringName name;
 		Node *index_expression;
 		Node *call_expression;
 		bool is_const;
 
 		virtual DataType get_datatype() const { return datatype_cache; }
+		virtual String get_datatype_name() const { return String(struct_name); }
 
 		ArrayNode() :
 				Node(TYPE_ARRAY),
@@ -388,6 +410,7 @@ public:
 	struct ArrayDeclarationNode : public Node {
 		DataPrecision precision;
 		DataType datatype;
+		String struct_name;
 		bool is_const;
 
 		struct Declaration {
@@ -442,6 +465,7 @@ public:
 
 		struct Variable {
 			DataType type;
+			StringName struct_name;
 			DataPrecision precision;
 			int line; //for completion
 			int array_size;
@@ -473,11 +497,15 @@ public:
 
 	struct MemberNode : public Node {
 		DataType basetype;
+		StringName base_struct_name;
+		DataPrecision precision;
 		DataType datatype;
+		StringName struct_name;
 		StringName name;
 		Node *owner;
 
 		virtual DataType get_datatype() const { return datatype; }
+		virtual String get_datatype_name() const { return String(struct_name); }
 
 		MemberNode() :
 				Node(TYPE_MEMBER),
@@ -486,16 +514,25 @@ public:
 				owner(NULL) {}
 	};
 
+	struct StructNode : public Node {
+
+		List<MemberNode *> members;
+		StructNode() :
+				Node(TYPE_STRUCT) {}
+	};
+
 	struct FunctionNode : public Node {
 		struct Argument {
 			ArgumentQualifier qualifier;
 			StringName name;
 			DataType type;
+			StringName type_str;
 			DataPrecision precision;
 		};
 
 		StringName name;
 		DataType return_type;
+		StringName return_struct_name;
 		DataPrecision return_precision;
 		Vector<Argument> arguments;
 		BlockNode *body;
@@ -514,6 +551,7 @@ public:
 		struct Constant {
 			StringName name;
 			DataType type;
+			StringName type_str;
 			DataPrecision precision;
 			ConstantNode *initializer;
 		};
@@ -523,6 +561,11 @@ public:
 			FunctionNode *function;
 			Set<StringName> uses_function;
 			bool callable;
+		};
+
+		struct Struct {
+			StringName name;
+			StructNode *shader_struct;
 		};
 
 		struct Varying {
@@ -575,10 +618,12 @@ public:
 		Map<StringName, Constant> constants;
 		Map<StringName, Varying> varyings;
 		Map<StringName, Uniform> uniforms;
+		Map<StringName, Struct> structs;
 		Vector<StringName> render_modes;
 
 		Vector<Function> functions;
 		Vector<Constant> vconstants;
+		Vector<Struct> vstructs;
 
 		ShaderNode() :
 				Node(TYPE_SHADER) {}
@@ -605,6 +650,7 @@ public:
 		COMPLETION_FUNCTION_CALL,
 		COMPLETION_CALL_ARGUMENTS,
 		COMPLETION_INDEX,
+		COMPLETION_STRUCT,
 	};
 
 	struct Token {
@@ -719,13 +765,13 @@ private:
 		IDENTIFIER_CONSTANT,
 	};
 
-	bool _find_identifier(const BlockNode *p_block, const Map<StringName, BuiltInInfo> &p_builtin_types, const StringName &p_identifier, DataType *r_data_type = NULL, IdentifierType *r_type = NULL, bool *r_is_const = NULL, int *r_array_size = NULL);
+	bool _find_identifier(const BlockNode *p_block, const Map<StringName, BuiltInInfo> &p_builtin_types, const StringName &p_identifier, DataType *r_data_type = NULL, IdentifierType *r_type = NULL, bool *r_is_const = NULL, int *r_array_size = NULL, StringName *r_struct_name = NULL);
 	bool _is_operator_assign(Operator p_op) const;
 	bool _validate_assign(Node *p_node, const Map<StringName, BuiltInInfo> &p_builtin_types, String *r_message = NULL);
 	bool _validate_operator(OperatorNode *p_op, DataType *r_ret_type = NULL);
 
 	struct BuiltinFuncDef {
-		enum { MAX_ARGS = 5 };
+		enum { MAX_ARGS = 12 };
 		const char *name;
 		DataType rettype;
 		const DataType args[MAX_ARGS];
@@ -744,6 +790,7 @@ private:
 	DataType completion_base;
 	SubClassTag completion_class;
 	StringName completion_function;
+	StringName completion_struct;
 	int completion_argument;
 
 	bool _get_completable_identifier(BlockNode *p_block, CompletionType p_type, StringName &identifier);
@@ -751,8 +798,9 @@ private:
 	static const BuiltinFuncOutArgs builtin_func_out_args[];
 
 	Error _validate_datatype(DataType p_type);
+	bool _compare_datatypes_in_nodes(Node *a, Node *b) const;
 
-	bool _validate_function_call(BlockNode *p_block, OperatorNode *p_func, DataType *r_ret_type);
+	bool _validate_function_call(BlockNode *p_block, OperatorNode *p_func, DataType *r_ret_type, StringName *r_ret_type_str);
 	bool _parse_function_arguments(BlockNode *p_block, const Map<StringName, BuiltInInfo> &p_builtin_types, OperatorNode *p_func, int *r_complete_arg = NULL);
 
 	Node *_parse_expression(BlockNode *p_block, const Map<StringName, BuiltInInfo> &p_builtin_types);
