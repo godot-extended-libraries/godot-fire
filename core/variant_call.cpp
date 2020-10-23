@@ -848,6 +848,18 @@ struct _VariantCall {
 	VCALL_PTR2R(Basis, is_equal_approx); // TODO: Break compatibility in 4.0 to change this to an instance method (a.is_equal_approx(b) as VCALL_PTR1R) for consistency.
 	VCALL_PTR0R(Basis, get_rotation_quat);
 
+	static void _call_Basis_rotate_to_align(Variant &r_ret, Variant &p_self, const Variant **p_args) {
+		if (p_args[0]->type == Variant::VECTOR3) {
+			if (p_args[1]->type == Variant::VECTOR3) {
+				r_ret = Variant();
+				reinterpret_cast<Basis *>(p_self._data._ptr)->rotate_to_align(p_args[0]->operator Vector3(), p_args[1]->operator Vector3());
+				return;
+			}
+		}
+		r_ret = Variant();
+		ERR_PRINT("Invalid type in function 'rotate_to_align' in base 'Basis'. Only Vector3 variants are valid.");
+	}
+
 	VCALL_PTR0R(Transform, inverse);
 	VCALL_PTR0R(Transform, affine_inverse);
 	VCALL_PTR2R(Transform, rotated);
@@ -1966,6 +1978,7 @@ void register_variant_methods() {
 	ADDFUNC2R(BASIS, BASIS, Basis, slerp, BASIS, "b", REAL, "t", varray());
 	ADDFUNC2R(BASIS, BOOL, Basis, is_equal_approx, BASIS, "b", REAL, "epsilon", varray(CMP_EPSILON)); // TODO: Replace in 4.0, see other TODO.
 	ADDFUNC0R(BASIS, QUAT, Basis, get_rotation_quat, varray());
+	ADDFUNC2R(BASIS, NIL, Basis, rotate_to_align, VECTOR3, "start_direction", VECTOR3, "end_direction", varray());
 
 	ADDFUNC0R(TRANSFORM, TRANSFORM, Transform, inverse, varray());
 	ADDFUNC0R(TRANSFORM, TRANSFORM, Transform, affine_inverse, varray());
