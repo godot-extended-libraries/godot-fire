@@ -1,23 +1,24 @@
 # Third party libraries
 
 
-## assimp
+## assimp_fbx
 
 - Upstream: http://github.com/assimp/assimp
 - Version: git (308db73d0b3c2d1870cd3e465eaa283692a4cf23, 2019)
 - License: BSD-3-Clause
 
-Files extracted from upstream source:
+This can never be updated from upstream, we have heavily modified the library to work properly for our own purposes.
 
-- Run `cmake .` in root folder to generate files
-- `code/{CApi,Common,FBX,Material,PostProcessing}/`
-- `contrib/utf8cpp/source/`
-- `include/`
-- `revision.h`
-- `CREDITS` and `LICENSE` files
-- `rm -f code/Common/ZipArchiveIOSystem.cpp include/assimp/ZipArchiveIOSystem.h
-   include/assimp/irrXMLWrapper.h`
+We heavily customised the document parser to remove:
+- third-party dependencies
+- no longer returns ANY assimp types, uses Vector3, Vector2 and Transform where relevant.
+- bad code / unsafe memory access
+- assertions
+- assimp logging
+- mesh handler so that it can actually read an FBX mesh properly
+- hundreds of bugfixes
 
+Do not attempt to upgrade this it simply will break all the fixes we have done to the importer
 
 ## bullet
 
