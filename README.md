@@ -6,6 +6,18 @@
   </a>
 </p>
 
+## Special instructions for ANGLE
+
+Copy ANGLE from git to thirdparty/angle.
+
+You must build ANGLE yourself.
+
+Afterwards, you can build Godot Engine.
+
+The output directory for ANGLE must be `thirdparty/angle/out/Release`.
+
+After you are done building ANGLE, copy the libEGL.dll and the libGLESv2.dll files to the bin folder.
+
 ## 2D and 3D cross-platform game engine
 
 **[Godot Engine](https://godotengine.org) is a feature-packed, cross-platform
