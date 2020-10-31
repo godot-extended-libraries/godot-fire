@@ -128,8 +128,7 @@ void ContextGL_Windows::set_use_vsync(bool p_use) {
 	use_vsync = p_use;
 	if (!p_use) {
 		eglSwapInterval(mEglDisplay, 0);
-	}
-	else {
+	} else {
 		eglSwapInterval(mEglDisplay, 1);
 	}
 }
@@ -194,7 +193,7 @@ Error ContextGL_Windows::initialize() {
 		int platform_type = EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE;
 
 		List<String> args = OS::get_singleton()->get_cmdline_args();
-		List<String>::Element* I = args.front();
+		List<String>::Element *I = args.front();
 		while (I) {
 			if (I->get() == "--angle-backend") {
 				String backend = I->next()->get();
@@ -252,7 +251,6 @@ Error ContextGL_Windows::initialize() {
 			display = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, displayAttributes);
 		}
 
-		
 		if (display == EGL_NO_DISPLAY) {
 			throw "Failed to get default EGL display";
 		}
