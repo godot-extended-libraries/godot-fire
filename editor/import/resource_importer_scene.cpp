@@ -1278,7 +1278,7 @@ Error ResourceImporterScene::_animation_player_move(Node *new_scene, const Node 
 			for (int32_t k = 0; k < animation->get_track_count(); k++) {
 				const NodePath path = animation->track_get_path(k);
 				Node *node = scene->get_node_or_null(String(path).get_slicec(':', 0));
-				ERR_CONTINUE(!node);
+				ERR_FAIL_COND_V(!node, FAILED);
 				if (node->get_class_name() == Spatial().get_class_name()) {
 					return FAILED;
 				}
@@ -1295,9 +1295,9 @@ Error ResourceImporterScene::_animation_player_move(Node *new_scene, const Node 
 					String skeleton_path = mi->get_skeleton_path();
 					if (!skeleton_path.empty()) {
 						Node *skeleton_node = mi->get_node_or_null(skeleton_path);
-						ERR_CONTINUE(!skeleton_node);
+						ERR_FAIL_COND_V(!skeleton_node, FAILED);
 						skeleton = Object::cast_to<Skeleton>(skeleton_node);
-						ERR_CONTINUE(!skeleton);
+						ERR_FAIL_COND_V(!skeleton, FAILED);
 					}
 				}
 				if (mi && skeleton && property.find("blend_shapes/") != -1) {
@@ -1677,9 +1677,9 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 	if (move_skeleton_to_root_optimizer) {
 		Map<MeshInstance *, Skeleton *> moved_meshes;
 		Map<BoneAttachment *, Skeleton *> moved_attachments;
-		Node *old_scene = scene->duplicate();
+		Node *old_scene = scene;
+		scene = old_scene->duplicate();
 		_moved_mesh_and_attachments(scene, scene, moved_meshes, moved_attachments);
-		scene = memnew(Spatial);
 		if (_animation_player_move(scene, old_scene, moved_meshes) == OK) {
 			_move_nodes(scene, moved_meshes, moved_attachments);
 			old_scene->queue_delete();
