@@ -37,6 +37,7 @@
 #include "scene/resources/material.h"
 #include "scene/scene_string_names.h"
 #include "servers/visual/visual_server_globals.h"
+#include "servers/visual/subdivision.h"
 #include "skeleton.h"
 
 bool MeshInstance::_set(const StringName &p_name, const Variant &p_value) {
@@ -130,6 +131,8 @@ void MeshInstance::set_mesh(const Ref<Mesh> &p_mesh) {
 
 	mesh = p_mesh;
 
+	_update_subdiv();
+
 	blend_shape_tracks.clear();
 	if (mesh.is_valid()) {
 
@@ -144,6 +147,8 @@ void MeshInstance::set_mesh(const Ref<Mesh> &p_mesh) {
 		mesh->connect(CoreStringNames::get_singleton()->changed, this, SceneStringNames::get_singleton()->_mesh_changed);
 		materials.resize(mesh->get_surface_count());
 
+		RID render_mesh = subdiv_mesh ? subdiv_mesh->get_rid() : mesh->get_rid();
+		set_base(render_mesh);
 		_initialize_skinning();
 	} else {
 
@@ -178,6 +183,11 @@ void MeshInstance::_resolve_skeleton_path() {
 	if (skin_ref.is_valid() && mesh.is_valid() && _is_software_skinning_enabled() && is_visible_in_tree()) {
 		ERR_FAIL_COND(!skin_ref->get_skeleton_node());
 		skin_ref->get_skeleton_node()->disconnect("skeleton_updated", this, "_update_skinning");
+	}
+
+	if (skin_ref.is_valid() && subdiv_mesh) {
+		ERR_FAIL_COND(!skin_ref->get_skeleton_node());
+		skin_ref->get_skeleton_node()->disconnect("skeleton_updated", this, "_update_subdiv_vertices");
 	}
 
 	skin_ref = new_skin_reference;
@@ -219,131 +229,13 @@ void MeshInstance::_initialize_skinning(bool p_force_reset) {
 	bool update_mesh = false;
 
 	if (skin_ref.is_valid()) {
-		if (_is_software_skinning_enabled()) {
-			if (is_visible_in_tree()) {
-				ERR_FAIL_COND(!skin_ref->get_skeleton_node());
-				if (!skin_ref->get_skeleton_node()->is_connected("skeleton_updated", this, "_update_skinning")) {
-					skin_ref->get_skeleton_node()->connect("skeleton_updated", this, "_update_skinning");
-				}
-			}
-
-			if (p_force_reset && software_skinning) {
-				memdelete(software_skinning);
-				software_skinning = nullptr;
-			}
-
-			if (!software_skinning) {
-				software_skinning = memnew(SoftwareSkinning);
-
-				if (mesh->get_blend_shape_count() > 0) {
-					ERR_PRINT("Blend shapes are not supported for software skinning.");
-				}
-
-				Ref<ArrayMesh> software_mesh;
-				software_mesh.instance();
-				RID mesh_rid = software_mesh->get_rid();
-
-				// Initialize mesh for dynamic update.
-				int surface_count = mesh->get_surface_count();
-				software_skinning->surface_data.resize(surface_count);
-				for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
-					ERR_CONTINUE(Mesh::PRIMITIVE_TRIANGLES != mesh->surface_get_primitive_type(surface_index));
-
-					SoftwareSkinning::SurfaceData &surface_data = software_skinning->surface_data[surface_index];
-					surface_data.transform_tangents = false;
-					surface_data.ensure_correct_normals = false;
-
-					uint32_t format = mesh->surface_get_format(surface_index);
-					ERR_CONTINUE(0 == (format & Mesh::ARRAY_FORMAT_VERTEX));
-					ERR_CONTINUE(0 == (format & Mesh::ARRAY_FORMAT_BONES));
-					ERR_CONTINUE(0 == (format & Mesh::ARRAY_FORMAT_WEIGHTS));
-
-					format |= Mesh::ARRAY_FLAG_USE_DYNAMIC_UPDATE;
-					format &= ~Mesh::ARRAY_COMPRESS_VERTEX;
-					format &= ~Mesh::ARRAY_COMPRESS_WEIGHTS;
-					format &= ~Mesh::ARRAY_FLAG_USE_16_BIT_BONES;
-
-					Array write_arrays = mesh->surface_get_arrays(surface_index);
-					Array read_arrays;
-					read_arrays.resize(Mesh::ARRAY_MAX);
-
-					read_arrays[Mesh::ARRAY_VERTEX] = write_arrays[Mesh::ARRAY_VERTEX];
-					read_arrays[Mesh::ARRAY_BONES] = write_arrays[Mesh::ARRAY_BONES];
-					read_arrays[Mesh::ARRAY_WEIGHTS] = write_arrays[Mesh::ARRAY_WEIGHTS];
-
-					write_arrays[Mesh::ARRAY_BONES] = Variant();
-					write_arrays[Mesh::ARRAY_WEIGHTS] = Variant();
-
-					if (software_skinning_flags & SoftwareSkinning::FLAG_TRANSFORM_NORMALS) {
-						ERR_CONTINUE(0 == (format & Mesh::ARRAY_FORMAT_NORMAL));
-						format &= ~Mesh::ARRAY_COMPRESS_NORMAL;
-
-						read_arrays[Mesh::ARRAY_NORMAL] = write_arrays[Mesh::ARRAY_NORMAL];
-
-						Ref<Material> mat = get_active_material(surface_index);
-						if (mat.is_valid()) {
-							Ref<SpatialMaterial> spatial_mat = mat;
-							if (spatial_mat.is_valid()) {
-								// Spatial material, check from material settings.
-								surface_data.transform_tangents = spatial_mat->get_feature(SpatialMaterial::FEATURE_NORMAL_MAPPING);
-								surface_data.ensure_correct_normals = spatial_mat->get_flag(SpatialMaterial::FLAG_ENSURE_CORRECT_NORMALS);
-							} else {
-								// Custom shader, must check for compiled flags.
-								surface_data.transform_tangents = VSG::storage->material_uses_tangents(mat->get_rid());
-								surface_data.ensure_correct_normals = VSG::storage->material_uses_ensure_correct_normals(mat->get_rid());
-							}
-						}
-
-						if (surface_data.transform_tangents) {
-							ERR_CONTINUE(0 == (format & Mesh::ARRAY_FORMAT_TANGENT));
-							format &= ~Mesh::ARRAY_COMPRESS_TANGENT;
-
-							read_arrays[Mesh::ARRAY_TANGENT] = write_arrays[Mesh::ARRAY_TANGENT];
-						}
-					}
-
-					// 1. Temporarily add surface with bone data to create the read buffer.
-					software_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, read_arrays, Array(), format);
-
-					PoolByteArray buffer_read = visual_server->mesh_surface_get_array(mesh_rid, surface_index);
-					surface_data.source_buffer.append_array(buffer_read);
-					surface_data.source_format = software_mesh->surface_get_format(surface_index);
-
-					software_mesh->surface_remove(surface_index);
-
-					// 2. Create the surface again without the bone data for the write buffer.
-					software_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, write_arrays, Array(), format);
-
-					Ref<Material> material = mesh->surface_get_material(surface_index);
-					software_mesh->surface_set_material(surface_index, material);
-
-					surface_data.buffer = visual_server->mesh_surface_get_array(mesh_rid, surface_index);
-					surface_data.buffer_write = surface_data.buffer.write();
-				}
-
-				software_skinning->mesh_instance = software_mesh;
-				update_mesh = true;
-			}
-
-			visual_server->instance_attach_skeleton(get_instance(), RID());
-
-			if (is_visible_in_tree() && (software_skinning_flags & SoftwareSkinning::FLAG_BONES_READY)) {
-				// Intialize from current skeleton pose.
-				_update_skinning();
-			}
-		} else {
+		if (subdiv_mesh) {
 			ERR_FAIL_COND(!skin_ref->get_skeleton_node());
-			if (skin_ref->get_skeleton_node()->is_connected("skeleton_updated", this, "_update_skinning")) {
-				skin_ref->get_skeleton_node()->disconnect("skeleton_updated", this, "_update_skinning");
-			}
+			skin_ref->get_skeleton_node()->connect("skeleton_updated", this, "_update_subdiv_vertices");
 
-			visual_server->instance_attach_skeleton(get_instance(), skin_ref->get_skeleton());
-
-			if (software_skinning) {
-				memdelete(software_skinning);
-				software_skinning = nullptr;
-				update_mesh = true;
-			}
+			VisualServer::get_singleton()->instance_attach_skeleton(get_instance(), RID());
+		} else {
+			VisualServer::get_singleton()->instance_attach_skeleton(get_instance(), skin_ref->get_skeleton());
 		}
 	} else {
 		visual_server->instance_attach_skeleton(get_instance(), RID());
@@ -499,6 +391,58 @@ void MeshInstance::_update_skinning() {
 	}
 
 	software_skinning_flags |= SoftwareSkinning::FLAG_BONES_READY;
+}
+
+void MeshInstance::_update_subdiv() {
+	if ((subdiv_level == 0) || mesh.is_null()) {
+		if (subdiv_mesh) {
+			SubdivisionSystem *subdivision_system = SubdivisionSystem::get_subdivision_system();
+			ERR_FAIL_COND(!subdivision_system);
+			subdivision_system->destroy_mesh_subdivision(subdiv_mesh);
+			subdiv_mesh = NULL;
+
+			if (skin_ref.is_valid()) {
+				ERR_FAIL_COND(!skin_ref->get_skeleton_node());
+				skin_ref->get_skeleton_node()->disconnect("skeleton_updated", this, "_update_subdiv_vertices");
+
+				VisualServer::get_singleton()->instance_attach_skeleton(get_instance(), skin_ref->get_skeleton());
+			}
+		}
+		return;
+	}
+
+	if (!subdiv_mesh) {
+		SubdivisionSystem *subdivision_system = SubdivisionSystem::get_subdivision_system();
+		ERR_FAIL_COND(!subdivision_system);
+		subdiv_mesh = subdivision_system->create_mesh_subdivision(mesh, subdiv_level);
+
+		if (subdiv_mesh && skin_ref.is_valid()) {
+			ERR_FAIL_COND(!skin_ref->get_skeleton_node());
+			skin_ref->get_skeleton_node()->connect("skeleton_updated", this, "_update_subdiv_vertices");
+
+			VisualServer::get_singleton()->instance_attach_skeleton(get_instance(), RID());
+		}
+	} else {
+		subdiv_mesh->update_subdivision(mesh, subdiv_level);
+	}
+
+	if (skin_ref.is_valid()) {
+		// Intialize from current skeleton pose
+		_update_subdiv_vertices();
+	}
+}
+
+void MeshInstance::_update_subdiv_vertices() {
+	if (!subdiv_mesh) {
+		return;
+	}
+
+	ERR_FAIL_COND(skin_ref.is_null());
+
+	RID skeleton = skin_ref->get_skeleton();
+	ERR_FAIL_COND(!skeleton.is_valid());
+
+	subdiv_mesh->update_skinning(skeleton);
 }
 
 void MeshInstance::set_skin(const Ref<Skin> &p_skin) {
@@ -701,11 +645,49 @@ bool MeshInstance::is_software_skinning_transform_normals_enabled() const {
 	return 0 != (software_skinning_flags & SoftwareSkinning::FLAG_TRANSFORM_NORMALS);
 }
 
+void MeshInstance::set_subdiv_level(int p_level) {
+	ERR_FAIL_COND(p_level < 0);
+
+	if (p_level == subdiv_level) {
+		return;
+	}
+
+	subdiv_level = p_level;
+
+	if (mesh.is_null()) {
+		return;
+	}
+
+	_update_subdiv();
+
+	RID render_mesh = subdiv_mesh ? subdiv_mesh->get_rid() : mesh->get_rid();
+	if (render_mesh != get_base()) {
+		set_base(render_mesh);
+
+		// Update instance materials after switching mesh
+		int surface_count = mesh->get_surface_count();
+		for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
+			if (materials[surface_index].is_valid()) {
+				VS::get_singleton()->instance_set_surface_material(get_instance(), surface_index, materials[surface_index]->get_rid());
+			}
+		}
+	}
+}
+
+int MeshInstance::get_subdiv_level() const {
+	return subdiv_level;
+}
+
 void MeshInstance::_mesh_changed() {
 	materials.resize(mesh->get_surface_count());
 
 	if (software_skinning) {
 		_initialize_skinning(true);
+	}
+	materials.resize(mesh->get_surface_count());
+
+	if (subdiv_mesh) {
+		subdiv_mesh->update_subdivision(mesh, subdiv_level);
 	}
 }
 
@@ -801,12 +783,16 @@ void MeshInstance::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_software_skinning_transform_normals", "enabled"), &MeshInstance::set_software_skinning_transform_normals);
 	ClassDB::bind_method(D_METHOD("is_software_skinning_transform_normals_enabled"), &MeshInstance::is_software_skinning_transform_normals_enabled);
 
+	ClassDB::bind_method(D_METHOD("set_subdiv_level", "level"), &MeshInstance::set_subdiv_level);
+	ClassDB::bind_method(D_METHOD("get_subdiv_level"), &MeshInstance::get_subdiv_level);
+
 	ClassDB::bind_method(D_METHOD("create_trimesh_collision"), &MeshInstance::create_trimesh_collision);
 	ClassDB::set_method_flags("MeshInstance", "create_trimesh_collision", METHOD_FLAGS_DEFAULT);
 	ClassDB::bind_method(D_METHOD("create_convex_collision"), &MeshInstance::create_convex_collision);
 	ClassDB::set_method_flags("MeshInstance", "create_convex_collision", METHOD_FLAGS_DEFAULT);
 	ClassDB::bind_method(D_METHOD("_mesh_changed"), &MeshInstance::_mesh_changed);
 	ClassDB::bind_method(D_METHOD("_update_skinning"), &MeshInstance::_update_skinning);
+	ClassDB::bind_method(D_METHOD("_update_subdiv_vertices"), &MeshInstance::_update_subdiv_vertices);
 
 	ClassDB::bind_method(D_METHOD("create_debug_tangents"), &MeshInstance::create_debug_tangents);
 	ClassDB::set_method_flags("MeshInstance", "create_debug_tangents", METHOD_FLAGS_DEFAULT | METHOD_FLAG_EDITOR);
@@ -817,12 +803,17 @@ void MeshInstance::_bind_methods() {
 
 	ADD_GROUP("Software Skinning", "software_skinning");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "software_skinning_transform_normals"), "set_software_skinning_transform_normals", "is_software_skinning_transform_normals_enabled");
+
+	ADD_GROUP("Subdivision", "subdiv_");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "subdiv_level", PROPERTY_HINT_RANGE, "0,5"), "set_subdiv_level", "get_subdiv_level");
 }
 
 MeshInstance::MeshInstance() {
 	skeleton_path = NodePath("..");
 	software_skinning = nullptr;
 	software_skinning_flags = SoftwareSkinning::FLAG_TRANSFORM_NORMALS;
+	subdiv_level = 0;
+	subdiv_mesh = NULL;
 }
 
 MeshInstance::~MeshInstance() {
