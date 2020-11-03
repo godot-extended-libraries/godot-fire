@@ -1677,9 +1677,8 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 	if (move_skeleton_to_root_optimizer) {
 		Map<MeshInstance *, Skeleton *> moved_meshes;
 		Map<BoneAttachment *, Skeleton *> moved_attachments;
-
+		Node *old_scene = scene->duplicate();
 		_moved_mesh_and_attachments(scene, scene, moved_meshes, moved_attachments);
-		Node *old_scene = scene;
 		scene = memnew(Spatial);
 		if (_animation_player_move(scene, old_scene, moved_meshes) == OK) {
 			_move_nodes(scene, moved_meshes, moved_attachments);
