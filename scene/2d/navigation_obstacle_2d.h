@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  navigation_mesh_generator.h                                          */
+/*  navigation_obstacle_2d.h                                             */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,40 +28,44 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef NAVIGATION_MESH_GENERATOR_H
-#define NAVIGATION_MESH_GENERATOR_H
+#ifndef NAVIGATION_OBSTACLE_2D_H
+#define NAVIGATION_OBSTACLE_2D_H
 
-#include "editor/editor_node.h"
-#include "scene/3d/navigation_mesh.h"
+#include "scene/main/node.h"
 
-#include <Recast.h>
+class Navigation2D;
 
-class EditorNavigationMeshGenerator : public Object {
-	GDCLASS(EditorNavigationMeshGenerator, Object);
+class NavigationObstacle2D : public Node {
+	GDCLASS(NavigationObstacle2D, Node);
 
-	static EditorNavigationMeshGenerator *singleton;
+	Navigation2D *navigation;
+
+	RID agent;
 
 protected:
 	static void _bind_methods();
-
-	static void _add_vertex(const Vector3 &p_vec3, Vector<float> &p_verticies);
-	static void _add_mesh(const Ref<Mesh> &p_mesh, const Transform &p_xform, Vector<float> &p_verticies, Vector<int> &p_indices);
-	static void _add_faces(const PoolVector3Array &p_faces, const Transform &p_xform, Vector<float> &p_verticies, Vector<int> &p_indices);
-	static void _parse_geometry(Transform p_accumulated_transform, Node *p_node, Vector<float> &p_verticies, Vector<int> &p_indices, int p_generate_from, uint32_t p_collision_mask, bool p_recurse_children);
-
-	static void _convert_detail_mesh_to_native_navigation_mesh(const rcPolyMeshDetail *p_detail_mesh, Ref<NavigationMesh> p_nav_mesh);
-	static void _build_recast_navigation_mesh(Ref<NavigationMesh> p_nav_mesh, EditorProgress *ep,
-			rcHeightfield *hf, rcCompactHeightfield *chf, rcContourSet *cset, rcPolyMesh *poly_mesh,
-			rcPolyMeshDetail *detail_mesh, Vector<float> &vertices, Vector<int> &indices);
+	void _notification(int p_what);
 
 public:
-	static EditorNavigationMeshGenerator *get_singleton();
+	NavigationObstacle2D();
+	virtual ~NavigationObstacle2D();
 
-	EditorNavigationMeshGenerator();
-	~EditorNavigationMeshGenerator();
+	void set_navigation(Navigation2D *p_nav);
+	const Navigation2D *get_navigation() const {
+		return navigation;
+	}
 
-	void bake(Ref<NavigationMesh> p_nav_mesh, Node *p_node);
-	void clear(Ref<NavigationMesh> p_nav_mesh);
+	void set_navigation_node(Node *p_nav);
+	Node *get_navigation_node() const;
+
+	RID get_rid() const {
+		return agent;
+	}
+
+	virtual String get_configuration_warning() const;
+
+private:
+	void update_agent_shape();
 };
 
-#endif // NAVIGATION_MESH_GENERATOR_H
+#endif
