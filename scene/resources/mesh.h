@@ -195,6 +195,7 @@ public:
 	void add_blend_shape(const StringName &p_name);
 	int get_blend_shape_count() const;
 	StringName get_blend_shape_name(int p_index) const;
+	void set_blend_shape_name(int p_index, const StringName &p_name);
 	void clear_blend_shapes();
 
 	void set_blend_shape_mode(BlendShapeMode p_mode);
