@@ -87,6 +87,10 @@ static int _get_datatype_size(SL::DataType p_type) {
 		case SL::TYPE_USAMPLER3D: return 16;
 		case SL::TYPE_SAMPLERCUBE: return 16;
 		case SL::TYPE_SAMPLEREXT: return 16;
+		case SL::TYPE_CLUSTERDATA: return 16;
+		case SL::TYPE_LIGHTDATA: return 0;
+		case SL::TYPE_DIRECTIONALLIGHTDATA: return 4;
+		case SL::TYPE_LIGHTMAPCAPTURE: return 4;
 		case SL::TYPE_STRUCT: return 0;
 	}
 
@@ -128,6 +132,10 @@ static int _get_datatype_alignment(SL::DataType p_type) {
 		case SL::TYPE_USAMPLER3D: return 16;
 		case SL::TYPE_SAMPLERCUBE: return 16;
 		case SL::TYPE_SAMPLEREXT: return 16;
+		case SL::TYPE_CLUSTERDATA: return 16;
+		case SL::TYPE_LIGHTDATA: return 0;
+		case SL::TYPE_DIRECTIONALLIGHTDATA: return 4;
+		case SL::TYPE_LIGHTMAPCAPTURE: return 4;
 		case SL::TYPE_STRUCT: return 0;
 	}
 
@@ -768,6 +776,15 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 
 					SL::VariableNode *vnode = (SL::VariableNode *)onode->arguments[0];
 
+					if (p_default_actions.usage_defines.has(vnode->name) && !used_name_defines.has(vnode->name)) {
+						String define = p_default_actions.usage_defines[vnode->name];
+						if (define.begins_with("@")) {
+							define = p_default_actions.usage_defines[define.substr(1, define.length())];
+						}
+						r_gen_code.defines.push_back(define.utf8());
+						used_name_defines.insert(vnode->name);
+					}
+
 					if (onode->op == SL::OP_STRUCT) {
 						code += _mkid(vnode->name);
 					} else if (onode->op == SL::OP_CONSTRUCT) {
@@ -1039,13 +1056,56 @@ ShaderCompilerGLES3::ShaderCompilerGLES3() {
 	actions[VS::SHADER_SPATIAL].renames["ALPHA_SCISSOR"] = "alpha_scissor";
 	actions[VS::SHADER_SPATIAL].renames["OUTPUT_IS_SRGB"] = "SHADER_IS_SRGB";
 
+	actions[VS::SHADER_SPATIAL].renames["AMBIENT_LIGHT"] = "ambient_light";
+	actions[VS::SHADER_SPATIAL].renames["DIFFUSE_LIGHT"] = "diffuse_light";
+	actions[VS::SHADER_SPATIAL].renames["SPECULAR_LIGHT"] = "specular_light";
+	actions[VS::SHADER_SPATIAL].renames["CLUSTER_CELL"] = "cluster_cell";
+	// Functions
+	actions[VS::SHADER_SPATIAL].renames["GET_LIGHTMAP_SH"] = "GET_LIGHTMAP_SH";
+	actions[VS::SHADER_SPATIAL].renames["SH_COEF"] = "SH_COEF";
+	actions[VS::SHADER_SPATIAL].renames["GET_LIGHT_POSITION"] = "GET_LIGHT_POSITION";
+	actions[VS::SHADER_SPATIAL].renames["GET_LIGHT_INV_RADIUS"] = "GET_LIGHT_INV_RADIUS";
+	actions[VS::SHADER_SPATIAL].renames["GET_LIGHT_DIRECTION"] = "GET_LIGHT_DIRECTION";
+	actions[VS::SHADER_SPATIAL].renames["GET_DIR_LIGHT_DIRECTION"] = "GET_DIR_LIGHT_DIRECTION";
+	actions[VS::SHADER_SPATIAL].renames["GET_LIGHT_SIZE_PARAM"] = "GET_LIGHT_SIZE_PARAM";
+	actions[VS::SHADER_SPATIAL].renames["GET_DIR_LIGHT_SIZE_PARAM"] = "GET_DIR_LIGHT_SIZE_PARAM";
+	actions[VS::SHADER_SPATIAL].renames["GET_LIGHT_ATTENUATION_PARAM"] = "GET_LIGHT_ATTENUATION_PARAM";
+	actions[VS::SHADER_SPATIAL].renames["GET_SPOT_ATTENUATION_ANGLE_PARAM"] = "GET_SPOT_ATTENUATION_ANGLE_PARAM";
+	actions[VS::SHADER_SPATIAL].renames["GET_OMNI_LIGHT_ATTENUATION_SIZE"] = "GET_OMNI_LIGHT_ATTENUATION_SIZE";
+	actions[VS::SHADER_SPATIAL].renames["GET_SPOT_LIGHT_ATTENUATION_SIZE"] = "GET_SPOT_LIGHT_ATTENUATION_SIZE";
+	actions[VS::SHADER_SPATIAL].renames["GET_LIGHT_COLOR_SPECULAR"] = "GET_LIGHT_COLOR_SPECULAR";
+	actions[VS::SHADER_SPATIAL].renames["GET_LIGHT_SHADOW_COLOR"] = "GET_LIGHT_SHADOW_COLOR";
+	actions[VS::SHADER_SPATIAL].renames["GET_DIR_LIGHT_COLOR_SPECULAR"] = "GET_DIR_LIGHT_COLOR_SPECULAR";
+	actions[VS::SHADER_SPATIAL].renames["OMNI_PROJECTOR_PROCESS"] = "OMNI_PROJECTOR_PROCESS";
+	actions[VS::SHADER_SPATIAL].renames["SPOT_PROJECTOR_PROCESS"] = "SPOT_PROJECTOR_PROCESS";
+	actions[VS::SHADER_SPATIAL].renames["OMNI_SHADOW_PROCESS"] = "OMNI_SHADOW_PROCESS";
+	actions[VS::SHADER_SPATIAL].renames["SPOT_SHADOW_PROCESS"] = "SPOT_SHADOW_PROCESS";
+	actions[VS::SHADER_SPATIAL].renames["DIRECTIONAL_SHADOW_PROCESS"] = "DIRECTIONAL_SHADOW_PROCESS";
+	actions[VS::SHADER_SPATIAL].renames["AMBIENT_PROCESS"] = "AMBIENT_PROCESS";
+	actions[VS::SHADER_SPATIAL].renames["REFLECTION_PROCESS"] = "REFLECTION_PROCESS";
+	actions[VS::SHADER_SPATIAL].renames["DECAL_PROCESS"] = "DECAL_PROCESS";
+	actions[VS::SHADER_SPATIAL].renames["SHOULD_RENDER_LIGHT"] = "SHOULD_RENDER_LIGHT";
+	actions[VS::SHADER_SPATIAL].renames["SHOULD_RENDER_DIR_LIGHT"] = "SHOULD_RENDER_DIR_LIGHT";
+	actions[VS::SHADER_SPATIAL].renames["OMNI_LIGHT_COUNT"] = "OMNI_LIGHT_COUNT";
+	actions[VS::SHADER_SPATIAL].renames["SPOT_LIGHT_COUNT"] = "SPOT_LIGHT_COUNT";
+	actions[VS::SHADER_SPATIAL].renames["DIRECTIONAL_LIGHT_COUNT"] = "DIRECTIONAL_LIGHT_COUNT";
+	actions[VS::SHADER_SPATIAL].renames["REFLECTION_PROBE_COUNT"] = "REFLECTION_PROBE_COUNT";
+	actions[VS::SHADER_SPATIAL].renames["DECAL_COUNT"] = "DECAL_COUNT";
+	actions[VS::SHADER_SPATIAL].renames["GET_OMNI_LIGHT"] = "GET_OMNI_LIGHT";
+	actions[VS::SHADER_SPATIAL].renames["GET_SPOT_LIGHT"] = "GET_SPOT_LIGHT";
+	actions[VS::SHADER_SPATIAL].renames["GET_DIRECTIONAL_LIGHT"] = "GET_DIRECTIONAL_LIGHT";
+	// Opaque Types
+	actions[VS::SHADER_SPATIAL].renames["DirectionalLightData"] = "uint";
+	actions[VS::SHADER_SPATIAL].renames["LightData"] = "LightData"; // DIFFERENT FROM MASTER
+	actions[VS::SHADER_SPATIAL].renames["LightmapCapture"] = "uint";
+	actions[VS::SHADER_SPATIAL].renames["ClusterData"] = "uvec4";
+
 	//for light
 	actions[VS::SHADER_SPATIAL].renames["VIEW"] = "view";
 	actions[VS::SHADER_SPATIAL].renames["LIGHT_COLOR"] = "light_color";
 	actions[VS::SHADER_SPATIAL].renames["LIGHT"] = "light";
 	actions[VS::SHADER_SPATIAL].renames["ATTENUATION"] = "attenuation";
-	actions[VS::SHADER_SPATIAL].renames["DIFFUSE_LIGHT"] = "diffuse_light";
-	actions[VS::SHADER_SPATIAL].renames["SPECULAR_LIGHT"] = "specular_light";
+	actions[VS::SHADER_SPATIAL].renames["SHADOW_ATTENUATION"] = "shadow_attenuation";
 
 	actions[VS::SHADER_SPATIAL].usage_defines["TANGENT"] = "#define ENABLE_TANGENT_INTERP\n";
 	actions[VS::SHADER_SPATIAL].usage_defines["BINORMAL"] = "@TANGENT";
@@ -1071,6 +1131,7 @@ ShaderCompilerGLES3::ShaderCompilerGLES3() {
 	actions[VS::SHADER_SPATIAL].usage_defines["SCREEN_TEXTURE"] = "#define SCREEN_TEXTURE_USED\n";
 	actions[VS::SHADER_SPATIAL].usage_defines["SCREEN_UV"] = "#define SCREEN_UV_USED\n";
 
+	actions[VS::SHADER_SPATIAL].usage_defines["AMBIENT_LIGHT"] = "#define AMBIENT_LIGHT_USED\n";
 	actions[VS::SHADER_SPATIAL].usage_defines["DIFFUSE_LIGHT"] = "#define USE_LIGHT_SHADER_CODE\n";
 	actions[VS::SHADER_SPATIAL].usage_defines["SPECULAR_LIGHT"] = "#define USE_LIGHT_SHADER_CODE\n";
 
