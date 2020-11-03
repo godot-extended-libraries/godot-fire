@@ -72,6 +72,21 @@ public:
 		r_axis.z = z * r;
 	}
 
+	// Squad (Spherical Spline Quaternions, [Shoemake 1987]) implementation for Unity by Vegard Myklebust.
+	// Made available under Creative Commons license CC0. License details can be found here:
+	// https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt
+	// https://gist.github.com/usefulslug
+	// Returns a smooth approximation between the current quaternion and post using a and b as 'tangents'
+	Quat squad(const Quat p_a, const Quat p_b, const Quat p_post, const float p_t) const;
+	Quat log() const;
+	Quat exp() const;
+
+	// Tries to compute sensible tangent values for the quaternion
+	Quat intermediate(Quat p_a, Quat p_b) const;
+
+	// Returns a quaternion between a and b as part of a smooth squad segment
+	Quat spline_segment(const Quat p_a, const Quat p_b, const Quat p_post, const float p_t) const;
+
 	void operator*=(const Quat &q);
 	Quat operator*(const Quat &q) const;
 
