@@ -167,6 +167,7 @@ opts.Add(BoolVariable("builtin_xatlas", "Use the built-in xatlas library", True)
 opts.Add(BoolVariable("builtin_zlib", "Use the built-in zlib library", True))
 opts.Add(BoolVariable("builtin_zstd", "Use the built-in Zstd library", True))
 opts.Add(BoolVariable('builtin_rvo2', "Use the built-in RVO2 library", True))
+opts.Add(BoolVariable("builtin_opensubdiv", "Use the built-in opensubdiv library", True))
 
 opts.Add(BoolVariable("builtin_lcms", "Use the built-in lcms library", True))
 
