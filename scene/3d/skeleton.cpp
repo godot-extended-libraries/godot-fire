@@ -1256,6 +1256,10 @@ void Skeleton::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("skeleton_updated"));
 
+#ifdef TOOLS_ENABLED
+	ADD_SIGNAL(MethodInfo("pose_updated"));
+#endif // TOOLS_ENABLED
+
 	BIND_CONSTANT(NOTIFICATION_UPDATE_SKELETON);
 }
 

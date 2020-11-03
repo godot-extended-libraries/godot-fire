@@ -38,6 +38,8 @@
 
 #include "core/local_vector.h"
 
+class MeshSubdivision;
+
 class MeshInstance : public GeometryInstance {
 
 	GDCLASS(MeshInstance, GeometryInstance);
@@ -74,6 +76,9 @@ protected:
 	SoftwareSkinning *software_skinning;
 	uint32_t software_skinning_flags;
 
+	int subdiv_level;
+	MeshSubdivision *subdiv_mesh;
+
 	struct BlendShapeTrack {
 
 		int idx;
@@ -95,6 +100,9 @@ protected:
 
 	void _initialize_skinning(bool p_force_reset = false);
 	void _update_skinning();
+
+	void _update_subdiv();
+	void _update_subdiv_vertices();
 
 protected:
 	bool _set(const StringName &p_name, const Variant &p_value);
@@ -123,6 +131,9 @@ public:
 
 	void set_software_skinning_transform_normals(bool p_enabled);
 	bool is_software_skinning_transform_normals_enabled() const;
+
+	void set_subdiv_level(int p_level);
+	int get_subdiv_level() const;
 
 	Node *create_trimesh_collision_node();
 	void create_trimesh_collision();
