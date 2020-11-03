@@ -1267,56 +1267,58 @@ Ref<Animation> ResourceImporterScene::import_animation_from_other_importer(Edito
 
 Error ResourceImporterScene::_animation_player_move(Node *new_scene, const Node *scene, Map<MeshInstance *, Skeleton *> &r_moved_meshes) {
 	for (int32_t i = 0; i < scene->get_child_count(); i++) {
-		AnimationPlayer *ap = Object::cast_to<AnimationPlayer>(scene->get_child(i));
-		if (!ap) {
-			continue;
-		}
-		List<StringName> animations;
-		ap->get_animation_list(&animations);
-		for (List<StringName>::Element *E = animations.front(); E; E = E->next()) {
-			Ref<Animation> animation = ap->get_animation(E->get());
-			for (int32_t k = 0; k < animation->get_track_count(); k++) {
-				const NodePath path = animation->track_get_path(k);
-				Node *node = scene->get_node_or_null(String(path).get_slicec(':', 0));
-				ERR_FAIL_COND_V(!node, FAILED);
-				if (node->get_class_name() == Spatial().get_class_name()) {
-					return FAILED;
-				}
-				String property;
-				String split_path = String(path).get_slicec(':', 0);
-				if (String(path).get_slice_count(":") > 1) {
-					property = String(path).trim_prefix(split_path + ":");
-				}
-				String name = node->get_name();
-				MeshInstance *mi = Object::cast_to<MeshInstance>(node);
-				String track_path;
-				Skeleton *skeleton = nullptr;
-				if (mi) {
-					String skeleton_path = mi->get_skeleton_path();
-					if (!skeleton_path.empty()) {
-						Node *skeleton_node = mi->get_node_or_null(skeleton_path);
-						ERR_FAIL_COND_V(!skeleton_node, FAILED);
-						skeleton = Object::cast_to<Skeleton>(skeleton_node);
-						ERR_FAIL_COND_V(!skeleton, FAILED);
+		AnimationPlayer *new_ap = nullptr;
+		{
+			AnimationPlayer *ap = Object::cast_to<AnimationPlayer>(scene->get_child(i));
+			ERR_CONTINUE(!ap);
+			new_ap = Object::cast_to<AnimationPlayer>(ap->duplicate());
+			ERR_CONTINUE(!new_ap);
+			List<StringName> animations;
+			new_ap->get_animation_list(&animations);
+			for (List<StringName>::Element *E = animations.front(); E; E = E->next()) {
+				Ref<Animation> animation = new_ap->get_animation(E->get());
+				for (int32_t k = 0; k < animation->get_track_count(); k++) {
+					const NodePath path = animation->track_get_path(k);
+					Node *node = scene->get_node_or_null(String(path).get_slicec(':', 0));
+					ERR_FAIL_COND_V(!node, FAILED);
+					if (node->get_class_name() == Spatial().get_class_name()) {
+						return FAILED;
 					}
-				}
-				if (mi && skeleton && property.find("blend_shapes/") != -1) {
-					track_path = String(skeleton->get_name()) + "/" + String(name) + ":" + property;
-				} else if (mi && !skeleton && property.find("blend_shapes/") != -1) {
-					track_path = String(name) + ":" + property;
-				} else if (node) {
-					if (!property.empty()) {
-						track_path = name + ":" + property;
+					String property;
+					String split_path = String(path).get_slicec(':', 0);
+					if (String(path).get_slice_count(":") > 1) {
+						property = String(path).trim_prefix(split_path + ":");
+					}
+					String name = node->get_name();
+					MeshInstance *mi = Object::cast_to<MeshInstance>(node);
+					String track_path;
+					Skeleton *skeleton = nullptr;
+					if (mi) {
+						String skeleton_path = mi->get_skeleton_path();
+						if (!skeleton_path.empty()) {
+							Node *skeleton_node = mi->get_node_or_null(skeleton_path);
+							ERR_FAIL_COND_V(!skeleton_node, FAILED);
+							skeleton = Object::cast_to<Skeleton>(skeleton_node);
+							ERR_FAIL_COND_V(!skeleton, FAILED);
+						}
+					}
+					if (mi && skeleton && property.find("blend_shapes/") != -1) {
+						track_path = String(skeleton->get_name()) + "/" + String(name) + ":" + property;
+					} else if (mi && !skeleton && property.find("blend_shapes/") != -1) {
+						track_path = String(name) + ":" + property;
+					} else if (node) {
+						if (!property.empty()) {
+							track_path = name + ":" + property;
+						} else {
+							track_path = name;
+						}
 					} else {
-						track_path = name;
+						continue;
 					}
-				} else {
-					continue;
+					animation->track_set_path(k, track_path);
 				}
-				animation->track_set_path(k, track_path);
 			}
 		}
-		AnimationPlayer *new_ap = Object::cast_to<AnimationPlayer>(ap->duplicate());
 		new_scene->add_child(new_ap);
 		new_ap->set_owner(new_scene);
 	}
@@ -1324,9 +1326,9 @@ Error ResourceImporterScene::_animation_player_move(Node *new_scene, const Node 
 }
 
 void ResourceImporterScene::_move_nodes(Node *new_scene, const Map<MeshInstance *, Skeleton *> moved_meshes, const Map<BoneAttachment *, Skeleton *> moved_attachments) {
-	Map<Skeleton *, Set<MeshInstance *>> new_meshes_location;
+	Map<Skeleton *, Set<MeshInstance *> > new_meshes_location;
 	for (Map<MeshInstance *, Skeleton *>::Element *moved_meshes_i = moved_meshes.front(); moved_meshes_i; moved_meshes_i = moved_meshes_i->next()) {
-		Map<Skeleton *, Set<MeshInstance *>>::Element *mesh_location = new_meshes_location.find(moved_meshes_i->get());
+		Map<Skeleton *, Set<MeshInstance *> >::Element *mesh_location = new_meshes_location.find(moved_meshes_i->get());
 		if (mesh_location) {
 			Set<MeshInstance *> meshes = mesh_location->get();
 			meshes.insert(moved_meshes_i->key());
@@ -1338,7 +1340,7 @@ void ResourceImporterScene::_move_nodes(Node *new_scene, const Map<MeshInstance 
 		}
 	}
 
-	for (Map<Skeleton *, Set<MeshInstance *>>::Element *new_mesh_i = new_meshes_location.front(); new_mesh_i; new_mesh_i = new_mesh_i->next()) {
+	for (Map<Skeleton *, Set<MeshInstance *> >::Element *new_mesh_i = new_meshes_location.front(); new_mesh_i; new_mesh_i = new_mesh_i->next()) {
 		Skeleton *old_skel = new_mesh_i->key();
 		if (old_skel) {
 			Skeleton *skel = memnew(Skeleton);
