@@ -354,6 +354,124 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 	}
 }
 
+void OpenSubdivMeshSubdivision::update_skinning(RID p_skeleton) {
+	// TODO: change to static assert
+	ERR_FAIL_COND(4 != Mesh::ARRAY_WEIGHTS_SIZE);
+	ERR_FAIL_COND(sizeof(Vertex) != sizeof(Vector3));
+
+	int surface_count = surface_data.size();
+	if (surface_count == 0) {
+		return;
+	}
+
+	ERR_FAIL_COND(!source_mesh.is_valid());
+	ERR_FAIL_COND(!subdiv_mesh.is_valid());
+
+	VisualServer *visual_server = VisualServer::get_singleton();
+
+	PoolByteArray subdiv_buffer = visual_server->mesh_surface_get_array(subdiv_mesh, 0);
+	ERR_FAIL_COND(subdiv_buffer.size() != subdiv_vertex_count * int(sizeof(Vector3)));
+	PoolByteArray::Write subdiv_buffer_write = subdiv_buffer.write();
+
+	// Apply skinning
+	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
+		const SurfaceData &surface = surface_data[surface_index];
+
+		uint32_t format = visual_server->mesh_surface_get_format(source_mesh, surface_index);
+
+		ERR_CONTINUE(0 == (format & Mesh::ARRAY_FORMAT_BONES));
+		ERR_CONTINUE(0 == (format & Mesh::ARRAY_FORMAT_WEIGHTS));
+
+		const int vertex_count = visual_server->mesh_surface_get_array_len(source_mesh, surface_index);
+		const int index_count = visual_server->mesh_surface_get_array_index_len(source_mesh, surface_index);
+
+		uint32_t array_offsets[Mesh::ARRAY_MAX];
+		uint32_t stride = visual_server->mesh_surface_make_offsets_from_format(format, vertex_count, index_count, array_offsets);
+		uint32_t offset_vertices = array_offsets[Mesh::ARRAY_VERTEX];
+		uint32_t offset_bones = array_offsets[Mesh::ARRAY_BONES];
+		uint32_t offset_weights = array_offsets[Mesh::ARRAY_WEIGHTS];
+
+		PoolByteArray buffer = visual_server->mesh_surface_get_array(source_mesh, surface_index);
+		PoolByteArray::Read buffer_read = buffer.read();
+
+		for (int vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+			int subdiv_vertex_index = surface.mesh_to_subdiv_index_map[vertex_index];
+
+			float bone_weight[4];
+			if (format & Mesh::ARRAY_COMPRESS_WEIGHTS) {
+				const uint16_t *weight_ptr = (const uint16_t *)(buffer_read.ptr() + offset_weights + (vertex_index * stride));
+				bone_weight[0] = (weight_ptr[0] / (float)0xFFFF);
+				bone_weight[1] = (weight_ptr[1] / (float)0xFFFF);
+				bone_weight[2] = (weight_ptr[2] / (float)0xFFFF);
+				bone_weight[3] = (weight_ptr[3] / (float)0xFFFF);
+			} else {
+				const float *weight_ptr = (const float *)(buffer_read.ptr() + offset_weights + (vertex_index * stride));
+				bone_weight[0] = weight_ptr[0];
+				bone_weight[1] = weight_ptr[1];
+				bone_weight[2] = weight_ptr[2];
+				bone_weight[3] = weight_ptr[3];
+			}
+
+			int bone_id[4];
+			if (format & Mesh::ARRAY_FLAG_USE_16_BIT_BONES) {
+				const uint16_t *bones_ptr = (const uint16_t *)(buffer_read.ptr() + offset_bones + (vertex_index * stride));
+				bone_id[0] = bones_ptr[0];
+				bone_id[1] = bones_ptr[1];
+				bone_id[2] = bones_ptr[2];
+				bone_id[3] = bones_ptr[3];
+			} else {
+				const uint8_t *bones_ptr = buffer_read.ptr() + offset_bones + (vertex_index * stride);
+				bone_id[0] = bones_ptr[0];
+				bone_id[1] = bones_ptr[1];
+				bone_id[2] = bones_ptr[2];
+				bone_id[3] = bones_ptr[3];
+			}
+
+			Transform bone_transform[4] = {
+				visual_server->skeleton_bone_get_transform(p_skeleton, bone_id[0]),
+				visual_server->skeleton_bone_get_transform(p_skeleton, bone_id[1]),
+				visual_server->skeleton_bone_get_transform(p_skeleton, bone_id[2]),
+				visual_server->skeleton_bone_get_transform(p_skeleton, bone_id[3]),
+			};
+
+			Transform transform;
+			transform.origin =
+					bone_weight[0] * bone_transform[0].origin +
+					bone_weight[1] * bone_transform[1].origin +
+					bone_weight[2] * bone_transform[2].origin +
+					bone_weight[3] * bone_transform[3].origin;
+
+			transform.basis =
+					bone_transform[0].basis * bone_weight[0] +
+					bone_transform[1].basis * bone_weight[1] +
+					bone_transform[2].basis * bone_weight[2] +
+					bone_transform[3].basis * bone_weight[3];
+
+			const Vector3 &vertex = (const Vector3 &)buffer_read[vertex_index * stride + offset_vertices];
+			Vector3 &vertex_out = (Vector3 &)subdiv_buffer_write[subdiv_vertex_index * sizeof(Vector3)];
+			vertex_out = transform.xform(vertex);
+		}
+	}
+
+	// Update vertex arrays for each surface
+	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
+		if (surface_index == 0) {
+			// Main surface, interpolate vertex primvar data
+			Vertex *src = (Vertex *)subdiv_buffer_write.ptr();
+			Far::PrimvarRefiner primvar_refiner(*refiner);
+			int level_count = refiner->GetMaxLevel();
+			for (int level = 0; level < level_count; ++level) {
+				Vertex *dst = src + refiner->GetLevel(level).GetNumVertices();
+				primvar_refiner.Interpolate(level + 1, src, dst);
+				src = dst;
+			}
+		}
+
+		// All surfaces use the same vertex data
+		visual_server->mesh_surface_update_region(subdiv_mesh, surface_index, 0, subdiv_buffer);
+	}
+}
+
 MeshSubdivision *OpenSubdivSubdivisionSystem::create_mesh_subdivision(Ref<Mesh> p_mesh, int p_level) {
 	OpenSubdivMeshSubdivision *mesh_subdivision = memnew(OpenSubdivMeshSubdivision);
 	mesh_subdivision->update_subdivision(p_mesh, p_level);
