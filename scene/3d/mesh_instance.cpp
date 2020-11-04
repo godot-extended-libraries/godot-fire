@@ -36,8 +36,8 @@
 #include "physics_body.h"
 #include "scene/resources/material.h"
 #include "scene/scene_string_names.h"
-#include "servers/visual/visual_server_globals.h"
 #include "servers/visual/subdivision.h"
+#include "servers/visual/visual_server_globals.h"
 #include "skeleton.h"
 
 bool MeshInstance::_set(const StringName &p_name, const Variant &p_value) {
@@ -560,12 +560,16 @@ void MeshInstance::_update_subdiv_vertices() {
 		return;
 	}
 
-	ERR_FAIL_COND(skin_ref.is_null());
-
-	RID skeleton = skin_ref->get_skeleton();
-	ERR_FAIL_COND(!skeleton.is_valid());
-
-	subdiv_mesh->update_skinning(skeleton);
+	if (!skin_ref.is_valid()) {
+		return;
+	}
+	if (is_visible_in_tree()) {
+		return;
+	}
+	ERR_FAIL_COND(!skin_ref->get_skeleton_node());
+	if (!skin_ref->get_skeleton_node()->is_connected("skeleton_updated", this, "_update_skinning")) {
+		skin_ref->get_skeleton_node()->connect("skeleton_updated", this, "_update_skinning");
+	}
 }
 
 void MeshInstance::set_skin(const Ref<Skin> &p_skin) {

@@ -57,7 +57,6 @@ public:
 	virtual RID get_rid() const { return subdiv_mesh; }
 
 	virtual void update_subdivision(Ref<Mesh> p_mesh, int p_level);
-	virtual void update_skinning(RID p_skeleton);
 };
 
 class OpenSubdivSubdivisionSystem : public SubdivisionSystem {
