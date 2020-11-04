@@ -64,38 +64,6 @@ struct VertexUV {
 	float u, v;
 };
 
-struct VertexBone {
-
-	void Clear() {
-		a = b = c = d = 0.0f;
-	}
-
-	void AddWithWeight(VertexBone const &src, float weight) {
-		a += weight * src.a;
-		b += weight * src.b;
-		c += weight * src.c;
-		d += weight * src.d;
-	}
-
-	float a, b, c, d;
-};
-
-struct VertexWeight {
-
-	void Clear() {
-		a = b = c = d = 0.0f;
-	}
-
-	void AddWithWeight(VertexWeight const &src, float weight) {
-		a += weight * src.a;
-		b += weight * src.b;
-		c += weight * src.c;
-		d += weight * src.d;
-	}
-
-	float a, b, c, d;
-};
-
 OpenSubdivMeshSubdivision::OpenSubdivMeshSubdivision() {
 	subdiv_mesh = VisualServer::get_singleton()->mesh_create();
 	subdiv_vertex_count = 0;
@@ -158,8 +126,6 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 	PoolVector3Array subdiv_vertex_array;
 	PoolVector2Array subdiv_uv_array;
 	PoolIntArray subdiv_index_array;
-	PoolRealArray subdiv_bone_array;
-	PoolRealArray subdiv_bone_weight_array;
 
 	int subdiv_face_count = 0;
 	Vector<int> face_to_surface_index_map;
@@ -176,8 +142,6 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 		PoolVector3Array vertex_array = mesh_arrays[Mesh::ARRAY_VERTEX];
 		PoolIntArray index_array = mesh_arrays[Mesh::ARRAY_INDEX];
 		PoolVector2Array uv_array = mesh_arrays[Mesh::ARRAY_TEX_UV];
-		PoolRealArray bone_array = mesh_arrays[Mesh::ARRAY_BONES];
-		PoolRealArray weight_array = mesh_arrays[Mesh::ARRAY_WEIGHTS];
 
 		int index_count = index_array.size();
 
@@ -188,16 +152,11 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 			surface.mesh_to_subdiv_index_map.resize(vertex_source_count);
 			subdiv_vertex_array.resize(subdiv_vertex_count + vertex_source_count);
 			subdiv_uv_array.resize(subdiv_vertex_count + vertex_source_count);
-			subdiv_bone_array.resize((subdiv_vertex_count + vertex_source_count) * VisualServer::ARRAY_WEIGHTS_SIZE);
-			subdiv_bone_weight_array.resize((subdiv_vertex_count + vertex_source_count) * VisualServer::ARRAY_WEIGHTS_SIZE);
+
 			PoolVector3Array::Read vertex_array_read = vertex_array.read();
 			PoolVector2Array::Read uv_array_read = uv_array.read();
 			PoolVector3Array::Write subdiv_vertex_array_write = subdiv_vertex_array.write();
 			PoolVector2Array::Write subdiv_uv_array_write = subdiv_uv_array.write();
-			PoolRealArray::Read bone_array_read = bone_array.read();
-			PoolRealArray::Read bone_weight_array_read = weight_array.read();
-			PoolRealArray::Write subdiv_bone_array_write = subdiv_bone_array.write();
-			PoolRealArray::Write subdiv_weight_array_write = subdiv_bone_weight_array.write();
 
 			int vertex_index_out = 0;
 			for (int vertex_index = 0; vertex_index < vertex_source_count; ++vertex_index) {
@@ -213,17 +172,6 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 						surface.mesh_to_subdiv_index_map.write[vertex_index] = subdiv_vertex_index;
 						subdiv_uv_array_write[subdiv_vertex_index] = uv;
 					}
-					if (bone_array.size() && weight_array.size()) {
-						subdiv_bone_array_write[VisualServer::ARRAY_WEIGHTS_SIZE * subdiv_vertex_index + 0] = bone_array_read[VisualServer::ARRAY_WEIGHTS_SIZE * vertex_index + 0];
-						subdiv_bone_array_write[VisualServer::ARRAY_WEIGHTS_SIZE * subdiv_vertex_index + 1] = bone_array_read[VisualServer::ARRAY_WEIGHTS_SIZE * vertex_index + 1];
-						subdiv_bone_array_write[VisualServer::ARRAY_WEIGHTS_SIZE * subdiv_vertex_index + 2] = bone_array_read[VisualServer::ARRAY_WEIGHTS_SIZE * vertex_index + 2];
-						subdiv_bone_array_write[VisualServer::ARRAY_WEIGHTS_SIZE * subdiv_vertex_index + 3] = bone_array_read[VisualServer::ARRAY_WEIGHTS_SIZE * vertex_index + 3];
-
-						subdiv_weight_array_write[VisualServer::ARRAY_WEIGHTS_SIZE * subdiv_vertex_index + 0] = bone_weight_array_read[VisualServer::ARRAY_WEIGHTS_SIZE * vertex_index + 0];
-						subdiv_weight_array_write[VisualServer::ARRAY_WEIGHTS_SIZE * subdiv_vertex_index + 1] = bone_weight_array_read[VisualServer::ARRAY_WEIGHTS_SIZE * vertex_index + 1];
-						subdiv_weight_array_write[VisualServer::ARRAY_WEIGHTS_SIZE * subdiv_vertex_index + 2] = bone_weight_array_read[VisualServer::ARRAY_WEIGHTS_SIZE * vertex_index + 2];
-						subdiv_weight_array_write[VisualServer::ARRAY_WEIGHTS_SIZE * subdiv_vertex_index + 3] = bone_weight_array_read[VisualServer::ARRAY_WEIGHTS_SIZE * vertex_index + 3];
-					}
 					subdiv_vertex_array_write[subdiv_vertex_index] = vertex;
 					++vertex_index_out;
 				}
@@ -234,13 +182,13 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 			subdiv_vertex_count += vertex_index_out;
 		}
 		subdiv_vertex_array.resize(subdiv_vertex_count);
+
 		// Add vertex indices
 		{
 			subdiv_index_array.resize(subdiv_index_count + index_count);
 
 			PoolIntArray::Read index_array_read = index_array.read();
 			PoolIntArray::Write subdiv_index_array_write = subdiv_index_array.write();
-
 			for (int index = 0; index < index_count; ++index) {
 				int subdiv_index = subdiv_index_count + index;
 				subdiv_index_array_write[subdiv_index] = surface.mesh_to_subdiv_index_map[index_array_read[index]];
@@ -287,7 +235,6 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 		channels[channel_uv].numValues = subdiv_uv_count;
 		channels[channel_uv].valueIndices = subdiv_index_array_read.ptr();
 
-
 		desc.numFVarChannels = num_channels;
 		desc.fvarChannels = channels;
 
@@ -318,16 +265,12 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 
 			PoolVector3Array::Write subdiv_vertex_array_write = subdiv_vertex_array.write();
 			PoolVector2Array::Write subdiv_uv_array_write = subdiv_uv_array.write();
-			PoolRealArray::Write subdiv_bone_array_write = subdiv_bone_array.write();
-			PoolRealArray::Write subdiv_bone_weight_array_write = subdiv_bone_weight_array.write();
 
 			// Interpolate vertex primvar data
 			Far::PrimvarRefiner primvar_refiner(*refiner);
 
 			Vertex *src = (Vertex *)subdiv_vertex_array_write.ptr();
 			VertexUV *src_uv = (VertexUV *)subdiv_uv_array_write.ptr();
-			VertexBone *src_bone = (VertexBone *)subdiv_bone_array_write.ptr();
-			VertexWeight *src_bone_weight = (VertexWeight *)subdiv_bone_array_write.ptr();
 			for (int level = 0; level < p_level; ++level) {
 				Vertex *dst = src + refiner->GetLevel(level).GetNumVertices();
 				primvar_refiner.Interpolate(level + 1, src, dst);
@@ -335,12 +278,6 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 				VertexUV *dst_uv = src_uv + refiner->GetLevel(level).GetNumFVarValues(channel_uv);
 				primvar_refiner.InterpolateFaceVarying(level + 1, src_uv, dst_uv, channel_uv);
 				src_uv = dst_uv;
-				VertexBone *dst_bone = src_bone + refiner->GetLevel(level).GetNumFaceVertices();
-				primvar_refiner.InterpolateFaceUniform(level + 1, src_bone, dst_bone);
-				src_bone = dst_bone;
-				VertexWeight *dst_weight = src_bone_weight + refiner->GetLevel(level).GetNumFaceVertices();
-				primvar_refiner.InterpolateFaceUniform(level + 1, src_bone_weight, dst_weight);
-				src_bone_weight = dst_weight;
 			}
 		}
 
@@ -373,17 +310,14 @@ void OpenSubdivMeshSubdivision::update_subdivision(Ref<Mesh> p_mesh, int p_level
 	// Create all subdivision surfaces
 	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
 		const PoolIntArray &index_array_out = index_arrays_out[surface_index];
+
 		Array subdiv_mesh_arrays;
 		subdiv_mesh_arrays.resize(Mesh::ARRAY_MAX);
 		subdiv_mesh_arrays[Mesh::ARRAY_VERTEX] = subdiv_vertex_array;
 		subdiv_mesh_arrays[Mesh::ARRAY_INDEX] = index_array_out;
-		subdiv_mesh_arrays[Mesh::ARRAY_BONES] = subdiv_bone_array;
-		subdiv_mesh_arrays[Mesh::ARRAY_WEIGHTS] = subdiv_bone_weight_array;
 		if (has_bones) {
 			uint32_t surface_format = p_mesh->surface_get_format(surface_index);
-			// surface_format &= ~Mesh::ARRAY_COMPRESS_VERTEX;
-			// surface_format &= ~Mesh::ARRAY_COMPRESS_WEIGHTS;
-			// surface_format &= ~Mesh::ARRAY_FLAG_USE_16_BIT_BONES;
+			surface_format &= ~Mesh::ARRAY_COMPRESS_VERTEX;
 			surface_format |= Mesh::ARRAY_FLAG_USE_DYNAMIC_UPDATE;
 			visual_server->mesh_add_surface_from_arrays(subdiv_mesh, VisualServer::PRIMITIVE_TRIANGLES, subdiv_mesh_arrays, Array(), surface_format);
 			Ref<Material> material = p_mesh->surface_get_material(surface_index);
@@ -436,6 +370,7 @@ void OpenSubdivMeshSubdivision::update_skinning(RID p_skeleton) {
 	VisualServer *visual_server = VisualServer::get_singleton();
 
 	PoolByteArray subdiv_buffer = visual_server->mesh_surface_get_array(subdiv_mesh, 0);
+	ERR_FAIL_COND(subdiv_buffer.size() != subdiv_vertex_count * int(sizeof(Vector3)));
 	PoolByteArray::Write subdiv_buffer_write = subdiv_buffer.write();
 
 	// Apply skinning
