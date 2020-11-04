@@ -6,6 +6,7 @@ import core_builders
 
 env.core_sources = []
 
+env.Append(CCFLAGS=["-fPIC"])
 
 # Generate AES256 script encryption key
 import os
