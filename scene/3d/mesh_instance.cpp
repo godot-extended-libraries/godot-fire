@@ -561,11 +561,6 @@ void MeshInstance::_update_subdiv_vertices() {
 	}
 
 	ERR_FAIL_COND(skin_ref.is_null());
-
-	RID skeleton = skin_ref->get_skeleton();
-	ERR_FAIL_COND(!skeleton.is_valid());
-
-	subdiv_mesh->update_skinning(skeleton);
 }
 
 void MeshInstance::set_skin(const Ref<Skin> &p_skin) {
