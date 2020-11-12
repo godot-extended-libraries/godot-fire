@@ -544,6 +544,13 @@ originally proposed by this library and better integrate this library with
 Godot. Please check the file to know what's new.
 
 
+## rjm_texbleed
+
+- Upstream: https://github.com/rmitton/rjm/
+- Version: git (5e3fd2bb9396e9cad2fb7615ba372ba9d8a4f85f, 2018)
+- License: unlicense
+
+
 ## squish
 
 - Upstream: https://sourceforge.net/projects/libsquish
