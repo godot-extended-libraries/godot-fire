@@ -217,16 +217,82 @@ Quat Quat::slerpni(const Quat &q, const real_t &t) const {
 			invFactor * from.w + newFactor * q.w);
 }
 
-Quat Quat::cubic_slerp(const Quat &q, const Quat &prep, const Quat &postq, const real_t &t) const {
+Quat Quat::cubic_slerp(const Quat &p_q, const Quat &p_prep, const Quat &p_postq, const real_t &p_t) const {
 #ifdef MATH_CHECKS
 	ERR_FAIL_COND_V_MSG(!is_normalized(), Quat(), "The start quaternion must be normalized.");
-	ERR_FAIL_COND_V_MSG(!q.is_normalized(), Quat(), "The end quaternion must be normalized.");
+	ERR_FAIL_COND_V_MSG(!p_q.is_normalized(), Quat(), "The end quaternion must be normalized.");
 #endif
-	//the only way to do slerp :|
-	real_t t2 = (1.0 - t) * t * 2;
-	Quat sp = this->slerp(q, t);
-	Quat sq = prep.slerpni(postq, t);
-	return sp.slerpni(sq, t2);
+	// Modify quaternions for shortest path
+	// https://math.stackexchange.com/questions/2650188/super-confused-by-squad-algorithm-for-quaternion-interpolation
+	const Quat q_a = *this;
+	Quat prep = (q_a - p_prep).length_squared() < (q_a + p_prep).length_squared() ? p_prep : p_prep * -1.0f;
+	Quat q_b = (q_a - p_q).length_squared() < (q_a + p_q).length_squared() ? p_q : p_q * -1.0f;
+	Quat postq = (p_q - p_postq).length_squared() < (p_q + p_postq).length_squared() ? p_postq : p_postq * -1.0f;
+
+	return prep.spline_segment(q_a, q_b, postq, p_t);
+}
+
+Quat Quat::squad(const Quat p_a, const Quat p_b, const Quat p_post, const float p_t) const {
+	Quat pre = *this;
+	float slerp_t = 2.0 * p_t * (1.0 - p_t);
+	Quat slerp_1 = pre.slerpni(p_post, p_t);
+	Quat slerp_2 = p_a.slerpni(p_b, p_t);
+	return slerp_1.slerpni(slerp_2, slerp_t);
+}
+
+Quat Quat::log() const {
+	Quat result = *this;
+	float a_0 = result.w;
+	result.w = 0.0;
+	if (Math::abs(a_0) < 1.0) {
+		float angle = Math::acos(a_0);
+		angle = CLAMP(angle, -1.0f, 1.0f);
+		float sin_angle = Math::sin(angle);
+		if (!Math::is_equal_approx(Math::absf(sin_angle), 0.0f)) {
+			float coeff = angle / sin_angle;
+			result.x *= coeff;
+			result.y *= coeff;
+			result.z *= coeff;
+		}
+	}
+	return result;
+}
+
+Quat Quat::exp() const {
+	Quat rot = *this;
+
+	float angle = rot.length();
+	float coeff = 0.0f;
+
+	if (!Math::is_equal_approx(angle, 0.0f)) {
+		coeff = Math::sin(angle) / angle;
+	}
+	Quat result;
+	result.x = rot.x * coeff;
+	result.y = rot.y * coeff;
+	result.z = rot.z * coeff;
+	result.w = Math::cos(angle);
+	return result;
+}
+
+Quat Quat::intermediate(Quat p_a, Quat p_b) const {
+	Quat a_inv = p_a.inverse();
+	Quat c_1 = a_inv * p_b;
+	Quat c_2 = a_inv * (*this);
+	c_1 = c_1.log();
+	c_2 = c_2.log();
+	Quat c_3 = c_2 + c_1;
+	c_3 = c_3 * -0.25f;
+	c_3 = c_3.exp();
+	Quat r = p_a * c_3;
+	return r.normalized();
+}
+
+Quat Quat::spline_segment(const Quat p_a, const Quat p_b, const Quat p_post, const float p_t) const {
+	Quat pre = *this;
+	Quat q_a = pre.intermediate(p_a, p_b);
+	Quat q_b = p_a.intermediate(p_b, p_post);
+	return p_a.squad(q_a, q_b, p_b, p_t);
 }
 
 Quat::operator String() const {
