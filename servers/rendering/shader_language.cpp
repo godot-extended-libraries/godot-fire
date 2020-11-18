@@ -1027,18 +1027,18 @@ bool ShaderLanguage::_find_identifier(const BlockNode *p_block, bool p_allow_rea
 		return true;
 	}
 
-	if (shader->constants.has(p_identifier)) {
+	if (shader->globals.has(p_identifier)) {
 		if (r_data_type) {
-			*r_data_type = shader->constants[p_identifier].type;
+			*r_data_type = shader->globals[p_identifier].type;
 		}
 		if (r_array_size) {
-			*r_array_size = shader->constants[p_identifier].array_size;
+			*r_array_size = shader->globals[p_identifier].array_size;
 		}
 		if (r_type) {
-			*r_type = IDENTIFIER_CONSTANT;
+			*r_type = shader->globals[p_identifier].is_constant ? IDENTIFIER_CONSTANT : IDENTIFIER_LOCAL_VAR;
 		}
 		if (r_struct_name) {
-			*r_struct_name = shader->constants[p_identifier].type_str;
+			*r_struct_name = shader->globals[p_identifier].type_str;
 		}
 		return true;
 	}
@@ -3150,11 +3150,14 @@ bool ShaderLanguage::_validate_assign(Node *p_node, const FunctionInfo &p_functi
 			return false;
 		}
 
-		if (shader->constants.has(var->name) || var->is_const) {
-			if (r_message) {
-				*r_message = RTR("Constants cannot be modified.");
+		if (shader->globals.has(var->name)) {
+			if (shader->globals[var->name].is_constant || var->is_const) {
+				if (r_message) {
+					*r_message = RTR("Constants cannot be modified.");
+				}
+				return false;
 			}
-			return false;
+			return true;
 		}
 
 		if (!(p_function_info.built_ins.has(var->name) && p_function_info.built_ins[var->name].constant)) {
@@ -3163,7 +3166,7 @@ bool ShaderLanguage::_validate_assign(Node *p_node, const FunctionInfo &p_functi
 	} else if (p_node->type == Node::TYPE_ARRAY) {
 		ArrayNode *arr = static_cast<ArrayNode *>(p_node);
 
-		if (shader->constants.has(arr->name) || arr->is_const) {
+		if ((shader->globals.has(arr->name) && shader->globals[arr->name].is_constant) || arr->is_const) {
 			if (r_message) {
 				*r_message = RTR("Constants cannot be modified.");
 			}
@@ -3665,7 +3668,7 @@ ShaderLanguage::Node *ShaderLanguage::_parse_expression(BlockNode *p_block, cons
 												error = true;
 											} else {
 												StringName varname = vn->name;
-												if (shader->constants.has(varname)) {
+												if (shader->globals.has(varname) && shader->globals[varname].is_constant) {
 													error = true;
 												} else if (shader->uniforms.has(varname)) {
 													error = true;
@@ -6506,7 +6509,7 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 					struct_name = tk.text;
 				} else {
 					if (!is_token_datatype(tk.type)) {
-						_set_error("Expected constant, function, uniform or varying");
+						_set_error("Expected constant, global, function, uniform or varying");
 						return ERR_PARSE_ERROR;
 					}
 
@@ -6521,13 +6524,9 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 				} else {
 					type = get_token_datatype(tk.type);
 				}
-				TkPos prev_pos = _get_tkpos();
-				tk = _get_token();
-				if (tk.type == TK_BRACKET_OPEN) {
-					_set_error("Cannot use arrays as return types");
-					return ERR_PARSE_ERROR;
-				}
-				_set_tkpos(prev_pos);
+				//TkPos prev_pos = _get_tkpos();
+				//tk = _get_token();
+				//_set_tkpos(prev_pos);
 
 				_get_completable_identifier(nullptr, COMPLETION_MAIN_FUNCTION, name);
 
@@ -6556,13 +6555,14 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 					//variable
 
 					while (true) {
-						ShaderNode::Constant constant;
+						ShaderNode::GlobalVariable constant;
 						constant.name = name;
 						constant.type = is_struct ? TYPE_STRUCT : type;
 						constant.type_str = struct_name;
 						constant.precision = precision;
 						constant.initializer = nullptr;
 						constant.array_size = 0;
+						constant.is_constant = is_constant;
 
 						bool unknown_size = false;
 
@@ -6591,7 +6591,7 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 						}
 
 						if (tk.type == TK_OP_ASSIGN) {
-							if (!is_constant) {
+							if (RenderingServer::get_singleton()->is_low_end() && !is_constant) {
 								_set_error("Expected 'const' keyword before constant definition");
 								return ERR_PARSE_ERROR;
 							}
@@ -6801,7 +6801,7 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 								}
 							}
 							tk = _get_token();
-						} else {
+						} else if (is_constant || RenderingServer::get_singleton()->is_low_end()) {
 							if (constant.array_size > 0 || unknown_size) {
 								_set_error("Expected array initialization");
 								return ERR_PARSE_ERROR;
@@ -6811,8 +6811,8 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 							}
 						}
 
-						shader->constants[name] = constant;
-						shader->vconstants.push_back(constant);
+						shader->globals[name] = constant;
+						shader->vglobals.push_back(constant);
 
 						if (tk.type == TK_COMMA) {
 							tk = _get_token();
@@ -6837,7 +6837,7 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 						} else if (tk.type == TK_SEMICOLON) {
 							break;
 						} else {
-							_set_error("Expected ',' or ';' after constant");
+							_set_error("Expected ',' or ';' after constant or global");
 							return ERR_PARSE_ERROR;
 						}
 					}
