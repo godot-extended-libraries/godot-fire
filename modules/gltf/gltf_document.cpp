@@ -5371,7 +5371,7 @@ void GLTFDocument::_convert_light_to_gltf(Light3D *light, Ref<GLTFState> state, 
 	GLTFLightIndex light_index = _convert_light(state, light);
 	if (light_index != -1) {
 		gltf_node->light = light_index;
-	}	
+	}
 }
 
 void GLTFDocument::_convert_grid_map_to_gltf(Node *p_scene_parent, const GLTFNodeIndex &p_parent_node_index, const GLTFNodeIndex &p_root_node_index, Ref<GLTFNode> gltf_node, Ref<GLTFState> state, Node *p_root_node) {
