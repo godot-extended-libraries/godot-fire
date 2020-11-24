@@ -5457,12 +5457,7 @@ void GLTFDocument::_convert_skeleton_to_gltf(Node *p_scene_parent, Ref<GLTFState
 	if (skeleton) {
 		GLTFSkeletonIndex gltf_skeleton_index = -1;
 		gltf_skeleton_index = _convert_skeleton(state, skeleton, p_parent_node_index);
-		if (gltf_skeleton_index != -1) {
-			gltf_node->skeleton = gltf_skeleton_index;
-		}
-		if (p_parent_node_index != p_root_node_index) {
-			gltf_node.unref();
-		}
+		gltf_node->skeleton = gltf_skeleton_index;
 		for (int node_i = 0; node_i < p_scene_parent->get_child_count(); node_i++) {
 			_convert_scene_node(state, p_scene_parent->get_child(node_i), p_root_node, p_parent_node_index, p_root_node_index);
 		}
@@ -5874,8 +5869,7 @@ void GLTFDocument::_convert_skeletons(Ref<GLTFState> state) {
 			Ref<GLTFNode> node;
 			node.instance();
 			String bone_name = state->skeletons[skeleton_i]->godot_skeleton->get_bone_name(bone_i);
-			bone_name = _sanitize_bone_name(bone_name);
-			node->set_name(_gen_unique_name(state, bone_name));
+			node->set_name(_gen_unique_bone_name(state, skeleton_i, bone_name));
 
 			Transform xform = state->skeletons[skeleton_i]->godot_skeleton->get_bone_rest(bone_i);
 			node->scale = xform.basis.get_scale();
