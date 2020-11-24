@@ -5004,11 +5004,11 @@ void GLTFDocument::_assign_scene_names(Ref<GLTFState> state) {
 
 		if (n->get_name().empty()) {
 			if (n->mesh >= 0) {
-				n->set_name("Mesh");
+				n->set_name(_gen_unique_name(state, "Mesh"));
 			} else if (n->camera >= 0) {
-				n->set_name("Camera3D");
+				n->set_name(_gen_unique_name(state, "Camera3D"));
 			} else {
-				n->set_name("Node");
+				n->set_name(_gen_unique_name(state, "Node"));
 			}
 		}
 
@@ -5079,7 +5079,7 @@ MeshInstance3D *GLTFDocument::_generate_mesh_instance(Ref<GLTFState> state, Node
 	mi->set_mesh(mesh->mesh);
 
 	if (mesh->mesh->get_name().empty()) {
-		mesh->mesh->set_name(gltf_node->get_name());
+		mesh->mesh->set_name(_gen_unique_name(state, gltf_node->get_name()));
 	}
 
 	for (int i = 0; i < mesh->blend_weights.size(); i++) {
@@ -5220,6 +5220,7 @@ GLTFSkeletonIndex GLTFDocument::_convert_skeleton(Ref<GLTFState> state, Skeleton
 	print_verbose("glTF: Converting skeleton: " + p_skeleton->get_name());
 	Ref<GLTFSkeleton> gltf_skeleton;
 	gltf_skeleton.instance();
+	gltf_skeleton->set_name(_gen_unique_name(state, p_skeleton->get_name()));
 	gltf_skeleton->godot_skeleton = p_skeleton;
 	state->skeleton_to_node.insert(state->skeletons.size(), p_node_index);
 	state->skeletons.push_back(gltf_skeleton);
@@ -5320,7 +5321,7 @@ void GLTFDocument::_convert_csg_shape_to_gltf(Node *p_current, GLTFNodeIndex p_g
 	gltf_node->mesh = state->meshes.size();
 	state->meshes.push_back(gltf_mesh);
 	gltf_node->xform = csg->get_meshes()[0];
-	gltf_node->set_name(csg->get_name());
+	gltf_node->set_name(_gen_unique_name(state, csg->get_name()));
 }
 
 void GLTFDocument::_create_gltf_node(Ref<GLTFState> state, GLTFNodeIndex current_node_i, Node *p_scene_parent,
@@ -5402,7 +5403,7 @@ void GLTFDocument::_convert_grid_map_to_gltf(Node *p_scene_parent, const GLTFNod
 		new_gltf_node->mesh = state->meshes.size();
 		state->meshes.push_back(gltf_mesh);
 		new_gltf_node->xform = cell_xform * grid_map->get_transform();
-		new_gltf_node->set_name(grid_map->get_mesh_library()->get_item_name(cell));
+		new_gltf_node->set_name(_gen_unique_name(state, grid_map->get_mesh_library()->get_item_name(cell)));
 	}
 }
 
@@ -5443,7 +5444,7 @@ void GLTFDocument::_convert_mult_mesh_instance_to_gltf(Node *p_scene_parent, con
 			new_gltf_node->mesh = state->meshes.size();
 			state->meshes.push_back(gltf_mesh);
 			new_gltf_node->xform = transform;
-			new_gltf_node->set_name(multi_mesh_instance->get_name());
+			new_gltf_node->set_name(_gen_unique_name(state, multi_mesh_instance->get_name()));
 			new_gltf_node->parent = p_parent_node_index;
 			gltf_node->children.push_back(state->nodes.size());
 			state->nodes.push_back(new_gltf_node);
