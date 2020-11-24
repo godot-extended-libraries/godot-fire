@@ -316,9 +316,6 @@ public:
 			const GLTFNodeIndex &p_gltf_root_index,
 			Ref<GLTFNode> p_gltf_node, Node *p_scene_parent,
 			Node *p_root);
-	void _convert_spatial_to_gltf(Node3D *spatial,
-			Ref<GLTFState> state,
-			Ref<GLTFNode> gltf_node);
 	void _check_visibility(Node2D *node_2d, Node3D *spatial, bool &retflag);
 	void _convert_camera_to_gltf(Camera3D *camera, Ref<GLTFState> state,
 			Node3D *spatial,
