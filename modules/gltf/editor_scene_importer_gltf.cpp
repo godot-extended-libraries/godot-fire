@@ -166,7 +166,6 @@ Error PackedSceneGLTF::export_gltf(Node *p_root, String p_path,
 		int32_t p_flags,
 		real_t p_bake_fps) {
 	ERR_FAIL_COND_V(!p_root, FAILED);
-	Node *node = p_root->duplicate();
 	List<String> deps;
 	Error err;
 	String path = p_path;
@@ -174,7 +173,7 @@ Error PackedSceneGLTF::export_gltf(Node *p_root, String p_path,
 	real_t baked_fps = p_bake_fps;
 	Ref<PackedSceneGLTF> exporter;
 	exporter.instance();
-	exporter->save_scene(node, path, "", flags, baked_fps, &deps, &err);
+	exporter->save_scene(p_root, path, "", flags, baked_fps, &deps, &err);
 	int32_t error_code = err;
 	if (error_code != 0) {
 		return Error(error_code);
