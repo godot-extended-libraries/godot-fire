@@ -5287,7 +5287,7 @@ void GLTFDocument::_convert_scene_node(Ref<GLTFState> state, Node *p_current, No
 	}
 
 	GLTFNodeIndex current_node_i = state->nodes.size();
-	_create_gltf_node(state, current_node_i, p_current, p_gltf_parent, gltf_node);
+	_create_gltf_node(state, current_node_i, p_current, p_gltf_parent, p_gltf_root, gltf_node);
 
 	for (int node_i = 0; node_i < p_current->get_child_count(); node_i++) {
 		_convert_scene_node(state, p_current->get_child(node_i), p_root, current_node_i, p_gltf_root);
@@ -5325,11 +5325,11 @@ void GLTFDocument::_convert_csg_shape_to_gltf(Node *p_current, GLTFNodeIndex p_g
 }
 
 void GLTFDocument::_create_gltf_node(Ref<GLTFState> state, GLTFNodeIndex current_node_i, Node *p_scene_parent,
-		GLTFNodeIndex p_parent_node_index, Ref<GLTFNode> gltf_node) {
-	gltf_node->parent = p_parent_node_index;
+		GLTFNodeIndex p_parent_node_index, GLTFNodeIndex p_root_gltf_node, Ref<GLTFNode> gltf_node) {
 	state->scene_nodes.insert(current_node_i, p_scene_parent);
 	state->nodes.push_back(gltf_node);
-	if (p_parent_node_index != current_node_i) {
+	if (p_parent_node_index != p_root_gltf_node) {
+		gltf_node->parent = p_parent_node_index;
 		state->nodes.write[p_parent_node_index]->children.push_back(current_node_i);
 	}
 }
