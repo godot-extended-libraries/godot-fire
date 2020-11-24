@@ -5242,10 +5242,9 @@ Node3D *GLTFDocument::_generate_spatial(Ref<GLTFState> state, Node *scene_parent
 	return spatial;
 }
 void GLTFDocument::_convert_scene_node(Ref<GLTFState> state, Node *p_current, Node *p_root, const GLTFNodeIndex p_gltf_parent, const GLTFNodeIndex p_gltf_root) {
-	bool retflag;
-	Node3D *spatial = Object::cast_to<Node3D>(p_current);
-	Node2D *node_2d = Object::cast_to<Node2D>(p_current);
-	_check_visibility(node_2d, spatial, retflag);
+	bool retflag = true;
+	Node3D *spatial = cast_to<Node3D>(p_current);
+	_check_visibility(p_current, retflag);
 	if (retflag) {
 		return;
 	}
@@ -5347,8 +5346,10 @@ void GLTFDocument::_convert_animation_player_to_gltf(AnimationPlayer *animation_
 	}
 }
 
-void GLTFDocument::_check_visibility(Node2D *node_2d, Node3D *spatial, bool &retflag) {
+void GLTFDocument::_check_visibility(Node *p_node, bool &retflag) {
 	retflag = true;
+	Node3D *spatial = Object::cast_to<Node3D>(p_node);
+	Node2D *node_2d = Object::cast_to<Node2D>(p_node);
 	if (node_2d && !node_2d->is_visible()) {
 		return;
 	}
