@@ -1066,6 +1066,15 @@ String ShaderCompilerRD::_dump_node_code(const SL::Node *p_node, int p_level, Ge
 
 					SL::VariableNode *vnode = (SL::VariableNode *)onode->arguments[0];
 
+					if (p_default_actions.usage_defines.has(vnode->name) && !used_name_defines.has(vnode->name)) {
+						String define = p_default_actions.usage_defines[vnode->name];
+						if (define.begins_with("@")) {
+							define = p_default_actions.usage_defines[define.substr(1, define.length())];
+						}
+						r_gen_code.defines.push_back(define);
+						used_name_defines.insert(vnode->name);
+					}
+
 					bool is_texture_func = false;
 					if (onode->op == SL::OP_STRUCT) {
 						code += _mkid(vnode->name);
