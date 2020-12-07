@@ -132,6 +132,12 @@ private:
 			Map<BoneAttachment *, Skeleton *> &r_moved_attachments);
 	void _duplicate_children(Node *current_node, Node *matching_node, Node *owner, Transform global_xform);
 
+private:
+	void _mark_nodes(Node *p_current, Node *p_owner, Vector<Node *> &r_remove_nodes);
+	void _clean_animation_player(Node *scene);
+	void _remove_nodes(Node *node, Vector<Node *> &r_nodes);
+	void _remove_empty_spatials(Node *scene);
+
 public:
 	struct RestBone {
 		NodePath path;
