@@ -235,6 +235,9 @@ env_base.Prepend(CPPPATH=["#"])
 env_base.platform_exporters = platform_exporters
 env_base.platform_apis = platform_apis
 
+# ensure that anything depending on eigen will only be linked with permissively licensed code.
+env_base.Append(CPPDEFINES=["EIGEN_MPL2_ONLY"])
+
 if env_base["use_precise_math_checks"]:
     env_base.Append(CPPDEFINES=["PRECISE_MATH_CHECKS"])
 
