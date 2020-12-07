@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  register_types.cpp                                                   */
+/*  navigation_obstacle.h                                                */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,34 +28,44 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "register_types.h"
+#ifndef NAVIGATION_OBSTACLE_H
+#define NAVIGATION_OBSTACLE_H
 
-#include "navigation_mesh_editor_plugin.h"
+#include "scene/main/node.h"
 
-#ifdef TOOLS_ENABLED
-EditorNavigationMeshGenerator *_nav_mesh_generator = NULL;
-#endif
+class Navigation;
 
-void register_recast_types() {
-#ifdef TOOLS_ENABLED
-	ClassDB::APIType prev_api = ClassDB::get_current_api();
-	ClassDB::set_current_api(ClassDB::API_EDITOR);
+class NavigationObstacle : public Node {
+	GDCLASS(NavigationObstacle, Node);
 
-	EditorPlugins::add_by_type<NavigationMeshEditorPlugin>();
-	_nav_mesh_generator = memnew(EditorNavigationMeshGenerator);
+	Navigation *navigation;
 
-	ClassDB::register_class<EditorNavigationMeshGenerator>();
+	RID agent;
 
-	Engine::get_singleton()->add_singleton(Engine::Singleton("NavigationMeshGenerator", EditorNavigationMeshGenerator::get_singleton()));
+protected:
+	static void _bind_methods();
+	void _notification(int p_what);
 
-	ClassDB::set_current_api(prev_api);
-#endif
-}
+public:
+	NavigationObstacle();
+	virtual ~NavigationObstacle();
 
-void unregister_recast_types() {
-#ifdef TOOLS_ENABLED
-	if (_nav_mesh_generator) {
-		memdelete(_nav_mesh_generator);
+	void set_navigation(Navigation *p_nav);
+	const Navigation *get_navigation() const {
+		return navigation;
 	}
+
+	void set_navigation_node(Node *p_nav);
+	Node *get_navigation_node() const;
+
+	RID get_rid() const {
+		return agent;
+	}
+
+	virtual String get_configuration_warning() const;
+
+private:
+	void update_agent_shape();
+};
+
 #endif
-}
