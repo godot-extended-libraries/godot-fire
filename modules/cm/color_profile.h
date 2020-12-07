@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  rasterizer_gles2.h                                                   */
+/*  color_profile.h                                                      */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,63 +28,45 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef RASTERIZERGLES2_H
-#define RASTERIZERGLES2_H
+#ifndef COLOR_PROFILE_H
+#define COLOR_PROFILE_H
 
-#include "rasterizer_canvas_gles2.h"
-#include "rasterizer_scene_gles2.h"
-#include "rasterizer_storage_gles2.h"
-#include "servers/visual/rasterizer.h"
+#include "core/reference.h"
+#include "lcms2.h"
 
-#include "shaders/lut_transform.glsl.gen.h"
+class ColorProfile : public Reference {
+	GDCLASS(ColorProfile, Reference)
 
-class RasterizerGLES2 : public Rasterizer {
+	bool profile_valid;
+	cmsHPROFILE profile;
 
-	static Rasterizer *_create_current();
-
-	RasterizerStorageGLES2 *storage;
-	RasterizerCanvasGLES2 *canvas;
-	RasterizerSceneGLES2 *scene;
-
-	double time_total;
-	float time_scale;
-
-	struct State {
-		RID screen_lut;
-		Vector2 lut_texel_count;
-		Vector2 lut_chunk_count;
-		LutTransformShaderGLES2 lut_shader;
-	} state;
+	void _set_profile(cmsHPROFILE p_profile);
 
 public:
-	virtual RasterizerStorage *get_storage();
-	virtual RasterizerCanvas *get_canvas();
-	virtual RasterizerScene *get_scene();
+	enum Predef {
+		PREDEF_SRGB,
+	};
 
-	virtual void set_boot_image(const Ref<Image> &p_image, const Color &p_color, bool p_scale, bool p_use_filter = true);
-	virtual void set_shader_time_scale(float p_scale);
-	virtual void set_screen_lut(const Ref<Image> &p_lut, int p_h_slices, int p_v_slices);
+	class Handle {
+		friend class ColorProfile;
+		friend class ColorTransform;
 
-	virtual void initialize();
-	virtual void begin_frame(double frame_step);
-	virtual void set_current_render_target(RID p_render_target);
-	virtual void restore_render_target(bool p_3d_was_drawn);
-	virtual void clear_render_target(const Color &p_color);
-	virtual void blit_render_target_to_screen(RID p_render_target, const Rect2 &p_screen_rect, int p_screen = 0);
-	virtual void output_lens_distorted_to_screen(RID p_render_target, const Rect2 &p_screen_rect, float p_k1, float p_k2, const Vector2 &p_eye_center, float p_oversample);
-	virtual void end_frame(bool p_swap_buffers);
-	virtual void finalize();
+		cmsHPROFILE profile;
 
-	static Error is_viable();
-	static void make_current();
-	static void register_config();
+		Handle() { profile = NULL; }
+		Handle(cmsHPROFILE p_profile) { profile = p_profile; }
+	};
 
-	virtual bool is_low_end() const { return true; }
+	bool is_valid();
+	Handle get_profile_handle();
 
-	virtual const char *gl_check_for_error(bool p_print_error = true);
+	void load_predef(Predef p_predef);
+	void load_from_file(const String &p_file);
 
-	RasterizerGLES2();
-	~RasterizerGLES2();
+	ColorProfile();
+	ColorProfile(Predef p_predef);
+	ColorProfile(const String &p_file);
+	~ColorProfile();
 };
 
-#endif // RASTERIZERGLES2_H
+#endif // COLOR_PROFILE_H
