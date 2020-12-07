@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  register_types.h                                                     */
+/*  navigation_mesh_instance.h                                           */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,10 +28,48 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef RECAST_REGISTER_TYPES_H
-#define RECAST_REGISTER_TYPES_H
+#ifndef NAVIGATION_MESH_INSTANCE_H
+#define NAVIGATION_MESH_INSTANCE_H
 
-void register_recast_types();
-void unregister_recast_types();
+#include "scene/3d/spatial.h"
+#include "scene/resources/mesh.h"
+#include "scene/resources/navigation_mesh.h"
 
-#endif // RECAST_REGISTER_TYPES_H
+class Navigation;
+
+class NavigationMeshInstance : public Spatial {
+
+	GDCLASS(NavigationMeshInstance, Spatial);
+
+	bool enabled;
+	RID region;
+	Ref<NavigationMesh> navmesh;
+
+	Navigation *navigation;
+	Node *debug_view;
+	Thread *bake_thread;
+
+protected:
+	void _notification(int p_what);
+	static void _bind_methods();
+	void _changed_callback(Object *p_changed, const char *p_prop);
+
+public:
+	void set_enabled(bool p_enabled);
+	bool is_enabled() const;
+
+	void set_navigation_mesh(const Ref<NavigationMesh> &p_navmesh);
+	Ref<NavigationMesh> get_navigation_mesh() const;
+
+	/// Bakes the navigation mesh in a dedicated thread; once done, automatically
+	/// sets the new navigation mesh and emits a signal
+	void bake_navigation_mesh();
+	void _bake_finished(Ref<NavigationMesh> p_nav_mesh);
+
+	String get_configuration_warning() const;
+
+	NavigationMeshInstance();
+	~NavigationMeshInstance();
+};
+
+#endif // NAVIGATION_MESH_INSTANCE_H
