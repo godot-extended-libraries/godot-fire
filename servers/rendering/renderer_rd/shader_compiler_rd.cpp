@@ -705,10 +705,12 @@ String ShaderCompilerRD::_dump_node_code(const SL::Node *p_node, int p_level, Ge
 				index++;
 			}
 
-			for (int i = 0; i < pnode->vconstants.size(); i++) {
-				const SL::ShaderNode::Constant &cnode = pnode->vconstants[i];
+			for (int i = 0; i < pnode->vglobals.size(); i++) {
+				const SL::ShaderNode::GlobalVariable &cnode = pnode->vglobals[i];
 				String gcode;
-				gcode += "const ";
+				if (cnode.is_constant) {
+					gcode += "const ";
+				}
 				gcode += _prestr(cnode.precision);
 				if (cnode.type == SL::TYPE_STRUCT) {
 					gcode += _mkid(cnode.type_str);
@@ -721,8 +723,10 @@ String ShaderCompilerRD::_dump_node_code(const SL::Node *p_node, int p_level, Ge
 					gcode += itos(cnode.array_size);
 					gcode += "]";
 				}
-				gcode += "=";
-				gcode += _dump_node_code(cnode.initializer, p_level, r_gen_code, p_actions, p_default_actions, p_assigning);
+				if (cnode.initializer) {
+					gcode += "=";
+					gcode += _dump_node_code(cnode.initializer, p_level, r_gen_code, p_actions, p_default_actions, p_assigning);
+				}
 				gcode += ";\n";
 				r_gen_code.vertex_global += gcode;
 				r_gen_code.fragment_global += gcode;
