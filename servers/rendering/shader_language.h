@@ -150,6 +150,8 @@ public:
 		TK_ARG_OUT,
 		TK_ARG_INOUT,
 		TK_RENDER_MODE,
+		TK_IMPORT,
+		TK_QUOTE,
 		TK_HINT_WHITE_TEXTURE,
 		TK_HINT_BLACK_TEXTURE,
 		TK_HINT_NORMAL_TEXTURE,
@@ -572,13 +574,14 @@ public:
 	};
 
 	struct ShaderNode : public Node {
-		struct Constant {
+		struct GlobalVariable {
 			StringName name;
 			DataType type;
 			StringName type_str;
 			DataPrecision precision;
 			ConstantNode *initializer;
-			int array_size;
+			int array_size = 0;
+			bool is_constant = false;
 		};
 
 		struct Function {
@@ -647,14 +650,14 @@ public:
 			}
 		};
 
-		Map<StringName, Constant> constants;
+		Map<StringName, GlobalVariable> globals;
 		Map<StringName, Varying> varyings;
 		Map<StringName, Uniform> uniforms;
 		Map<StringName, Struct> structs;
 		Vector<StringName> render_modes;
 
 		Vector<Function> functions;
-		Vector<Constant> vconstants;
+		Vector<GlobalVariable> vglobals;
 		Vector<Struct> vstructs;
 
 		ShaderNode() :
@@ -734,10 +737,12 @@ public:
 		struct Argument {
 			StringName name;
 			DataType type;
+			ArgumentQualifier qualifier;
 
-			Argument(const StringName &p_name = StringName(), DataType p_type = TYPE_VOID) {
+			Argument(const StringName &p_name = StringName(), DataType p_type = TYPE_VOID, ArgumentQualifier p_qualifier = ARGUMENT_QUALIFIER_IN) {
 				name = p_name;
 				type = p_type;
+				qualifier = p_qualifier;
 			}
 		};
 
@@ -855,6 +860,7 @@ private:
 	Error _validate_datatype(DataType p_type);
 	bool _compare_datatypes_in_nodes(Node *a, Node *b) const;
 
+	bool _validate_out_argument(BlockNode *p_block, const FunctionInfo &p_function_info, OperatorNode *p_func, StringName p_name, int p_arg_idx);
 	bool _validate_function_call(BlockNode *p_block, const FunctionInfo &p_function_info, OperatorNode *p_func, DataType *r_ret_type, StringName *r_ret_type_str);
 	bool _parse_function_arguments(BlockNode *p_block, const FunctionInfo &p_function_info, OperatorNode *p_func, int *r_complete_arg = nullptr);
 	bool _propagate_function_call_sampler_uniform_settings(StringName p_name, int p_argument, TextureFilter p_filter, TextureRepeat p_repeat);
