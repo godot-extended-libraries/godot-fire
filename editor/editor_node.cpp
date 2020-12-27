@@ -93,6 +93,7 @@
 #include "editor/import/editor_import_collada.h"
 #include "editor/import/resource_importer_bitmask.h"
 #include "editor/import/resource_importer_csv_translation.h"
+#include "editor/import/resource_importer_fontdata.h"
 #include "editor/import/resource_importer_image.h"
 #include "editor/import/resource_importer_layered_texture.h"
 #include "editor/import/resource_importer_obj.h"
@@ -5778,6 +5779,10 @@ EditorNode::EditorNode() {
 		Ref<ResourceImporterTextureAtlas> import_texture_atlas;
 		import_texture_atlas.instance();
 		ResourceFormatImporter::get_singleton()->add_importer(import_texture_atlas);
+
+		Ref<ResourceImporterFontData> import_font_data;
+		import_font_data.instance();
+		ResourceFormatImporter::get_singleton()->add_importer(import_font_data);
 
 		Ref<ResourceImporterCSVTranslation> import_csv_translation;
 		import_csv_translation.instance();
