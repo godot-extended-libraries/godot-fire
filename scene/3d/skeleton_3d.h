@@ -98,6 +98,8 @@ private:
 
 		List<ObjectID> nodes_bound;
 
+		Dictionary extra;
+
 		Bone() {
 			parent = -1;
 			enabled = true;
@@ -168,6 +170,9 @@ public:
 	bool is_bone_rest_disabled(int p_bone) const;
 
 	int get_bone_count() const;
+
+	Variant get_bone_extra(int p_bone, const StringName &key) const;
+	void set_bone_extra(int p_bone, const StringName &key, const Variant &value);
 
 	void set_bone_rest(int p_bone, const Transform &p_rest);
 	Transform get_bone_rest(int p_bone) const;
