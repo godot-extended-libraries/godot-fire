@@ -109,6 +109,8 @@ private:
 		Vector3 rest_bone_forward_vector;
 		int rest_bone_forward_axis = -1;
 
+		Dictionary meta;
+
 		Bone() {
 			parent = -1;
 			enabled = true;
@@ -193,6 +195,19 @@ public:
 	bool is_bone_rest_disabled(int p_bone) const;
 
 	int get_bone_count() const;
+
+	Variant Skeleton3D::get_bone_meta(int p_bone, const String &key) const {
+		ERR_FAIL_INDEX_V(p_bone, bones.size(), "");
+		ERR_FAIL_COND_V(!bones[p_bone].meta.has(key), "");
+		return bones[p_bone].meta[key];
+	}
+
+	void Skeleton3D::set_bone_meta(int p_bone, const String &key, const Variant &value) {
+		ERR_FAIL_INDEX(p_bone, bones.size());
+
+		bones.write[p_bone].meta[key] = value;
+		_make_dirty();
+	}
 
 	void set_bone_rest(int p_bone, const Transform &p_rest);
 	Transform get_bone_rest(int p_bone) const;

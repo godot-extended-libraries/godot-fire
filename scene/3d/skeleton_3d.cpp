@@ -1083,6 +1083,10 @@ void Skeleton3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("find_bone", "name"), &Skeleton3D::find_bone);
 	ClassDB::bind_method(D_METHOD("get_bone_name", "bone_idx"), &Skeleton3D::get_bone_name);
 
+
+	ClassDB::bind_method(D_METHOD("get_bone_meta", "bone_idx", "key"), &Skeleton3D::set_bone_meta);
+	ClassDB::bind_method(D_METHOD("set_bone_meta", "bone_idx", "key", "value"), &Skeleton3D::get_bone_meta);
+
 	ClassDB::bind_method(D_METHOD("get_bone_parent", "bone_idx"), &Skeleton3D::get_bone_parent);
 	ClassDB::bind_method(D_METHOD("set_bone_parent", "bone_idx", "parent_idx"), &Skeleton3D::set_bone_parent);
 
