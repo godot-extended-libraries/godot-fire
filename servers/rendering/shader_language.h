@@ -574,13 +574,14 @@ public:
 	};
 
 	struct ShaderNode : public Node {
-		struct Constant {
+		struct GlobalVariable {
 			StringName name;
 			DataType type;
 			StringName type_str;
 			DataPrecision precision;
 			ConstantNode *initializer;
-			int array_size;
+			int array_size = 0;
+			bool is_constant = false;
 		};
 
 		struct Function {
@@ -649,14 +650,14 @@ public:
 			}
 		};
 
-		Map<StringName, Constant> constants;
+		Map<StringName, GlobalVariable> globals;
 		Map<StringName, Varying> varyings;
 		Map<StringName, Uniform> uniforms;
 		Map<StringName, Struct> structs;
 		Vector<StringName> render_modes;
 
 		Vector<Function> functions;
-		Vector<Constant> vconstants;
+		Vector<GlobalVariable> vglobals;
 		Vector<Struct> vstructs;
 
 		ShaderNode() :
