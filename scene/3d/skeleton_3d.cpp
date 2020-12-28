@@ -482,6 +482,19 @@ int Skeleton3D::get_bone_count() const {
 	return bones.size();
 }
 
+void Skeleton3D::set_bone_extra(int p_bone, const StringName &key, const Variant &value) {
+	ERR_FAIL_INDEX(p_bone, bones.size());
+
+	bones.write[p_bone].extra[key] = value;
+	_make_dirty();
+}
+
+Variant Skeleton3D::get_bone_extra(int p_bone, const StringName &key) const {
+	ERR_FAIL_INDEX_V(p_bone, bones.size(), "");
+	ERR_FAIL_COND_V(!bones[p_bone].extra.has(key), "");
+	return bones[p_bone].extra[key];
+}
+
 void Skeleton3D::set_bone_parent(int p_bone, int p_parent) {
 	ERR_FAIL_INDEX(p_bone, bones.size());
 	ERR_FAIL_COND(p_parent != -1 && (p_parent < 0));
@@ -1082,6 +1095,9 @@ void Skeleton3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_bone", "name"), &Skeleton3D::add_bone);
 	ClassDB::bind_method(D_METHOD("find_bone", "name"), &Skeleton3D::find_bone);
 	ClassDB::bind_method(D_METHOD("get_bone_name", "bone_idx"), &Skeleton3D::get_bone_name);
+
+	ClassDB::bind_method(D_METHOD("get_bone_meta", "bone_idx", "key"), &Skeleton3D::set_bone_extra);
+	ClassDB::bind_method(D_METHOD("set_bone_meta", "bone_idx", "key", "value"), &Skeleton3D::get_bone_extra);
 
 	ClassDB::bind_method(D_METHOD("get_bone_parent", "bone_idx"), &Skeleton3D::get_bone_parent);
 	ClassDB::bind_method(D_METHOD("set_bone_parent", "bone_idx", "parent_idx"), &Skeleton3D::set_bone_parent);
