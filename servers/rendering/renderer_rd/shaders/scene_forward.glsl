@@ -545,7 +545,7 @@ vec3 F0(float metallic, float specular, vec3 albedo) {
 	return mix(vec3(dielectric), albedo, vec3(metallic));
 }
 
-void light_compute(vec3 N, vec3 L, vec3 V, float A, vec3 light_color, float attenuation, vec3 shadow_attenuation, vec3 diffuse_color, float roughness, float metallic, float specular, float specular_blob_intensity,
+void light_compute(vec3 N, vec3 L, vec3 V, float A, vec3 light_color, float attenuation, vec3 shadow_color, vec3 projector_color, float shadow, vec3 diffuse_color, float roughness, float metallic, float specular, float specular_blob_intensity,
 #ifdef LIGHT_BACKLIGHT_USED
 		vec3 backlight,
 #endif
@@ -565,6 +565,7 @@ void light_compute(vec3 N, vec3 L, vec3 V, float A, vec3 light_color, float atte
 #ifdef LIGHT_ANISOTROPY_USED
 		vec3 B, vec3 T, float anisotropy,
 #endif
+		bool is_main_light,
 #ifdef USE_SHADOW_TO_OPACITY
 		inout float alpha,
 #endif
@@ -577,6 +578,7 @@ void light_compute(vec3 N, vec3 L, vec3 V, float A, vec3 light_color, float atte
 	vec3 albedo = diffuse_color;
 	vec3 light = L;
 	vec3 view = V;
+	float shadow_attenuation = shadow;
 
 	/* clang-format off */
 
@@ -589,6 +591,7 @@ LIGHT_SHADER_CODE
 	float cNdotL = max(NdotL, 0.0); // clamped NdotL
 	float NdotV = dot(N, V);
 	float cNdotV = max(NdotV, 0.0);
+	vec3 shadow_attenuation = mix(shadow_color, projector_color, shadow);
 
 #if defined(DIFFUSE_BURLEY) || defined(SPECULAR_BLINN) || defined(SPECULAR_SCHLICK_GGX) || defined(LIGHT_CLEARCOAT_USED)
 	vec3 H = normalize(V + L);
@@ -611,7 +614,7 @@ LIGHT_SHADER_CODE
 
 #if defined(DIFFUSE_LAMBERT_WRAP)
 		// energy conserving lambert wrap shader
-		diffuse_brdf_NL = max(0.0, (NdotL + roughness) / ((1.0 + roughness) * (1.0 + roughness)));
+		diffuse_brdf_NL = max(0.0, (NdotL + roughness) / ((1.0 + roughness) * (1.0 + roughness))) * (1.0 / M_PI);
 
 #elif defined(DIFFUSE_OREN_NAYAR)
 
@@ -631,7 +634,7 @@ LIGHT_SHADER_CODE
 
 #elif defined(DIFFUSE_TOON)
 
-		diffuse_brdf_NL = smoothstep(-roughness, max(roughness, 0.01), NdotL);
+		diffuse_brdf_NL = smoothstep(-roughness, max(roughness, 0.01), NdotL) * (1.0 / M_PI);
 
 #elif defined(DIFFUSE_BURLEY)
 
@@ -924,7 +927,9 @@ void light_process_omni(uint idx, vec3 vertex, vec3 eye_vec, vec3 normal, vec3 v
 	vec2 attenuation_energy = unpackHalf2x16(lights.data[idx].attenuation_energy);
 	float omni_attenuation = pow(max(1.0 - normalized_distance, 0.0), attenuation_energy.x);
 	float light_attenuation = omni_attenuation;
-	vec3 shadow_attenuation = vec3(1.0);
+	vec3 projector_color = vec3(1.0);
+	vec3 shadow_color = vec3(0.0);
+	float shadow_attenuation = 1.0;
 	vec4 color_specular = unpackUnorm4x8(lights.data[idx].color_specular);
 	color_specular.rgb *= attenuation_energy.y;
 	float size_A = 0.0;
@@ -1152,11 +1157,13 @@ void light_process_omni(uint idx, vec3 vertex, vec3 eye_vec, vec3 normal, vec3 v
 			no_shadow = mix(no_shadow, proj.rgb, proj.a);
 		}
 
-		shadow_attenuation = mix(shadow_color_enabled.rgb, no_shadow, shadow);
+		shadow_attenuation = shadow;
+		projector_color = no_shadow;
+		shadow_color = shadow_color_enabled.rgb;
 	}
 #endif //USE_NO_SHADOWS
 
-	light_compute(normal, normalize(light_rel_vec), eye_vec, size_A, color_specular.rgb, light_attenuation, shadow_attenuation, albedo, roughness, metallic, specular, color_specular.a * p_blob_intensity,
+	light_compute(normal, normalize(light_rel_vec), eye_vec, size_A, color_specular.rgb, light_attenuation, shadow_color, projector_color, shadow_attenuation, albedo, roughness, metallic, specular, color_specular.a * p_blob_intensity,
 #ifdef LIGHT_BACKLIGHT_USED
 			backlight,
 #endif
@@ -1176,6 +1183,7 @@ void light_process_omni(uint idx, vec3 vertex, vec3 eye_vec, vec3 normal, vec3 v
 #ifdef LIGHT_ANISOTROPY_USED
 			binormal, tangent, anisotropy,
 #endif
+			false,
 #ifdef USE_SHADOW_TO_OPACITY
 			alpha,
 #endif
@@ -1218,7 +1226,9 @@ void light_process_spot(uint idx, vec3 vertex, vec3 eye_vec, vec3 normal, vec3 v
 	float spot_rim = max(0.0001, (1.0 - scos) / (1.0 - spot_att_angle.y));
 	spot_attenuation *= 1.0 - pow(spot_rim, spot_att_angle.x);
 	float light_attenuation = spot_attenuation;
-	vec3 shadow_attenuation = vec3(1.0);
+	vec3 projector_color = vec3(1.0);
+	vec3 shadow_color = vec3(0.0);
+	float shadow_attenuation = 1.0;
 	vec4 color_specular = unpackUnorm4x8(lights.data[idx].color_specular);
 	color_specular.rgb *= attenuation_energy.y;
 
@@ -1338,7 +1348,9 @@ void light_process_spot(uint idx, vec3 vertex, vec3 eye_vec, vec3 normal, vec3 v
 			no_shadow = mix(no_shadow, proj.rgb, proj.a);
 		}
 
-		shadow_attenuation = mix(shadow_color_enabled.rgb, no_shadow, shadow);
+		shadow_attenuation = shadow;
+		projector_color = no_shadow;
+		shadow_color = shadow_color_enabled.rgb;
 
 #ifdef LIGHT_TRANSMITTANCE_USED
 		{
@@ -1358,7 +1370,7 @@ void light_process_spot(uint idx, vec3 vertex, vec3 eye_vec, vec3 normal, vec3 v
 
 #endif //USE_NO_SHADOWS
 
-	light_compute(normal, normalize(light_rel_vec), eye_vec, size_A, color_specular.rgb, light_attenuation, shadow_attenuation, albedo, roughness, metallic, specular, color_specular.a * p_blob_intensity,
+	light_compute(normal, normalize(light_rel_vec), eye_vec, size_A, color_specular.rgb, light_attenuation, shadow_color, projector_color, shadow_attenuation, albedo, roughness, metallic, specular, color_specular.a * p_blob_intensity,
 #ifdef LIGHT_BACKLIGHT_USED
 			backlight,
 #endif
@@ -1378,6 +1390,7 @@ void light_process_spot(uint idx, vec3 vertex, vec3 eye_vec, vec3 normal, vec3 v
 #ifdef LIGHT_ANISOTROPY_USED
 			binormal, tangent, anisotropy,
 #endif
+			false,
 #ifdef USE_SHADOW_TO_OPACITY
 			alpha,
 #endif
@@ -1776,6 +1789,35 @@ vec4 fog_process(vec3 vertex) {
 
 #endif
 
+#ifndef MODE_RENDER_DEPTH
+uvec4 cluster_cell;
+#endif
+
+void APPLY_DECALS(vec3 vertex, inout vec3 normal, inout vec3 albedo, inout vec3 emission, inout float ao, inout float roughness, inout float metallic);
+
+void AMBIENT_PROCESS(vec3 vertex, vec3 normal, float roughness, float specular, float metallic, vec2 uv2, vec4 custom_radiance, vec4 custom_irradiance, out vec3 ambient_light, out vec3 diffuse_light, out vec3 specular_light);
+
+void main_lighting(vec3 vertex, vec3 normal, vec3 view, vec3 albedo, vec3 emission, float roughness, float metallic, float specular, vec3 backlight, vec4 transmittance_color, float transmittance_depth, float transmittance_curve, float transmittance_boost, float rim, float rim_tint, float clearcoat, float clearcoat_gloss, vec3 binormal, vec3 tangent, float anisotropy, float alpha, vec2 screen_uv, float sss_strength, vec2 uv2,
+#if defined(CUSTOM_FOG_USED)
+		vec4 custom_fog,
+#endif
+#if defined(CUSTOM_RADIANCE_USED)
+		vec4 custom_radiance,
+#endif
+#if defined(CUSTOM_IRRADIANCE_USED)
+		vec4 custom_irradiance,
+#endif
+#if defined(AO_USED)
+		float ao, float ao_light_affect,
+#endif
+#if defined(ALPHA_SCISSOR_USED)
+		float alpha_scissor,
+#endif
+#if defined(MAIN_LIGHT_USED)
+		uint main_light_idx,
+#endif
+		vec3 ambient_light, vec3 diffuse_light, vec3 specular_light);
+
 void main() {
 #ifdef MODE_DUAL_PARABOLOID
 
@@ -1811,11 +1853,32 @@ void main() {
 #if defined(CUSTOM_IRRADIANCE_USED)
 	vec4 custom_irradiance = vec4(0.0);
 #endif
+#if defined(MAIN_LIGHT_USED)
+	bool has_main_light = false;
+	uint main_light_idx = uint(-1);
+	{
+		float max_intensity = 0.0;
+		for (uint i = 0; i < scene_data.directional_light_count; i++) {
+			if (!bool(directional_lights.data[i].mask & instances.data[instance_index].layer_mask)) {
+				continue; //not masked
+			}
+			vec3 color = directional_lights.data[i].color * directional_lights.data[i].energy;
+			float intensity = max(color.r, max(color.g, color.b));
+			if (intensity > max_intensity) {
+				has_main_light = true;
+				main_light_idx = i;
+			}
+		}
+	}
+#endif
 
 #if defined(AO_USED)
 	float ao = 1.0;
 	float ao_light_affect = 0.0;
 #endif
+	vec3 ambient_light = vec3(0.0);
+	vec3 diffuse_light = vec3(0.0);
+	vec3 specular_light = vec3(0.0);
 
 	float alpha = 1.0;
 
@@ -1874,6 +1937,10 @@ void main() {
 	vec2 alpha_texture_coordinate = vec2(0.0, 0.0);
 #endif // ALPHA_ANTIALIASING_EDGE_USED
 
+#ifndef MODE_RENDER_DEPTH
+	cluster_cell = texture(usampler3D(cluster_texture, material_samplers[SAMPLER_NEAREST_CLAMP]), vec3(screen_uv, (abs(vertex.z) - scene_data.z_near) / (scene_data.z_far - scene_data.z_near)));
+#endif
+
 	{
 		/* clang-format off */
 
@@ -1926,7 +1993,10 @@ FRAGMENT_SHADER_CODE
 
 #endif // !USE_SHADOW_TO_OPACITY
 
-#ifdef NORMAL_MAP_USED
+#ifndef NORMAL_USED
+	vec3 normal = vec3(0.0, 0.0, 1.0);
+#endif
+#ifdef NORMALMAP_USED
 
 	normal_map.xy = normal_map.xy * 2.0 - 1.0;
 	normal_map.z = sqrt(max(0.0, 1.0 - dot(normal_map.xy, normal_map.xy))); //always ignore Z, as it can be RG packed, Z may be pos/neg, etc.
@@ -1953,11 +2023,46 @@ FRAGMENT_SHADER_CODE
 		discard;
 	}
 #endif
+
+#ifndef AO_USED
+	float ao;
+#endif
+#ifndef APPLY_DECALS_USED
+	APPLY_DECALS(vertex, normal, albedo, emission, ao, roughness, metallic);
+#endif
+
+	main_lighting(vertex, normal, view, albedo, emission, roughness, metallic, specular, backlight, transmittance_color, transmittance_depth, transmittance_curve, transmittance_boost, rim, rim_tint, clearcoat, clearcoat_gloss, binormal, tangent, anisotropy, alpha, screen_uv, sss_strength,
+#if defined(UV2_USED) || defined(USE_LIGHTMAP)
+			uv2,
+#else
+			vec2(0.0),
+#endif
+#if defined(CUSTOM_FOG_USED)
+			custom_fog,
+#endif
+#if defined(CUSTOM_RADIANCE_USED)
+			custom_radiance,
+#endif
+#if defined(CUSTOM_IRRADIANCE_USED)
+			custom_irradiance,
+#endif
+#if defined(AO_USED)
+			ao, ao_light_affect,
+#endif
+#if defined(ALPHA_SCISSOR_USED)
+			alpha_scissor_threshold,
+#endif
+#if defined(MAIN_LIGHT_USED)
+			main_light_idx,
+#endif
+			ambient_light, diffuse_light, specular_light);
+}
+
+void APPLY_DECALS(vec3 vertex, inout vec3 normal, inout vec3 albedo, inout vec3 emission, inout float ao, inout float roughness, inout float metallic) {
 	/////////////////////// DECALS ////////////////////////////////
 
 #ifndef MODE_RENDER_DEPTH
 
-	uvec4 cluster_cell = texture(usampler3D(cluster_texture, material_samplers[SAMPLER_NEAREST_CLAMP]), vec3(screen_uv, (abs(vertex.z) - scene_data.z_near) / (scene_data.z_far - scene_data.z_near)));
 	//used for interpolating anything cluster related
 	vec3 vertex_ddx = dFdx(vertex);
 	vec3 vertex_ddy = dFdy(vertex);
@@ -2025,6 +2130,10 @@ FRAGMENT_SHADER_CODE
 	}
 
 #endif //not render depth
+}
+
+void AMBIENT_PROCESS(vec3 vertex, vec3 normal, float roughness, float specular, float metallic, vec2 uv2, vec4 custom_radiance, vec4 custom_irradiance, out vec3 ambient_light, out vec3 diffuse_light, out vec3 specular_light) {
+	vec3 view = -normalize(vertex);
 	/////////////////////// LIGHTING //////////////////////////////
 
 #ifdef NORMAL_USED
@@ -2040,9 +2149,9 @@ FRAGMENT_SHADER_CODE
 #endif
 	//apply energy conservation
 
-	vec3 specular_light = vec3(0.0, 0.0, 0.0);
-	vec3 diffuse_light = vec3(0.0, 0.0, 0.0);
-	vec3 ambient_light = vec3(0.0, 0.0, 0.0);
+	specular_light = vec3(0.0, 0.0, 0.0);
+	diffuse_light = vec3(0.0, 0.0, 0.0);
+	ambient_light = vec3(0.0, 0.0, 0.0);
 
 #if !defined(MODE_RENDER_DEPTH) && !defined(MODE_UNSHADED)
 
@@ -2063,7 +2172,7 @@ FRAGMENT_SHADER_CODE
 		specular_light *= scene_data.ambient_light_color_energy.a;
 	}
 
-#if defined(CUSTOM_RADIANCE_USED)
+#if defined(CUSTOM_RADIANCE_USED) || defined(AMBIENT_LIGHT_USED)
 	specular_light = mix(specular_light, custom_radiance.rgb, custom_radiance.a);
 #endif
 
@@ -2084,18 +2193,12 @@ FRAGMENT_SHADER_CODE
 		}
 	}
 #endif // USE_LIGHTMAP
-#if defined(CUSTOM_IRRADIANCE_USED)
-	ambient_light = mix(specular_light, custom_irradiance.rgb, custom_irradiance.a);
+#if defined(CUSTOM_IRRADIANCE_USED) || defined(AMBIENT_LIGHT_USED)
+	ambient_light = mix(ambient_light, custom_irradiance.rgb, custom_irradiance.a);
 #endif
 #endif //!defined(MODE_RENDER_DEPTH) && !defined(MODE_UNSHADED)
 
 	//radiance
-
-	float specular_blob_intensity = 1.0;
-
-#if defined(SPECULAR_TOON)
-	specular_blob_intensity *= specular * 2.0;
-#endif
 
 #if !defined(MODE_RENDER_DEPTH) && !defined(MODE_UNSHADED)
 
@@ -2317,6 +2420,42 @@ FRAGMENT_SHADER_CODE
 		}
 #endif
 	}
+#endif //!defined(MODE_RENDER_DEPTH) && !defined(MODE_UNSHADED)
+}
+
+void main_lighting(vec3 vertex, vec3 normal, vec3 view, vec3 albedo, vec3 emission, float roughness, float metallic, float specular, vec3 backlight, vec4 transmittance_color, float transmittance_depth, float transmittance_curve, float transmittance_boost, float rim, float rim_tint, float clearcoat, float clearcoat_gloss, vec3 binormal, vec3 tangent, float anisotropy, float alpha, vec2 screen_uv, float sss_strength, vec2 uv2,
+#if defined(CUSTOM_FOG_USED)
+		vec4 custom_fog,
+#endif
+#if defined(CUSTOM_RADIANCE_USED)
+		vec4 custom_radiance,
+#endif
+#if defined(CUSTOM_IRRADIANCE_USED)
+		vec4 custom_irradiance,
+#endif
+#if defined(AO_USED)
+		float ao, float ao_light_affect,
+#endif
+#if defined(ALPHA_SCISSOR_USED)
+		float alpha_scissor,
+#endif
+#if defined(MAIN_LIGHT_USED)
+		uint main_light_idx,
+#endif
+		vec3 ambient_light, vec3 diffuse_light, vec3 specular_light) {
+#if !defined(AMBIENT_LIGHT_USED) && !defined(MODE_RENDER_DEPTH) && !defined(MODE_UNSHADED)
+	AMBIENT_PROCESS(vertex, normal, roughness, specular, metallic, uv2,
+#ifdef CUSTOM_RADIANCE_USED
+			custom_radiance,
+#else
+			vec4(0.0),
+#endif
+#ifdef CUSTOM_IRRADIANCE_USED
+			custom_irradiance,
+#else
+			vec4(0.0),
+#endif
+			ambient_light, diffuse_light, specular_light);
 
 	{
 #if defined(DIFFUSE_TOON)
@@ -2339,6 +2478,15 @@ FRAGMENT_SHADER_CODE
 		specular_light *= env.x * f0 + env.y;
 #endif
 	}
+#endif //!defined(AMBIENT_LIGHT_USED)
+
+#if !defined(MODE_RENDER_DEPTH) && !defined(MODE_UNSHADED)
+
+	float specular_blob_intensity = 1.0;
+
+#if defined(SPECULAR_TOON)
+	specular_blob_intensity *= specular * 2.0;
+#endif
 
 	{ //directional light
 
@@ -2347,7 +2495,8 @@ FRAGMENT_SHADER_CODE
 				continue; //not masked
 			}
 
-			vec3 shadow_attenuation = vec3(1.0);
+			vec3 shadow_color = vec3(0.0);
+			float shadow_attenuation = 1.0;
 
 #ifdef LIGHT_TRANSMITTANCE_USED
 			float transmittance_z = transmittance_depth;
@@ -2357,7 +2506,6 @@ FRAGMENT_SHADER_CODE
 				float depth_z = -vertex.z;
 
 				vec4 pssm_coord;
-				vec3 shadow_color = vec3(0.0);
 				vec3 light_dir = directional_lights.data[i].direction;
 
 #define BIAS_FUNC(m_var, m_idx)                                                                                                                                       \
@@ -2572,12 +2720,12 @@ FRAGMENT_SHADER_CODE
 
 				shadow = mix(shadow, 1.0, smoothstep(directional_lights.data[i].fade_from, directional_lights.data[i].fade_to, vertex.z)); //done with negative values for performance
 
-				shadow_attenuation = mix(shadow_color, vec3(1.0), shadow);
+				shadow_attenuation = shadow;
 
 #undef BIAS_FUNC
 			}
 
-			light_compute(normal, directional_lights.data[i].direction, normalize(view), directional_lights.data[i].size, directional_lights.data[i].color * directional_lights.data[i].energy, 1.0, shadow_attenuation, albedo, roughness, metallic, specular, directional_lights.data[i].specular * specular_blob_intensity,
+			light_compute(normal, directional_lights.data[i].direction, normalize(view), directional_lights.data[i].size, directional_lights.data[i].color * directional_lights.data[i].energy, 1.0, shadow_color, vec3(1.0), shadow_attenuation, albedo, roughness, metallic, specular, directional_lights.data[i].specular * specular_blob_intensity,
 #ifdef LIGHT_BACKLIGHT_USED
 					backlight,
 #endif
@@ -2597,6 +2745,11 @@ FRAGMENT_SHADER_CODE
 #ifdef LIGHT_ANISOTROPY_USED
 					binormal, tangent, anisotropy,
 #endif
+#ifdef MAIN_LIGHT_USED
+					i == main_light_idx,
+#else
+					false,
+#endif
 #ifdef USE_SHADOW_TO_OPACITY
 					alpha,
 #endif
@@ -2604,6 +2757,10 @@ FRAGMENT_SHADER_CODE
 					specular_light);
 		}
 	}
+
+	//used for interpolating anything cluster related
+	vec3 vertex_ddx = dFdx(vertex);
+	vec3 vertex_ddy = dFdy(vertex);
 
 	{ //omni lights
 
