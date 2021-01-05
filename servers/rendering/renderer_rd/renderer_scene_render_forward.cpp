@@ -3252,15 +3252,22 @@ RendererSceneRenderForward::RendererSceneRenderForward(RendererStorageRD *p_stor
 		actions.renames["CUSTOM1"] = "custom1_attrib";
 		actions.renames["CUSTOM2"] = "custom2_attrib";
 		actions.renames["CUSTOM3"] = "custom3_attrib";
+		actions.renames["HAS_MAIN_LIGHT"] = "has_main_light";
+		actions.renames["AMBIENT_LIGHT"] = "ambient_light";
+		actions.renames["DIFFUSE_LIGHT"] = "diffuse_light";
+		actions.renames["SPECULAR_LIGHT"] = "specular_light";
+		actions.renames["AMBIENT_PROCESS"] = "AMBIENT_PROCESS";
+		actions.renames["APPLY_DECALS"] = "APPLY_DECALS";
 
 		//for light
 		actions.renames["VIEW"] = "view";
 		actions.renames["LIGHT_COLOR"] = "light_color";
 		actions.renames["LIGHT"] = "light";
 		actions.renames["ATTENUATION"] = "attenuation";
+		actions.renames["PROJECTOR_COLOR"] = "projector_color";
+		actions.renames["SHADOW_COLOR"] = "shadow_color";
 		actions.renames["SHADOW_ATTENUATION"] = "shadow_attenuation";
-		actions.renames["DIFFUSE_LIGHT"] = "diffuse_light";
-		actions.renames["SPECULAR_LIGHT"] = "specular_light";
+		actions.renames["IS_MAIN_LIGHT"] = "is_main_light";
 
 		actions.usage_defines["NORMAL"] = "#define NORMAL_USED\n";
 		actions.usage_defines["TANGENT"] = "#define TANGENT_USED\n";
@@ -3298,6 +3305,9 @@ RendererSceneRenderForward::RendererSceneRenderForward(RendererStorageRD *p_stor
 		actions.usage_defines["SCREEN_TEXTURE"] = "#define SCREEN_TEXTURE_USED\n";
 		actions.usage_defines["SCREEN_UV"] = "#define SCREEN_UV_USED\n";
 
+		actions.usage_defines["HAS_MAIN_LIGHT"] = "#define MAIN_LIGHT_USED\n";
+		actions.usage_defines["AMBIENT_LIGHT"] = "#define AMBIENT_LIGHT_USED\n";
+		actions.usage_defines["APPLY_DECALS"] = "#define APPLY_DECALS_USED\n";
 		actions.usage_defines["DIFFUSE_LIGHT"] = "#define USE_LIGHT_SHADER_CODE\n";
 		actions.usage_defines["SPECULAR_LIGHT"] = "#define USE_LIGHT_SHADER_CODE\n";
 
