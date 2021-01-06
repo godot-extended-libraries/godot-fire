@@ -481,7 +481,6 @@ void RendererViewport::draw_viewports() {
 		if (!vp->render_target.is_valid()) {
 			continue;
 		}
-		//ERR_CONTINUE(!vp->render_target.is_valid());
 
 		bool visible = vp->viewport_to_screen_rect != Rect2();
 
@@ -505,21 +504,6 @@ void RendererViewport::draw_viewports() {
 		if (visible) {
 			vp->last_pass = draw_viewports_pass;
 		}
-	}
-
-	for (int i = 0; i < active_viewports.size(); i++) {
-		Viewport *vp = active_viewports[i];
-
-		if (vp->last_pass != draw_viewports_pass) {
-			continue; //should not draw
-		}
-
-		RENDER_TIMESTAMP(">Rendering Viewport " + itos(i));
-
-		RSG::storage->render_target_set_as_unused(vp->render_target);
-#if 0
-		// TODO fix up this code after we change our commit_for_eye to accept our new render targets
-
 		if (vp->use_xr && xr_interface.is_valid()) {
 			// override our size, make sure it matches our required size
 			vp->size = xr_interface->get_render_targetsize();
@@ -532,9 +516,6 @@ void RendererViewport::draw_viewports() {
 			// TODO investigate how we're going to make external textures work
 			RSG::storage->render_target_set_external_texture(vp->render_target, xr_interface->get_external_texture_for_eye(leftOrMono));
 
-			// set our render target as current
-			RSG::rasterizer->set_current_render_target(vp->render_target);
-
 			// and draw left eye/mono
 			_draw_viewport(vp, leftOrMono);
 			xr_interface->commit_for_eye(leftOrMono, vp->render_target, vp->viewport_to_screen_rect);
@@ -544,9 +525,6 @@ void RendererViewport::draw_viewports() {
 				// check for an external texture destination for our right eye
 				RSG::storage->render_target_set_external_texture(vp->render_target, xr_interface->get_external_texture_for_eye(XRInterface::EYE_RIGHT));
 
-				// commit for eye may have changed the render target
-				RSG::rasterizer->set_current_render_target(vp->render_target);
-
 				_draw_viewport(vp, XRInterface::EYE_RIGHT);
 				xr_interface->commit_for_eye(XRInterface::EYE_RIGHT, vp->render_target, vp->viewport_to_screen_rect);
 			}
@@ -554,8 +532,6 @@ void RendererViewport::draw_viewports() {
 			// and for our frame timing, mark when we've finished committing our eyes
 			XRServer::get_singleton()->_mark_commit();
 		} else {
-#endif
-		{
 			RSG::storage->render_target_set_external_texture(vp->render_target, 0);
 
 			RSG::scene->set_debug_draw_mode(vp->debug_draw);

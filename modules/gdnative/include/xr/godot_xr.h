@@ -74,7 +74,6 @@ godot_transform GDAPI godot_xr_get_reference_frame();
 
 // helper functions for rendering
 void GDAPI godot_xr_blit(godot_int p_eye, godot_rid *p_render_target, godot_rect2 *p_rect);
-godot_int GDAPI godot_xr_get_texid(godot_rid *p_render_target);
 
 // helper functions for updating XR controllers
 godot_int GDAPI godot_xr_add_controller(char *p_device_name, godot_int p_hand, godot_bool p_tracks_orientation, godot_bool p_tracks_position);

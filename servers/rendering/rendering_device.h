@@ -924,6 +924,7 @@ public:
 	virtual int screen_get_width(DisplayServer::WindowID p_screen = 0) const = 0;
 	virtual int screen_get_height(DisplayServer::WindowID p_screen = 0) const = 0;
 	virtual FramebufferFormatID screen_get_framebuffer_format() const = 0;
+	virtual void submit_vr_texture(int p_eye, const RID p_texture) = 0;
 
 	/********************/
 	/**** DRAW LISTS ****/

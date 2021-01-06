@@ -5958,7 +5958,7 @@ Error RenderingDeviceVulkan::draw_list_begin_split(RID p_framebuffer, uint32_t p
 			VkCommandPoolCreateInfo cmd_pool_info;
 			cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			cmd_pool_info.pNext = nullptr;
-			cmd_pool_info.queueFamilyIndex = context->get_graphics_queue();
+			cmd_pool_info.queueFamilyIndex = context->get_graphics_queue_family();
 			cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 			VkResult res = vkCreateCommandPool(device, &cmd_pool_info, nullptr, &split_draw_list_allocators.write[i].command_pool);
@@ -7299,7 +7299,7 @@ void RenderingDeviceVulkan::initialize(VulkanContext *p_context, bool p_local_de
 			VkCommandPoolCreateInfo cmd_pool_info;
 			cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			cmd_pool_info.pNext = nullptr;
-			cmd_pool_info.queueFamilyIndex = p_context->get_graphics_queue();
+			cmd_pool_info.queueFamilyIndex = p_context->get_graphics_queue_family();
 			cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 			VkResult res = vkCreateCommandPool(device, &cmd_pool_info, nullptr, &frames[i].command_pool);
@@ -7693,3 +7693,35 @@ RenderingDeviceVulkan::~RenderingDeviceVulkan() {
 		context->local_device_free(local_device);
 	}
 }
+
+#include "modules/gdopenvr/lib/openvr/headers/openvr.h"
+#include "modules/gdopenvr/src/openvr/OpenVRInterface.h"
+void RenderingDeviceVulkan::submit_vr_texture(int p_eye, const RID p_texture) {
+	Texture *texture = texture_owner.getornull(p_texture);
+	ERR_FAIL_COND(!texture);
+	vr::VRVulkanTextureData_t vulkanData;
+	vulkanData.m_nWidth = texture->width;
+	vulkanData.m_nHeight = texture->height;
+	vulkanData.m_nFormat = VK_FORMAT_B8G8R8A8_SRGB; // Why does the texture say it's linear
+	vulkanData.m_nSampleCount = texture->samples;
+	vulkanData.m_nImage = (uint64_t)texture->image;
+	vulkanData.m_pDevice = context->get_device();
+	vulkanData.m_pPhysicalDevice = context->get_physical_device();
+	vulkanData.m_pInstance = context->get_instance();
+	vulkanData.m_pQueue = context->get_graphics_queue();
+	vulkanData.m_nQueueFamilyIndex = context->get_graphics_queue_family();
+	vr::Texture_t eyeTexture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Gamma };
+	if (XRServer::get_singleton()->get_primary_interface()->is_initialized()) {
+		vr::VRTextureBounds_t bounds;
+		bounds.uMin = 0.0;
+		bounds.uMax = 1.0;
+		bounds.vMin = 0.0;
+		bounds.vMax = 1.0;
+		vr::EVRCompositorError vrerr = vr::VRCompositor()->Submit(p_eye == 1 ? vr::Eye_Left : vr::Eye_Right, &eyeTexture, &bounds);
+		if (vrerr != vr::VRCompositorError_None) {
+			printf("OpenVR reports: %i\n", vrerr);
+		}
+	}
+}
+
+
