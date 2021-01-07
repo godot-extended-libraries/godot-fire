@@ -415,31 +415,6 @@ CameraMatrix MobileVRInterface::get_projection_for_eye(XRInterface::Eyes p_eye, 
 	return eye;
 };
 
-void MobileVRInterface::commit_for_eye(XRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) {
-	_THREAD_SAFE_METHOD_
-
-	// We must have a valid render target
-	ERR_FAIL_COND(!p_render_target.is_valid());
-
-	// Because we are rendering to our device we must use our main viewport!
-	ERR_FAIL_COND(p_screen_rect == Rect2());
-
-	Rect2 dest = p_screen_rect;
-	Vector2 eye_center;
-
-	// we output half a screen
-	dest.size.x *= 0.5;
-
-	if (p_eye == XRInterface::EYE_LEFT) {
-		eye_center.x = ((-intraocular_dist / 2.0) + (display_width / 4.0)) / (display_width / 2.0);
-	} else if (p_eye == XRInterface::EYE_RIGHT) {
-		dest.position.x = dest.size.x;
-		eye_center.x = ((intraocular_dist / 2.0) - (display_width / 4.0)) / (display_width / 2.0);
-	}
-	// we don't offset the eye center vertically (yet)
-	eye_center.y = 0.0;
-}
-
 void MobileVRInterface::process() {
 	_THREAD_SAFE_METHOD_
 

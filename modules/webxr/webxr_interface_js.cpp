@@ -354,13 +354,6 @@ unsigned int WebXRInterfaceJS::get_external_texture_for_eye(XRInterface::Eyes p_
 	return godot_webxr_get_external_texture_for_eye(p_eye);
 }
 
-void WebXRInterfaceJS::commit_for_eye(XRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) {
-	if (!initialized) {
-		return;
-	}
-	godot_webxr_commit_for_eye(p_eye);
-};
-
 void WebXRInterfaceJS::process() {
 	if (initialized) {
 		godot_webxr_sample_controller_data();
