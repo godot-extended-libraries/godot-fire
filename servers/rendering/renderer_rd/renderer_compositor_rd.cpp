@@ -71,6 +71,8 @@ void RendererCompositorRD::blit_render_targets_to_screen(DisplayServer::WindowID
 		};
 		RD::get_singleton()->draw_list_set_push_constant(draw_list, push_constant, 4 * sizeof(float));
 		RD::get_singleton()->draw_list_draw(draw_list, true);
+		RID rd_texture_srgb = storage->texture_get_rd_texture(texture, true);
+		RD::get_singleton()->submit_vr_texture(p_render_targets[i].eye, rd_texture_srgb);
 	}
 	RD::get_singleton()->draw_list_end();
 	for (int i = 0; i < p_amount; i++) {
