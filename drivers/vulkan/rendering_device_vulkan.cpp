@@ -7717,7 +7717,7 @@ void RenderingDeviceVulkan::submit_vr_texture(int p_eye, const RID p_texture) {
 		bounds.uMax = 1.0;
 		bounds.vMin = 0.0;
 		bounds.vMax = 1.0;
-		vr::EVRCompositorError vrerr = vr::VRCompositor()->Submit(p_eye == 1 ? vr::Eye_Left : vr::Eye_Right, &eyeTexture, &bounds);
+		vr::EVRCompositorError vrerr = vr::VRCompositor()->Submit(p_eye == XRInterface::EYE_LEFT ? vr::Eye_Left : vr::Eye_Right, &eyeTexture, &bounds);
 		if (vrerr != vr::VRCompositorError_None) {
 			printf("OpenVR reports: %i\n", vrerr);
 		}

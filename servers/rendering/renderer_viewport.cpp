@@ -541,7 +541,8 @@ void RendererViewport::draw_viewports() {
 
 		if (vp->use_xr && xr_interface.is_valid()) {
 			// override our size, make sure it matches our required size
-			vp->size = xr_interface->get_render_targetsize();
+			Size2 render_size = xr_interface->get_render_targetsize();
+			vp->size = render_size;
 			RSG::storage->render_target_set_size(vp->render_target, vp->size.x, vp->size.y);
 
 			// render mono or left eye first
@@ -1007,21 +1008,10 @@ void RendererViewport::commit_for_eye(Map<DisplayServer::WindowID, Vector<Render
 	// VR) we should give an error when p_screen_rect is not set
 	// For an interface that outputs to an external device we should render a copy
 	// of one of the eyes to the main viewport if p_screen_rect is set, and only
-	// output to the external device if not.
-
-	Rect2 screen_rect = p_viewport->viewport_to_screen_rect;
-
-	XRInterface::Eyes eye = (XRInterface::Eyes)p_eye;
-
-	if (eye == XRInterface::EYE_LEFT) {
-		screen_rect.size.x /= 2.0;
-	} else if (p_eye == XRInterface::EYE_RIGHT) {
-		screen_rect.size.x /= 2.0;
-		screen_rect.position.x += screen_rect.size.x;
-	}
+	// output to the external device if not.	
 	RendererCompositor::BlitToScreen blit;
 	blit.render_target = p_viewport->render_target;
-	blit.rect = Rect2i(screen_rect);
+	blit.rect.set_size(Size2i(p_viewport->size.x, p_viewport->size.y));
 	blit.eye = p_eye;
 	blit.vr = true;
 	blit_to_screen_list[0].push_back(blit);
