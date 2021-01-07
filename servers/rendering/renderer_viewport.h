@@ -187,6 +187,8 @@ private:
 public:
 	RID viewport_create();
 
+	void commit_for_eye(Map<DisplayServer::WindowID, Vector<RendererCompositor::BlitToScreen>> &blit_to_screen_list, XRInterface::Eyes p_eye, Viewport *p_viewport);
+
 	void viewport_set_use_xr(RID p_viewport, bool p_use_xr);
 
 	void viewport_set_size(RID p_viewport, int p_width, int p_height);

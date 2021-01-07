@@ -201,12 +201,6 @@ unsigned int XRInterfaceGDNative::get_external_texture_for_eye(XRInterface::Eyes
 	return (unsigned int)interface->get_external_texture_for_eye(data, (godot_int)p_eye);
 }
 
-void XRInterfaceGDNative::commit_for_eye(XRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) {
-	ERR_FAIL_COND(interface == nullptr);
-
-	interface->commit_for_eye(data, (godot_int)p_eye, (godot_rid *)&p_render_target, (godot_rect2 *)&p_screen_rect);
-}
-
 void XRInterfaceGDNative::process() {
 	ERR_FAIL_COND(interface == nullptr);
 

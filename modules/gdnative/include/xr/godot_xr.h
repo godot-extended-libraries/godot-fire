@@ -59,7 +59,6 @@ typedef struct {
 	godot_vector2 (*get_render_targetsize)(const void *);
 	godot_transform (*get_transform_for_eye)(void *, godot_int, godot_transform *);
 	void (*fill_projection_for_eye)(void *, godot_real *, godot_int, godot_real, godot_real, godot_real);
-	void (*commit_for_eye)(void *, godot_int, godot_rid *, godot_rect2 *);
 	void (*process)(void *);
 	godot_int (*get_external_texture_for_eye)(void *, godot_int);
 	void (*notification)(void *, godot_int);
