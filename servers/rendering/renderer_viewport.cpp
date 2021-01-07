@@ -539,7 +539,7 @@ void RendererViewport::draw_viewports() {
 			blit_to_screen_list[vp->viewport_to_screen].push_back(blit);
 		}
 
-		if (vp->viewport_to_screen != DisplayServer::INVALID_WINDOW_ID && vp->use_xr && xr_interface.is_valid()) {
+		if (vp->use_xr && xr_interface.is_valid()) {
 			// override our size, make sure it matches our required size
 			vp->size = xr_interface->get_render_targetsize();
 			RSG::storage->render_target_set_size(vp->render_target, vp->size.x, vp->size.y);
@@ -1024,5 +1024,5 @@ void RendererViewport::commit_for_eye(Map<DisplayServer::WindowID, Vector<Render
 	blit.rect = Rect2i(screen_rect);
 	blit.eye = p_eye;
 	blit.vr = true;
-	blit_to_screen_list[p_viewport->viewport_to_screen].push_back(blit);
+	blit_to_screen_list[0].push_back(blit);
 }
