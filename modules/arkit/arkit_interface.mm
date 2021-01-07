@@ -355,27 +355,6 @@ CameraMatrix ARKitInterface::get_projection_for_eye(XRInterface::Eyes p_eye, rea
 	return projection;
 }
 
-void ARKitInterface::commit_for_eye(XRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) {
-	// _THREAD_SAFE_METHOD_
-
-	// We must have a valid render target
-	ERR_FAIL_COND(!p_render_target.is_valid());
-
-	// Because we are rendering to our device we must use our main viewport!
-	ERR_FAIL_COND(p_screen_rect == Rect2());
-
-	// get the size of our screen
-	//	Rect2 screen_rect = p_screen_rect;
-
-	//		screen_rect.position.x += screen_rect.size.x;
-	//		screen_rect.size.x = -screen_rect.size.x;
-	//		screen_rect.position.y += screen_rect.size.y;
-	//		screen_rect.size.y = -screen_rect.size.y;
-
-	//	VSG::rasterizer->set_current_render_target(RID());
-	//	VSG::rasterizer->blit_render_target_to_screen(p_render_target, screen_rect, 0);
-}
-
 XRPositionalTracker *ARKitInterface::get_anchor_for_uuid(const unsigned char *p_uuid) {
 	if (anchors == NULL) {
 		num_anchors = 0;

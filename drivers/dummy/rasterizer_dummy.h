@@ -323,7 +323,6 @@ public:
 	}
 
 	RenderingServer::TextureType texture_get_type(RID p_texture) const override { return RS::TEXTURE_TYPE_2D; }
-	uint32_t texture_get_texid(RID p_texture) const override { return 0; }
 	uint32_t texture_get_width(RID p_texture) const override { return 0; }
 	uint32_t texture_get_height(RID p_texture) const override { return 0; }
 	uint32_t texture_get_depth(RID p_texture) const override { return 0; }

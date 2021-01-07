@@ -59,7 +59,6 @@ typedef struct {
 	godot_vector2 (*get_render_targetsize)(const void *);
 	godot_transform (*get_transform_for_eye)(void *, godot_int, godot_transform *);
 	void (*fill_projection_for_eye)(void *, godot_real *, godot_int, godot_real, godot_real, godot_real);
-	void (*commit_for_eye)(void *, godot_int, godot_rid *, godot_rect2 *);
 	void (*process)(void *);
 	godot_int (*get_external_texture_for_eye)(void *, godot_int);
 	void (*notification)(void *, godot_int);
@@ -74,7 +73,6 @@ godot_transform GDAPI godot_xr_get_reference_frame();
 
 // helper functions for rendering
 void GDAPI godot_xr_blit(godot_int p_eye, godot_rid *p_render_target, godot_rect2 *p_rect);
-godot_int GDAPI godot_xr_get_texid(godot_rid *p_render_target);
 
 // helper functions for updating XR controllers
 godot_int GDAPI godot_xr_add_controller(char *p_device_name, godot_int p_hand, godot_bool p_tracks_orientation, godot_bool p_tracks_position);

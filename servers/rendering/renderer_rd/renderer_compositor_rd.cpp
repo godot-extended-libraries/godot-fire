@@ -72,8 +72,16 @@ void RendererCompositorRD::blit_render_targets_to_screen(DisplayServer::WindowID
 		RD::get_singleton()->draw_list_set_push_constant(draw_list, push_constant, 4 * sizeof(float));
 		RD::get_singleton()->draw_list_draw(draw_list, true);
 	}
-
 	RD::get_singleton()->draw_list_end();
+	for (int i = 0; i < p_amount; i++) {
+		if (p_render_targets[i].vr) {
+			RID texture = storage->render_target_get_texture(p_render_targets[i].render_target);
+			ERR_CONTINUE(texture.is_null());
+			RID rd_texture_srgb = storage->texture_get_rd_texture(texture, true);
+			ERR_CONTINUE(rd_texture_srgb.is_null());
+			RD::get_singleton()->submit_vr_texture(p_render_targets[i].eye, rd_texture_srgb);
+		}
+	}
 }
 
 void RendererCompositorRD::begin_frame(double frame_step) {

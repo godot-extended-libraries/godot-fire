@@ -481,7 +481,6 @@ void RendererViewport::draw_viewports() {
 		if (!vp->render_target.is_valid()) {
 			continue;
 		}
-		//ERR_CONTINUE(!vp->render_target.is_valid());
 
 		bool visible = vp->viewport_to_screen_rect != Rect2();
 
@@ -505,24 +504,45 @@ void RendererViewport::draw_viewports() {
 		if (visible) {
 			vp->last_pass = draw_viewports_pass;
 		}
-	}
 
-	for (int i = 0; i < active_viewports.size(); i++) {
-		Viewport *vp = active_viewports[i];
+		RSG::storage->render_target_set_external_texture(vp->render_target, 0);
 
-		if (vp->last_pass != draw_viewports_pass) {
-			continue; //should not draw
+		RSG::scene->set_debug_draw_mode(vp->debug_draw);
+		RSG::storage->render_info_begin_capture();
+
+		// render standard mono camera
+		_draw_viewport(vp);
+
+		RSG::storage->render_info_end_capture();
+		vp->render_info[RS::VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_OBJECTS_IN_FRAME);
+		vp->render_info[RS::VIEWPORT_RENDER_INFO_VERTICES_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_VERTICES_IN_FRAME);
+		vp->render_info[RS::VIEWPORT_RENDER_INFO_MATERIAL_CHANGES_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_MATERIAL_CHANGES_IN_FRAME);
+		vp->render_info[RS::VIEWPORT_RENDER_INFO_SHADER_CHANGES_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_SHADER_CHANGES_IN_FRAME);
+		vp->render_info[RS::VIEWPORT_RENDER_INFO_SURFACE_CHANGES_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_SURFACE_CHANGES_IN_FRAME);
+		vp->render_info[RS::VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_DRAW_CALLS_IN_FRAME);
+
+		if (vp->viewport_to_screen != DisplayServer::INVALID_WINDOW_ID && (!vp->viewport_render_direct_to_screen || !RSG::rasterizer->is_low_end())) {
+			//copy to screen if set as such
+			RendererCompositor::BlitToScreen blit;
+			blit.render_target = vp->render_target;
+			if (vp->viewport_to_screen_rect != Rect2()) {
+				blit.rect = vp->viewport_to_screen_rect;
+			} else {
+				blit.rect.position = Vector2();
+				blit.rect.size = vp->size;
+			}
+
+			if (!blit_to_screen_list.has(vp->viewport_to_screen)) {
+				blit_to_screen_list[vp->viewport_to_screen] = Vector<RendererCompositor::BlitToScreen>();
+			}
+
+			blit_to_screen_list[vp->viewport_to_screen].push_back(blit);
 		}
-
-		RENDER_TIMESTAMP(">Rendering Viewport " + itos(i));
-
-		RSG::storage->render_target_set_as_unused(vp->render_target);
-#if 0
-		// TODO fix up this code after we change our commit_for_eye to accept our new render targets
 
 		if (vp->use_xr && xr_interface.is_valid()) {
 			// override our size, make sure it matches our required size
-			vp->size = xr_interface->get_render_targetsize();
+			Size2 render_size = xr_interface->get_render_targetsize();
+			vp->size = render_size;
 			RSG::storage->render_target_set_size(vp->render_target, vp->size.x, vp->size.y);
 
 			// render mono or left eye first
@@ -532,63 +552,21 @@ void RendererViewport::draw_viewports() {
 			// TODO investigate how we're going to make external textures work
 			RSG::storage->render_target_set_external_texture(vp->render_target, xr_interface->get_external_texture_for_eye(leftOrMono));
 
-			// set our render target as current
-			RSG::rasterizer->set_current_render_target(vp->render_target);
-
 			// and draw left eye/mono
 			_draw_viewport(vp, leftOrMono);
-			xr_interface->commit_for_eye(leftOrMono, vp->render_target, vp->viewport_to_screen_rect);
+			RSG::viewport->commit_for_eye(blit_to_screen_list, leftOrMono, vp);
 
 			// render right eye
 			if (leftOrMono == XRInterface::EYE_LEFT) {
 				// check for an external texture destination for our right eye
 				RSG::storage->render_target_set_external_texture(vp->render_target, xr_interface->get_external_texture_for_eye(XRInterface::EYE_RIGHT));
 
-				// commit for eye may have changed the render target
-				RSG::rasterizer->set_current_render_target(vp->render_target);
-
 				_draw_viewport(vp, XRInterface::EYE_RIGHT);
-				xr_interface->commit_for_eye(XRInterface::EYE_RIGHT, vp->render_target, vp->viewport_to_screen_rect);
+				RSG::viewport->commit_for_eye(blit_to_screen_list, XRInterface::EYE_RIGHT, vp);
 			}
 
 			// and for our frame timing, mark when we've finished committing our eyes
 			XRServer::get_singleton()->_mark_commit();
-		} else {
-#endif
-		{
-			RSG::storage->render_target_set_external_texture(vp->render_target, 0);
-
-			RSG::scene->set_debug_draw_mode(vp->debug_draw);
-			RSG::storage->render_info_begin_capture();
-
-			// render standard mono camera
-			_draw_viewport(vp);
-
-			RSG::storage->render_info_end_capture();
-			vp->render_info[RS::VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_OBJECTS_IN_FRAME);
-			vp->render_info[RS::VIEWPORT_RENDER_INFO_VERTICES_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_VERTICES_IN_FRAME);
-			vp->render_info[RS::VIEWPORT_RENDER_INFO_MATERIAL_CHANGES_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_MATERIAL_CHANGES_IN_FRAME);
-			vp->render_info[RS::VIEWPORT_RENDER_INFO_SHADER_CHANGES_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_SHADER_CHANGES_IN_FRAME);
-			vp->render_info[RS::VIEWPORT_RENDER_INFO_SURFACE_CHANGES_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_SURFACE_CHANGES_IN_FRAME);
-			vp->render_info[RS::VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME] = RSG::storage->get_captured_render_info(RS::INFO_DRAW_CALLS_IN_FRAME);
-
-			if (vp->viewport_to_screen != DisplayServer::INVALID_WINDOW_ID && (!vp->viewport_render_direct_to_screen || !RSG::rasterizer->is_low_end())) {
-				//copy to screen if set as such
-				RendererCompositor::BlitToScreen blit;
-				blit.render_target = vp->render_target;
-				if (vp->viewport_to_screen_rect != Rect2()) {
-					blit.rect = vp->viewport_to_screen_rect;
-				} else {
-					blit.rect.position = Vector2();
-					blit.rect.size = vp->size;
-				}
-
-				if (!blit_to_screen_list.has(vp->viewport_to_screen)) {
-					blit_to_screen_list[vp->viewport_to_screen] = Vector<RendererCompositor::BlitToScreen>();
-				}
-
-				blit_to_screen_list[vp->viewport_to_screen].push_back(blit);
-			}
 		}
 
 		if (vp->update_mode == RS::VIEWPORT_UPDATE_ONCE) {
@@ -1019,4 +997,22 @@ void RendererViewport::set_default_clear_color(const Color &p_color) {
 }
 
 RendererViewport::RendererViewport() {
+}
+void RendererViewport::commit_for_eye(Map<DisplayServer::WindowID, Vector<RendererCompositor::BlitToScreen>> &blit_to_screen_list, XRInterface::Eyes p_eye, Viewport *p_viewport) {
+	// This function is responsible for outputting the final render buffer for
+	// each eye.
+	// p_screen_rect will only have a value when we're outputting to the main
+	// viewport.
+
+	// For an interface that must output to the main viewport (such as with mobile
+	// VR) we should give an error when p_screen_rect is not set
+	// For an interface that outputs to an external device we should render a copy
+	// of one of the eyes to the main viewport if p_screen_rect is set, and only
+	// output to the external device if not.	
+	RendererCompositor::BlitToScreen blit;
+	blit.render_target = p_viewport->render_target;
+	blit.rect.set_size(Size2i(p_viewport->size.x, p_viewport->size.y));
+	blit.eye = p_eye;
+	blit.vr = true;
+	blit_to_screen_list[0].push_back(blit);
 }
