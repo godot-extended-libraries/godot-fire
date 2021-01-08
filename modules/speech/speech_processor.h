@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -37,8 +37,8 @@
 #include "scene/main/node.h"
 #include "servers/audio_server.h"
 
-#include "modules/audio_effect_stream/audio_effect_stream.h"
-#include "modules/audio_effect_stream/stream_audio.h"
+#include "servers/audio/effects/audio_effect_capture.h"
+#include "scene/audio/audio_consumer.h"
 
 #include "scene/audio/audio_stream_player.h"
 #include "servers/audio/audio_stream.h"
@@ -71,7 +71,7 @@ private:
 	uint32_t record_mix_frames_processed = 0;
 
 	AudioServer *audio_server = NULL;
-	StreamAudio *stream_audio = NULL;
+	AudioConsumer *stream_audio = NULL;
 	AudioStreamPlayer *audio_input_stream_player = NULL;
 
 	uint32_t mix_rate;
@@ -117,10 +117,10 @@ public:
 	static void _get_capture_block(
 			AudioServer *p_audio_server,
 			const uint32_t &p_mix_frame_count,
-			const float *p_process_buffer_in,
+			const Vector2 *p_process_buffer_in,
 			float *p_process_buffer_out);
 
-	void _mix_audio(const float *p_process_buffer_in);
+	void _mix_audio(const Vector2 *p_process_buffer_in);
 
 	static bool _16_pcm_mono_to_real_stereo(const PackedByteArray *p_src_buffer, PackedVector2Array *p_dst_buffer);
 

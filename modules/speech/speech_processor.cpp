@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -88,7 +88,7 @@ uint32_t SpeechProcessor::_resample_audio_buffer(
 
 void SpeechProcessor::_get_capture_block(AudioServer *p_audio_server,
 		const uint32_t &p_mix_frame_count,
-		const float *p_process_buffer_in,
+		const Vector2 *p_process_buffer_in,
 		float *p_process_buffer_out) {
 	// 0.1 second based on the internal sample rate
 	//uint32_t playback_delay = std::min<uint32_t>(((50 * mix_rate) / 1000) * 2, capture_buffer.size() >> 1);
@@ -97,18 +97,15 @@ void SpeechProcessor::_get_capture_block(AudioServer *p_audio_server,
 	{
 		for (size_t i = 0; i < p_mix_frame_count; i++) {
 			{
-				float mono = 0.0f;
-				for (size_t j = 0; j < STEREO_CHANNEL_COUNT; j++) {
-					mono += p_process_buffer_in[capture_offset] * 0.5f;
-					capture_offset++;
-				}
+				float mono = p_process_buffer_in[capture_offset].x * 0.5f + p_process_buffer_in[capture_offset].y * 0.5f;
+				capture_offset += 2;
 				p_process_buffer_out[i] = mono;
 			}
 		}
 	}
 }
 
-void SpeechProcessor::_mix_audio(const float *p_incoming_buffer) {
+void SpeechProcessor::_mix_audio(const Vector2 *p_incoming_buffer) {
 	int8_t *write_buffer = reinterpret_cast<int8_t *>(mix_byte_array.ptrw());
 	if (audio_server) {
 		_get_capture_block(audio_server, RECORD_MIX_FRAMES, p_incoming_buffer, mono_real_array.ptrw());
@@ -177,7 +174,7 @@ void SpeechProcessor::start() {
 	}
 
 	audio_input_stream_player->play();
-	stream_audio->clear();
+	stream_audio->clear_buffer();
 }
 
 void SpeechProcessor::stop() {
@@ -271,10 +268,9 @@ void SpeechProcessor::set_streaming_bus(const String &p_name) {
 	if (index != -1) {
 		int effect_count = audio_server->get_bus_effect_count(index);
 		for (int i = 0; i < effect_count; i++) {
-			Ref<AudioEffect> audio_effect = audio_server->get_bus_effect(index, i);
-			Ref<AudioEffectStream> audio_effect_stream = audio_effect;
-			if (audio_effect_stream.is_valid()) {
-				stream_audio->set_audio_effect_stream(index, i);
+			Ref<AudioEffectCapture> audio_effect_capture = audio_server->get_bus_effect(index, i);
+			if (audio_effect_capture.is_valid()) {
+				stream_audio->initialize(audio_effect_capture, 1.5f);
 			}
 		}
 	}
@@ -292,9 +288,7 @@ bool SpeechProcessor::set_audio_input_stream_player(Node *p_audio_input_stream_p
 }
 
 void SpeechProcessor::_setup() {
-	stream_audio = memnew(StreamAudio);
-	stream_audio->set_name("StreamAudio");
-	add_child(stream_audio);
+	stream_audio = memnew(AudioConsumer);
 }
 
 void SpeechProcessor::set_process_all(bool p_active) {
@@ -302,7 +296,6 @@ void SpeechProcessor::set_process_all(bool p_active) {
 	set_physics_process(p_active);
 	set_process_input(p_active);
 }
-
 //void SpeechProcessor::_ready() {
 //	if (!Engine::get_singleton()->is_editor_hint()) {
 //		_setup();
@@ -335,11 +328,11 @@ void SpeechProcessor::_notification(int p_what) {
 			//if (!Engine::get_singleton()->is_editor_hint()) {
 			if (stream_audio && audio_input_stream_player && audio_input_stream_player->is_playing()) {
 				// This is pretty ugly, but needed to keep the audio from going out of sync
-				PackedFloat32Array audio_frames = stream_audio->get_audio_frames(RECORD_MIX_FRAMES);
-				while (audio_frames.size() > 0) {
+				PackedVector2Array audio_frames;
+				audio_frames.resize(RECORD_MIX_FRAMES);
+				while (stream_audio->get_buffer(audio_frames)) {
 					_mix_audio(audio_frames.ptrw());
 					record_mix_frames_processed++;
-					audio_frames = stream_audio->get_audio_frames(RECORD_MIX_FRAMES);
 				}
 			}
 			//}
