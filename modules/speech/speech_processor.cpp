@@ -90,18 +90,10 @@ void SpeechProcessor::_get_capture_block(AudioServer *p_audio_server,
 		const uint32_t &p_mix_frame_count,
 		const Vector2 *p_process_buffer_in,
 		float *p_process_buffer_out) {
-	// 0.1 second based on the internal sample rate
-	//uint32_t playback_delay = std::min<uint32_t>(((50 * mix_rate) / 1000) * 2, capture_buffer.size() >> 1);
 
-	size_t capture_offset = 0;
-	{
-		for (size_t i = 0; i < p_mix_frame_count; i++) {
-			{
-				float mono = p_process_buffer_in[capture_offset].x * 0.5f + p_process_buffer_in[capture_offset].y * 0.5f;
-				capture_offset += 2;
-				p_process_buffer_out[i] = mono;
-			}
-		}
+	for (size_t i = 0; i < p_mix_frame_count; i++) {
+		float mono = p_process_buffer_in[i].x * 0.5f + p_process_buffer_in[i].y * 0.5f;
+		p_process_buffer_out[i] = mono;
 	}
 }
 
@@ -328,9 +320,11 @@ void SpeechProcessor::_notification(int p_what) {
 			//if (!Engine::get_singleton()->is_editor_hint()) {
 			if (stream_audio && audio_input_stream_player && audio_input_stream_player->is_playing()) {
 				// This is pretty ugly, but needed to keep the audio from going out of sync
-				PackedVector2Array audio_frames;
-				audio_frames.resize(RECORD_MIX_FRAMES);
-				while (stream_audio->get_buffer(audio_frames)) {
+				while (true) {
+					PackedVector2Array audio_frames = stream_audio->get_buffer(RECORD_MIX_FRAMES);
+					if (audio_frames.size() == 0) {
+						break;
+					}
 					_mix_audio(audio_frames.ptrw());
 					record_mix_frames_processed++;
 				}
