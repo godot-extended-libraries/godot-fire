@@ -140,6 +140,9 @@ void EditorSceneImporterMesh::generate_lods() {
 	if (!SurfaceTool::simplify_func) {
 		return;
 	}
+	if (!SurfaceTool::simplify_scale_func) {
+		return;
+	}
 
 	for (int i = 0; i < surfaces.size(); i++) {
 		if (surfaces[i].primitive != Mesh::PRIMITIVE_TRIANGLES) {
@@ -158,18 +161,22 @@ void EditorSceneImporterMesh::generate_lods() {
 		int min_indices = 10;
 		int index_target = indices.size() / 2;
 		print_line("total: " + itos(indices.size()));
+		float abs_to_rel_error = SurfaceTool::simplify_scale_func((const float *)vertices_ptr, vertex_count, sizeof(Vector3));
+		float rel_error = 1e-3f;
+		float abs_target_error = rel_error / abs_to_rel_error;
 		while (index_target > min_indices) {
-			float error;
+			float abs_error;
 			Vector<int> new_indices;
 			new_indices.resize(indices.size());
-			size_t new_len = SurfaceTool::simplify_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, 1e20, &error);
-			print_line("shoot for " + itos(index_target) + ", got " + itos(new_len) + " distance " + rtos(error));
+			size_t new_len = SurfaceTool::simplify_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, abs_target_error, &abs_error);
+			print_line("shoot for " + itos(index_target) + ", got " + itos(new_len) + " distance " + rtos(abs_error));
 			if ((int)new_len > (index_target * 120 / 100)) {
 				break; // 20 percent tolerance
 			}
 			new_indices.resize(new_len);
 			Surface::LOD lod;
-			lod.distance = error;
+			lod.distance = abs_error * abs_to_rel_error;
+			abs_target_error = lod.distance;
 			lod.indices = new_indices;
 			surfaces.write[i].lods.push_back(lod);
 			index_target /= 2;
