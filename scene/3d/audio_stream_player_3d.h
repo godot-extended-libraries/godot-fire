@@ -33,6 +33,7 @@
 
 #include "scene/3d/node_3d.h"
 #include "scene/3d/velocity_tracker_3d.h"
+#include "modules/resonanceaudio/resonance_audio_wrapper.h"
 #include "servers/audio/audio_filter_sw.h"
 #include "servers/audio/audio_stream.h"
 #include "servers/audio_server.h"
@@ -139,6 +140,9 @@ private:
 	OutOfRangeMode out_of_range_mode;
 
 	float _get_attenuation_db(float p_distance) const;
+
+	// TODO #ifdef guard this
+	AudioSourceId audio_source_id;
 
 protected:
 	void _validate_property(PropertyInfo &property) const override;
