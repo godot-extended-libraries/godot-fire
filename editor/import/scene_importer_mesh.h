@@ -36,6 +36,7 @@
 #include "scene/resources/convex_polygon_shape_3d.h"
 #include "scene/resources/mesh.h"
 #include "scene/resources/navigation_mesh.h"
+
 // The following classes are used by importers instead of ArrayMesh and MeshInstance3D
 // so the data is not registered (hence, quality loss), importing happens faster and
 // its easier to modify before saving
@@ -76,6 +77,8 @@ protected:
 	static void _bind_methods();
 
 public:
+	Array subdivide(Array p_mesh_arrays, int p_level);
+
 	void add_blend_shape(const String &p_name);
 	int get_blend_shape_count() const;
 	String get_blend_shape_name(int p_blend_shape) const;
@@ -114,5 +117,8 @@ public:
 	bool has_mesh() const;
 	Ref<ArrayMesh> get_mesh(const Ref<Mesh> &p_base = Ref<Mesh>());
 	void clear();
+
+	~EditorSceneImporterMesh() {
+	}
 };
 #endif // EDITOR_SCENE_IMPORTER_MESH_H
