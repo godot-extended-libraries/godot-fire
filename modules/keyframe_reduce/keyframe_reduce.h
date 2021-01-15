@@ -132,14 +132,14 @@ public:
 		real_t max_error = 0.01f; // range(0, 1000) step(0.1)
 
 		// Step size at which to sample the animation curves."
-		real_t step_size = 1.0f; // range(0.1, 100) step(1)
+		real_t step_size = 0.25f; // range(0.1, 100) step(1)
 
 		// Created keyframes have weighted or non-weighted tangents.
 		// Split tangents automatically, works on estimation.
 		bool split_tangents_auto = true;
 		bool weighted_tangents = true;
-		bool tangent_split_existing = false;
-		bool tangent_split_angle_threshold = false;
+		bool tangent_split_existing = true;
+		bool tangent_split_angle_threshold = true;
 		// The threshold to split tangents.
 		real_t tangent_split_angle_thresholdValue = 15.0f;
 	};
@@ -600,7 +600,7 @@ private:
 			p_split.insert(0, 0);
 		}
 
-		if (p_split[p_split.size() - 1 - 1] != p_curves.size()) {
+		if (p_split[p_split.size() - 1] != p_curves.size()) {
 			p_split.push_back(p_curves.size());
 		}
 
@@ -610,8 +610,8 @@ private:
 			split_set.insert(p_split[split_i]);
 		}
 		Vector<int32_t> split_list;
-		for (int32_t split_i = 0; split_i < p_split.size(); split_i++) {
-			split_list.push_back(p_split[split_i]);
+		for (Set<int32_t>::Element *E = split_set.front(); E; E = E->next()) {
+			split_list.push_back(E->get());
 		}
 		p_split = split_list;
 		p_split.sort();
@@ -623,6 +623,9 @@ private:
 		}
 		Vector<int32_t> splitB;
 		for (int32_t i = 1; i < p_split.size(); i++) {
+			if (!p_split.size()) {
+				break;
+			}
 			splitB.push_back(p_split[i]);
 		}
 
@@ -635,6 +638,9 @@ private:
 		for (int32_t zip_i = 0; zip_i < zipped_splits.size(); zip_i++) {
 			Vector2Bezier zip = zipped_splits[zip_i];
 			for (int32_t split_i = zip.x; split_i < zip.y; split_i++) {
+				if (split_i >= p_curves.size()) {
+					break;
+				}
 				final_points.push_back(p_curves[split_i]);
 			}
 		}
