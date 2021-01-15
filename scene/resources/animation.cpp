@@ -3375,8 +3375,9 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
 	}
-	int32_t track_rot_basis = add_track(TrackType::TYPE_BEZIER);
+	int32_t track_rot_basis = add_track(TrackType::TYPE_VALUE);
 	track_set_path(track_rot_basis, path + "rotation_basis");
+	track_set_interpolation_type(track_rot_basis, InterpolationType::INTERPOLATION_CUBIC);
 	track_set_interpolation_loop_wrap(track_rot_basis, true);
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
 		int32_t current_track = E->get();

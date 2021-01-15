@@ -78,14 +78,6 @@ public:
 	};
 
 private:
-	static _ALWAYS_INLINE_ float angle_diff(float p_from, float p_to) {
-		float diff = fmod(p_to - p_from, (float)Math_TAU);
-		return fmod(2.0f * diff, (float)Math_TAU) - diff;
-	}
-	static _ALWAYS_INLINE_ float lerp_angle(float p_from, float p_to, float p_weight) {
-		return p_from + angle_diff(p_from, p_to) * p_weight;
-	}
-
 	// On the Continuity of Rotation Representations in Neural Networks
 	// arXiv:1812.07035
 	Basis compute_rotation_matrix_from_ortho_6d(Vector3 x_raw, Vector3 y_raw) {
