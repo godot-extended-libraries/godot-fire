@@ -3379,6 +3379,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	track_set_path(track_rot_basis, path + "rotation_quat");
 	track_set_interpolation_type(track_rot_basis, InterpolationType::INTERPOLATION_CUBIC);
 	track_set_interpolation_loop_wrap(track_rot_basis, true);
+	List<float> times;
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
 		int32_t current_track = E->get();
 		if (current_track == -1) {
@@ -3387,35 +3388,46 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		int32_t count = track_get_key_count(current_track);
 		for (int32_t key_i = 0; key_i < count; key_i++) {
 			float time = track_get_key_time(current_track, key_i);
-			Vector3 basis_x;
-			Vector3 basis_y;
-			if (rot_tracks.has("x0")) {
-				float value = bezier_track_interpolate(rot_tracks["x0"], time);
-				basis_x.x = value;
-			}
-			if (rot_tracks.has("x1")) {
-				float value = bezier_track_interpolate(rot_tracks["x1"], time);
-				basis_x.y = value;
-			}
-			if (rot_tracks.has("x2")) {
-				float value = bezier_track_interpolate(rot_tracks["x2"], time);
-				basis_x.z = value;
-			}
-			if (rot_tracks.has("y0")) {
-				float value = bezier_track_interpolate(rot_tracks["y0"], time);
-				basis_y.x = value;
-			}
-			if (rot_tracks.has("y1")) {
-				float value = bezier_track_interpolate(rot_tracks["y1"], time);
-				basis_y.y = value;
-			}
-			if (rot_tracks.has("y2")) {
-				float value = bezier_track_interpolate(rot_tracks["y2"], time);
-				basis_y.z = value;
-			}
-			Basis rot_basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
-			track_insert_key(track_rot_basis, time, rot_basis.get_rotation_quat());
+			times.push_back(time);
 		}
+	}
+	times.sort();
+	for (int32_t time_i = 1; time_i < times.size(); time_i++) {
+		float time_0 = times[time_i - 1];
+		float time_1 = times[time_i];
+		if (Math::is_equal_approx(Math::stepify(time_0, 1.0f / 30.0f), Math::stepify(time_1, 1.0f / 15.0f))) {
+			times.erase(time_1);
+		}
+	}
+	for (int32_t time_i = 0; time_i < times.size(); time_i++) {
+		Vector3 basis_x;
+		Vector3 basis_y;
+		if (rot_tracks.has("x0")) {
+			float value = bezier_track_interpolate(rot_tracks["x0"], times[time_i]);
+			basis_x.x = value;
+		}
+		if (rot_tracks.has("x1")) {
+			float value = bezier_track_interpolate(rot_tracks["x1"], times[time_i]);
+			basis_x.y = value;
+		}
+		if (rot_tracks.has("x2")) {
+			float value = bezier_track_interpolate(rot_tracks["x2"], times[time_i]);
+			basis_x.z = value;
+		}
+		if (rot_tracks.has("y0")) {
+			float value = bezier_track_interpolate(rot_tracks["y0"], times[time_i]);
+			basis_y.x = value;
+		}
+		if (rot_tracks.has("y1")) {
+			float value = bezier_track_interpolate(rot_tracks["y1"], times[time_i]);
+			basis_y.y = value;
+		}
+		if (rot_tracks.has("y2")) {
+			float value = bezier_track_interpolate(rot_tracks["y2"], times[time_i]);
+			basis_y.z = value;
+		}
+		Basis rot_basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
+		track_insert_key(track_rot_basis, times[time_i], rot_basis.get_rotation_quat());
 	}
 	if (rot_tracks.has("y2")) {
 		remove_track(rot_tracks["y2"]);
