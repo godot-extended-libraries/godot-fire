@@ -3392,13 +3392,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		}
 	}
 	times.sort();
-	for (int32_t time_i = 1; time_i < times.size(); time_i++) {
-		float time_0 = times[time_i - 1];
-		float time_1 = times[time_i];
-		if (Math::is_equal_approx(Math::stepify(time_0, 1.0f / 60.0f), Math::stepify(time_1, 1.0f / 60.0f))) {
-			times.erase(time_1);
-		}
-	}
 	for (int32_t time_i = 0; time_i < times.size(); time_i++) {
 		Vector3 basis_x;
 		Vector3 basis_y;

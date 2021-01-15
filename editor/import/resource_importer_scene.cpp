@@ -1370,12 +1370,8 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 	scene = _fix_node(scene, scene, collision_map, LightBakeMode(light_bake_mode));
 
 	if (use_optimizer) {
-		if(use_convert_bezier) {
-			fps *= 2.0f;
-		}
 		_optimize_animations(scene, anim_optimizer_linerr, anim_optimizer_angerr, anim_optimizer_maxang, use_convert_bezier);
 	}
-
 	Array animation_clips;
 	{
 
