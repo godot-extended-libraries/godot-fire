@@ -3376,7 +3376,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		}
 	}
 	int32_t track_rot_basis = add_track(TrackType::TYPE_VALUE);
-	track_set_path(track_rot_basis, path + "rotation_basis");
+	track_set_path(track_rot_basis, path + "rotation_quat");
 	track_set_interpolation_type(track_rot_basis, InterpolationType::INTERPOLATION_CUBIC);
 	track_set_interpolation_loop_wrap(track_rot_basis, true);
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
@@ -3414,7 +3414,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				basis_y.z = value;
 			}
 			Basis rot_basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
-			track_insert_key(track_rot_basis, time, rot_basis);
+			track_insert_key(track_rot_basis, time, rot_basis.get_rotation_quat());
 		}
 	}
 	if (rot_tracks.has("y2")) {
