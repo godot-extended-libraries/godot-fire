@@ -3275,12 +3275,9 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	types.push_back(BEZIER_TRACK_SCALE_X);
 	types.push_back(BEZIER_TRACK_SCALE_Y);
 	types.push_back(BEZIER_TRACK_SCALE_Z);
-	types.push_back(BEZIER_TRACK_ROT_X0);
-	types.push_back(BEZIER_TRACK_ROT_X1);
-	types.push_back(BEZIER_TRACK_ROT_X2);
-	types.push_back(BEZIER_TRACK_ROT_Y0);
-	types.push_back(BEZIER_TRACK_ROT_Y1);
-	types.push_back(BEZIER_TRACK_ROT_Y2);
+	types.push_back(BEZIER_TRACK_ROT_X);
+	types.push_back(BEZIER_TRACK_ROT_Y);
+	types.push_back(BEZIER_TRACK_ROT_Z);
 	Ref<BezierKeyframeReduce> reduce;
 	reduce.instance();
 	Map<String, int32_t> rot_tracks;
@@ -3304,6 +3301,13 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			basis.orthonormalize();
 			Vector3 basis_x = basis.get_axis(Vector3::AXIS_X);
 			Vector3 basis_y = basis.get_axis(Vector3::AXIS_Y);
+
+			Basis rot_basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
+			Vector3 rot_euler = rot_basis.get_euler();
+			rot_euler.x = lerp_angle(rot_euler.x, rot_euler.x, 1.0f);
+			rot_euler.y = lerp_angle(rot_euler.y, rot_euler.y, 1.0f);
+			rot_euler.z = lerp_angle(rot_euler.z, rot_euler.z, 1.0f);
+			Vector3 rot_degrees;
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
 				value = loc.x;
@@ -3328,30 +3332,18 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				Vector3 scale = key.value.scale;
 				value = scale.z;
 				new_path = path + "scale:z";
-			} else if (types[type_i] == BEZIER_TRACK_ROT_X0) {
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X) {
 				value = basis_x.x;
-				new_path = path + "rotation_basis:x0";
-				rot_tracks.insert("x0", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_X1) {
+				value = Math::rad2deg(rot_euler.x);
+				new_path = path + "rotation_degrees:x";
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
 				value = basis_x.y;
-				new_path = path + "rotation_basis:x1";
-				rot_tracks.insert("x1", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_X2) {
+				value = Math::rad2deg(rot_euler.y);
+				new_path = path + "rotation_degrees:y";
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
 				value = basis_x.z;
-				new_path = path + "rotation_basis:x2";
-				rot_tracks.insert("x2", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Y0) {
-				value = basis_y.x;
-				new_path = path + "rotation_basis:y0";
-				rot_tracks.insert("y0", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Y1) {
-				value = basis_y.y;
-				new_path = path + "rotation_basis:y1";
-				rot_tracks.insert("y1", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Y2) {
-				value = basis_y.z;
-				new_path = path + "rotation_basis:y2";
-				rot_tracks.insert("y2", get_track_count());
+				value = Math::rad2deg(rot_euler.z);
+				new_path = path + "rotation_degrees:z";
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
@@ -3374,82 +3366,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			BezierKeyframeReduce::Bezier curve = out_curves[curve_i];
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
-	}
-	int32_t track_rot_degrees_x = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_x, path + "rotation_degrees:x");
-	track_set_interpolation_loop_wrap(track_rot_degrees_x, true);
-	int32_t track_rot_degrees_y = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_y, path + "rotation_degrees:y");
-	track_set_interpolation_loop_wrap(track_rot_degrees_y, true);
-	int32_t track_rot_degrees_z = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_z, path + "rotation_degrees:z");
-	track_set_interpolation_loop_wrap(track_rot_degrees_z, true);
-	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
-		int32_t current_track = E->get();
-		if (current_track == -1) {
-			continue;
-		}
-		int32_t count = track_get_key_count(current_track);
-		for (int32_t key_i = 0; key_i < count; key_i++) {
-			float time = track_get_key_time(current_track, key_i);
-			Vector3 basis_x;
-			Vector3 basis_y;
-			if (rot_tracks.has("x0")) {
-				float value = bezier_track_interpolate(rot_tracks["x0"], time);
-				basis_x.x = value;
-			}
-			if (rot_tracks.has("x1")) {
-				float value = bezier_track_interpolate(rot_tracks["x1"], time);
-				basis_x.y = value;
-			}
-			if (rot_tracks.has("x2")) {
-				float value = bezier_track_interpolate(rot_tracks["x2"], time);
-				basis_x.z = value;
-			}
-			if (rot_tracks.has("y0")) {
-				float value = bezier_track_interpolate(rot_tracks["y0"], time);
-				basis_y.x = value;
-			}
-			if (rot_tracks.has("y1")) {
-				float value = bezier_track_interpolate(rot_tracks["y1"], time);
-				basis_y.y = value;
-			}
-			if (rot_tracks.has("y2")) {
-				float value = bezier_track_interpolate(rot_tracks["y2"], time);
-				basis_y.z = value;
-			}
-			Basis rot_basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
-			Vector3 rot_euler = rot_basis.get_euler();
-			rot_euler.x = lerp_angle(rot_euler.x, rot_euler.x, 1.0f);
-			rot_euler.y = lerp_angle(rot_euler.y, rot_euler.y, 1.0f);
-			rot_euler.z = lerp_angle(rot_euler.z, rot_euler.z, 1.0f);
-			Vector3 rot_degrees;
-			rot_degrees.x = Math::rad2deg(rot_euler.x);
-			rot_degrees.y = Math::rad2deg(rot_euler.y);
-			rot_degrees.z = Math::rad2deg(rot_euler.z);
-
-			bezier_track_insert_key(track_rot_degrees_x, time, rot_degrees.x, Vector2(), Vector2());
-			bezier_track_insert_key(track_rot_degrees_y, time, rot_degrees.y, Vector2(), Vector2());
-			bezier_track_insert_key(track_rot_degrees_z, time, rot_degrees.z, Vector2(), Vector2());
-		}
-	}
-	if (rot_tracks.has("y2")) {
-		remove_track(rot_tracks["y2"]);
-	}
-	if (rot_tracks.has("y1")) {
-		remove_track(rot_tracks["y1"]);
-	}
-	if (rot_tracks.has("y0")) {
-		remove_track(rot_tracks["y0"]);
-	}
-	if (rot_tracks.has("x2")) {
-		remove_track(rot_tracks["x2"]);
-	}
-	if (rot_tracks.has("x1")) {
-		remove_track(rot_tracks["x1"]);
-	}
-	if (rot_tracks.has("x0")) {
-		remove_track(rot_tracks["x0"]);
 	}
 }
 
