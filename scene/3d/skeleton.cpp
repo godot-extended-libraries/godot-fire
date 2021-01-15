@@ -82,18 +82,13 @@ bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
 			Transform pose = bones[bone].pose;
 			pose.origin = p_value;
 			bones.write[bone].pose = pose;
-		} else if (property == "rotation_degrees") {
+		} else if (property == "rotation_basis") {
 			ERR_FAIL_INDEX_V(bone, bones.size(), false);
 			Transform pose = bones[bone].pose;
 			Vector3 scale = pose.basis.get_scale();
 			Quat rot;
-			Vector3 rot_euler;
-			Vector3 rot_degrees = p_value;
-			rot_euler.x = Math::deg2rad(rot_degrees.x);
-			rot_euler.y = Math::deg2rad(rot_degrees.y);
-			rot_euler.z = Math::deg2rad(rot_degrees.z);
-			rot.set_euler(rot_euler);
-			pose.basis.set_quat_scale(rot, scale);
+			Basis rot_basis = p_value;
+			pose.basis.set_quat_scale(rot_basis, scale);
 			bones.write[bone].pose = pose;
 		} else if (property == "scale") {
 			ERR_FAIL_INDEX_V(bone, bones.size(), false);
@@ -163,13 +158,10 @@ bool Skeleton::_get(const StringName &p_path, Variant &r_ret) const {
 		if (property == "translation") {
 			r_ret = bones[bone].pose.origin;
 			return true;
-		} else if (property == "rotation_degrees") {
-			Vector3 rot_degrees;
-			Vector3 rot_euler = bones[bone].pose.basis.get_euler();
-			rot_degrees.x = Math::rad2deg(rot_euler.x);
-			rot_degrees.y = Math::rad2deg(rot_euler.y);
-			rot_degrees.z = Math::rad2deg(rot_euler.z);
-			r_ret = rot_degrees;
+		} else if (property == "rotation_basis") {
+			Basis rot_basis = bones[bone].pose.basis;
+			rot_basis.orthonormalize();
+			r_ret = rot_basis;
 			return true;
 		} else if (property == "scale") {
 			r_ret = bones[bone].pose.basis.get_scale();

@@ -3375,15 +3375,9 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
 	}
-	int32_t track_rot_degrees_x = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_x, path + "rotation_degrees:x");
-	track_set_interpolation_loop_wrap(track_rot_degrees_x, true);
-	int32_t track_rot_degrees_y = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_y, path + "rotation_degrees:y");
-	track_set_interpolation_loop_wrap(track_rot_degrees_y, true);
-	int32_t track_rot_degrees_z = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_z, path + "rotation_degrees:z");
-	track_set_interpolation_loop_wrap(track_rot_degrees_z, true);
+	int32_t track_rot_basis = add_track(TrackType::TYPE_BEZIER);
+	track_set_path(track_rot_basis, path + "rotation_basis");
+	track_set_interpolation_loop_wrap(track_rot_basis, true);
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
 		int32_t current_track = E->get();
 		if (current_track == -1) {
@@ -3419,18 +3413,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				basis_y.z = value;
 			}
 			Basis rot_basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
-			Vector3 rot_euler = rot_basis.get_euler();
-			rot_euler.x = lerp_angle(rot_euler.x, rot_euler.x, 1.0f);
-			rot_euler.y = lerp_angle(rot_euler.y, rot_euler.y, 1.0f);
-			rot_euler.z = lerp_angle(rot_euler.z, rot_euler.z, 1.0f);
-			Vector3 rot_degrees;
-			rot_degrees.x = Math::rad2deg(rot_euler.x);
-			rot_degrees.y = Math::rad2deg(rot_euler.y);
-			rot_degrees.z = Math::rad2deg(rot_euler.z);
-
-			bezier_track_insert_key(track_rot_degrees_x, time, rot_degrees.x, Vector2(), Vector2());
-			bezier_track_insert_key(track_rot_degrees_y, time, rot_degrees.y, Vector2(), Vector2());
-			bezier_track_insert_key(track_rot_degrees_z, time, rot_degrees.z, Vector2(), Vector2());
+			track_insert_key(track_rot_basis, time, rot_basis);
 		}
 	}
 	if (rot_tracks.has("y2")) {
