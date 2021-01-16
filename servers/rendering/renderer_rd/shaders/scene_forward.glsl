@@ -1859,7 +1859,7 @@ void main() {
 	{
 		float max_intensity = 0.0;
 		for (uint i = 0; i < scene_data.directional_light_count; i++) {
-			if (!bool(directional_lights.data[i].mask & instances.data[instance_index].layer_mask)) {
+			if (!bool(directional_lights.data[i].mask & draw_call.layer_mask)) {
 				continue; //not masked
 			}
 			vec3 color = directional_lights.data[i].color * directional_lights.data[i].energy;
@@ -2491,7 +2491,7 @@ void main_lighting(vec3 vertex, vec3 normal, vec3 view, vec3 albedo, vec3 emissi
 	{ //directional light
 
 		for (uint i = 0; i < scene_data.directional_light_count; i++) {
-			if (!bool(directional_lights.data[i].mask & instances.data[instance_index].layer_mask)) {
+			if (!bool(directional_lights.data[i].mask & draw_call.layer_mask)) {
 				continue; //not masked
 			}
 
