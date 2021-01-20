@@ -628,7 +628,7 @@ LIGHT_SHADER_CODE
 		diffuse_brdf_NL = max(0.0, (NdotL + roughness) / ((1.0 + roughness) * (1.0 + roughness)));
 #elif defined(DIFFUSE_TOON)
 
-		diffuse_brdf_NL = smoothstep(-roughness, max(roughness, 0.01), NdotL);
+		diffuse_brdf_NL = smoothstep(-roughness, max(roughness, 0.01), NdotL) * (1.0 / M_PI);
 
 #elif defined(DIFFUSE_BURLEY)
 
