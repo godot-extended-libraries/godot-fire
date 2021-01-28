@@ -79,14 +79,14 @@ public:
 
 // TODO: always assumes little endian
 
-template <uint32_t SAMPLE_RATE, uint32_t CHANNEL_COUNT, uint32_t MILLISECONDS_PER_PACKET>
+template <uint32_t SAMPLE_RATE, uint32_t CHANNEL_COUNT>
 class OpusCodec {
 private:
 	static const uint32_t APPLICATION = OPUS_APPLICATION_VOIP;
 
-	static const int BUFFER_FRAME_COUNT = SAMPLE_RATE / MILLISECONDS_PER_PACKET;
+	static const int BUFFER_FRAME_COUNT = SAMPLE_RATE / 100; //MILLISECONDS_PER_PACKET;
 
-	static const int INTERNAL_BUFFER_SIZE = (3 * 1276);
+	static const int INTERNAL_BUFFER_SIZE = (100 * 3 * 1276);
 	unsigned char internal_buffer[INTERNAL_BUFFER_SIZE];
 
 	OpusEncoder *encoder = NULL;
@@ -143,6 +143,11 @@ public:
 	int encode_buffer(const PackedByteArray *p_pcm_buffer, PackedByteArray *p_output_buffer) {
 		int number_of_bytes = -1;
 
+		// The following line disables compression and sends data uncompressed.
+		// Combine it with a change in speech_decoder.h
+		memcpy(p_output_buffer->ptrw(), p_pcm_buffer->ptr() + 1, BUFFER_FRAME_COUNT * 2 - 1);
+		return BUFFER_FRAME_COUNT * 2 - 1;
+
 		if (encoder) {
 			const opus_int16 *pcm_buffer_pointer = reinterpret_cast<const opus_int16 *>(p_pcm_buffer->ptr());
 
@@ -180,8 +185,18 @@ public:
 		print_line("OpusCodec::OpusCodec");
 		int error = 0;
 		encoder = opus_encoder_create(SAMPLE_RATE, CHANNEL_COUNT, APPLICATION, &error);
+
 		if (error != OPUS_OK) {
 			ERR_PRINT("OpusCodec: could not create Opus encoder!");
+		}
+		// allowed half-sample-rate.
+		//error = opus_encoder_ctl(encoder, OPUS_SET_BANDWIDTH(OPUS_BANDWIDTH_FULLBAND)); //OPUS_AUTO));
+		if (error != OPUS_OK) {
+			print_opus_error(error);
+		}
+		//error = opus_encoder_ctl(encoder, OPUS_SET_BITRATE(512000));
+		if (error != OPUS_OK) {
+			print_opus_error(error);
 		}
 	}
 

@@ -90,7 +90,6 @@ void SpeechProcessor::_get_capture_block(AudioServer *p_audio_server,
 		const uint32_t &p_mix_frame_count,
 		const Vector2 *p_process_buffer_in,
 		float *p_process_buffer_out) {
-
 	for (size_t i = 0; i < p_mix_frame_count; i++) {
 		float mono = p_process_buffer_in[i].x * 0.5f + p_process_buffer_in[i].y * 0.5f;
 		p_process_buffer_out[i] = mono;
@@ -148,7 +147,7 @@ void SpeechProcessor::_mix_audio(const Vector2 *p_incoming_buffer) {
 
 			// Copy the remaining frames to the beginning of the buffer for the next around
 			if (remaining_resampled_buffer_frames > 0) {
-				memcpy(resampled_buffer_write_ptr, resampled_real_array_read_ptr + resampled_real_array_offset, static_cast<size_t>(remaining_resampled_buffer_frames) * sizeof(float));
+				memmove(resampled_buffer_write_ptr, resampled_real_array_read_ptr + resampled_real_array_offset, static_cast<size_t>(remaining_resampled_buffer_frames) * sizeof(float));
 			}
 			resampled_real_array_offset = remaining_resampled_buffer_frames;
 		}
@@ -161,7 +160,7 @@ void SpeechProcessor::start() {
 		return;
 	}
 
-	if (!audio_input_stream_player || !stream_audio) {
+	if (!audio_input_stream_player || !stream_audio.is_valid()) {
 		return;
 	}
 
@@ -260,9 +259,9 @@ void SpeechProcessor::set_streaming_bus(const String &p_name) {
 	if (index != -1) {
 		int effect_count = audio_server->get_bus_effect_count(index);
 		for (int i = 0; i < effect_count; i++) {
-			Ref<AudioEffectCapture> audio_effect_capture = audio_server->get_bus_effect(index, i);
+			audio_effect_capture = audio_server->get_bus_effect(index, i);
 			if (audio_effect_capture.is_valid()) {
-				stream_audio->initialize(audio_effect_capture, 1.5f);
+				stream_audio->initialize(audio_effect_capture, 0.25f);
 			}
 		}
 	}
@@ -280,7 +279,7 @@ bool SpeechProcessor::set_audio_input_stream_player(Node *p_audio_input_stream_p
 }
 
 void SpeechProcessor::_setup() {
-	stream_audio = memnew(AudioConsumer);
+	stream_audio.instance();
 }
 
 void SpeechProcessor::set_process_all(bool p_active) {
@@ -288,6 +287,16 @@ void SpeechProcessor::set_process_all(bool p_active) {
 	set_physics_process(p_active);
 	set_process_input(p_active);
 }
+
+void SpeechProcessor::_update_stats() {
+	//if (audio_effect_capture.is_valid()) {
+	//	capture_discarded_frames += audio_effect_capture->get_discarded_frames();
+	//	audio_effect_capture->get_ring_data_left();
+	//	audio_effect_capture->get_ring_size();
+	//	capture_pushed_frames += audio_effect_capture->get_pushed_frames();
+	//}
+}
+
 //void SpeechProcessor::_ready() {
 //	if (!Engine::get_singleton()->is_editor_hint()) {
 //		_setup();
@@ -296,7 +305,7 @@ void SpeechProcessor::set_process_all(bool p_active) {
 //		set_process_all(false);
 //	}
 //}
-
+//#include <stdio.h>
 void SpeechProcessor::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_READY:
@@ -318,13 +327,41 @@ void SpeechProcessor::_notification(int p_what) {
 			break;
 		case NOTIFICATION_PROCESS:
 			//if (!Engine::get_singleton()->is_editor_hint()) {
-			if (stream_audio && audio_input_stream_player && audio_input_stream_player->is_playing()) {
+			if (stream_audio.is_valid() && audio_input_stream_player && audio_input_stream_player->is_playing()) {
+				_update_stats();
 				// This is pretty ugly, but needed to keep the audio from going out of sync
 				while (true) {
 					PackedVector2Array audio_frames = stream_audio->get_buffer(RECORD_MIX_FRAMES);
 					if (audio_frames.size() == 0) {
 						break;
 					}
+					int len = audio_frames.size();
+					// Debugging code: hardcoded file; or sin wave.
+					/*
+					static FILE *fp = nullptr;
+					if (fp == nullptr) {
+						fp = fopen("C:\\Users\\crann\\Downloads\\MLKDream48k.wav", "rb");
+					}
+					for (int i = 0; i < len; i++) {
+						float time = (float)(double(i) / double(mix_rate));
+						float val = 0.2f * sin(2 * 3.14159265f * 12.0 * i / len); // fmod(1000.0f * time, 1.0f); // 3.14159265f *
+						//audio_frames.set(i, Vector2(val, val));
+						int a = fgetc(fp);
+						int b = fgetc(fp);
+						short c = ((a & 255) | ((b & 255) << 8));
+						val = ((float)c)/32768.0f;
+						audio_frames.set(i, Vector2(val, val));
+					}
+					*/
+					capture_get_calls++;
+					capture_get_frames += audio_frames.size();
+					capture_pushed_frames = audio_effect_capture->get_pushed_frames();
+					capture_discarded_frames = audio_effect_capture->get_discarded_frames();
+					capture_ring_limit = audio_effect_capture->get_ring_size();
+					capture_ring_current_size = audio_effect_capture->get_ring_data_left();
+					capture_ring_size_sum += capture_ring_current_size;
+					capture_ring_max_size = (capture_ring_current_size > capture_ring_max_size) ? capture_ring_current_size : capture_ring_max_size;
+
 					_mix_audio(audio_frames.ptrw());
 					record_mix_frames_processed++;
 				}
@@ -334,9 +371,32 @@ void SpeechProcessor::_notification(int p_what) {
 	}
 }
 
+Dictionary SpeechProcessor::get_stats() const {
+	Dictionary stats;
+	stats["capture_discarded_s"] = capture_discarded_frames / (double)mix_rate;
+	stats["capture_pushed_s"] = capture_pushed_frames / (double)mix_rate;
+	stats["capture_ring_limit_s"] = capture_ring_limit / (double)mix_rate;
+	stats["capture_ring_current_size_s"] = capture_ring_current_size / (double)mix_rate;
+	stats["capture_ring_max_size_s"] = capture_ring_max_size / (double)mix_rate;
+	stats["capture_ring_mean_size_s"] = ((double)capture_ring_size_sum) / ((double)capture_get_calls) / (double)mix_rate;
+	stats["capture_get_calls"] = capture_get_calls;
+	stats["capture_get_s"] = capture_get_frames / (double)mix_rate;
+	stats["capture_mix_rate"] = mix_rate;
+	return stats;
+}
+
 SpeechProcessor::SpeechProcessor() {
 	print_line(String("SpeechProcessor::SpeechProcessor"));
-	opus_codec = new OpusCodec<VOICE_SAMPLE_RATE, CHANNEL_COUNT, MILLISECONDS_PER_PACKET>();
+	opus_codec = new OpusCodec<VOICE_SAMPLE_RATE, CHANNEL_COUNT>();
+
+	capture_discarded_frames = 0;
+	capture_pushed_frames = 0;
+	capture_ring_limit = 0;
+	capture_ring_current_size = 0;
+	capture_ring_max_size = 0;
+	capture_ring_size_sum = 0;
+	capture_get_calls = 0;
+	capture_get_frames = 0;
 
 	mono_real_array.resize(RECORD_MIX_FRAMES);
 	resampled_real_array.resize(RECORD_MIX_FRAMES * RESAMPLED_BUFFER_FACTOR);

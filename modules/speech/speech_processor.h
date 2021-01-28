@@ -37,8 +37,8 @@
 #include "scene/main/node.h"
 #include "servers/audio_server.h"
 
-#include "servers/audio/effects/audio_effect_capture.h"
 #include "scene/audio/audio_consumer.h"
+#include "servers/audio/effects/audio_effect_capture.h"
 
 #include "scene/audio/audio_stream_player.h"
 #include "servers/audio/audio_stream.h"
@@ -59,20 +59,21 @@ class SpeechProcessor : public Node {
 public:
 	static const uint32_t VOICE_SAMPLE_RATE = 48000;
 	static const uint32_t CHANNEL_COUNT = 1;
-	static const uint32_t MILLISECONDS_PER_PACKET = 100;
-	static const uint32_t BUFFER_FRAME_COUNT = VOICE_SAMPLE_RATE / MILLISECONDS_PER_PACKET;
+	//static const uint32_t MILLISECONDS_PER_PACKET = 100;
+	static const uint32_t BUFFER_FRAME_COUNT = VOICE_SAMPLE_RATE / 100; //MILLISECONDS_PER_PACKET;
 	static const uint32_t BUFFER_BYTE_COUNT = sizeof(uint16_t);
 	static const uint32_t PCM_BUFFER_SIZE = BUFFER_FRAME_COUNT * BUFFER_BYTE_COUNT * CHANNEL_COUNT;
 
 private:
-	OpusCodec<VOICE_SAMPLE_RATE, CHANNEL_COUNT, MILLISECONDS_PER_PACKET> *opus_codec;
+	OpusCodec<VOICE_SAMPLE_RATE, CHANNEL_COUNT> *opus_codec;
 
 private:
 	uint32_t record_mix_frames_processed = 0;
 
 	AudioServer *audio_server = NULL;
-	AudioConsumer *stream_audio = NULL;
+	Ref<AudioConsumer> stream_audio = NULL;
 	AudioStreamPlayer *audio_input_stream_player = NULL;
+	Ref<AudioEffectCapture> audio_effect_capture = NULL;
 
 	uint32_t mix_rate;
 	PackedByteArray mix_byte_array;
@@ -86,6 +87,15 @@ private:
 	// LibResample
 	SRC_STATE *libresample_state;
 	int libresample_error;
+
+	int64_t capture_discarded_frames;
+	int64_t capture_pushed_frames;
+	int32_t capture_ring_limit;
+	int32_t capture_ring_current_size;
+	int32_t capture_ring_max_size;
+	int64_t capture_ring_size_sum;
+	int32_t capture_get_calls;
+	int64_t capture_get_frames;
 
 public:
 	struct SpeechInput {
@@ -169,7 +179,10 @@ public:
 
 	void set_process_all(bool p_active);
 
+	Dictionary get_stats() const;
+
 	void _setup();
+	void _update_stats();
 
 	void _notification(int p_what);
 

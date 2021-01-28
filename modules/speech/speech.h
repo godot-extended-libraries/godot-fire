@@ -151,6 +151,7 @@ public:
 
 		ClassDB::bind_method(D_METHOD("copy_and_clear_buffers"), &Speech::copy_and_clear_buffers);
 		ClassDB::bind_method(D_METHOD("get_speech_decoder"), &Speech::get_speech_decoder);
+		ClassDB::bind_method(D_METHOD("get_stats"), &Speech::get_stats);
 
 		ClassDB::bind_method(D_METHOD("start_recording"), &Speech::start_recording);
 		ClassDB::bind_method(D_METHOD("end_recording"), &Speech::end_recording);
@@ -274,6 +275,13 @@ public:
 		}
 		speech_processor->set_audio_input_stream_player(player);
 		return true;
+	}
+
+	Dictionary get_stats() {
+		if (speech_processor) {
+			return speech_processor->get_stats();
+		}
+		return Dictionary();
 	}
 
 	Speech() {
