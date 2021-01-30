@@ -75,6 +75,7 @@
 #include "scene/animation/animation_tree.h"
 #include "scene/animation/root_motion_view.h"
 #include "scene/animation/tween.h"
+#include "scene/audio/audio_consumer.h"
 #include "scene/audio/audio_stream_player.h"
 #include "scene/debugger/scene_debugger.h"
 #include "scene/gui/aspect_ratio_container.h"
@@ -790,6 +791,7 @@ void register_scene_types() {
 #ifndef _3D_DISABLED
 	ClassDB::register_class<AudioStreamPlayer3D>();
 #endif
+	ClassDB::register_class<AudioConsumer>();
 	ClassDB::register_virtual_class<VideoStream>();
 	ClassDB::register_class<AudioStreamSample>();
 

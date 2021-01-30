@@ -197,6 +197,8 @@ void AudioStreamGeneratorPlayback::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("push_buffer", "frames"), &AudioStreamGeneratorPlayback::push_buffer);
 	ClassDB::bind_method(D_METHOD("get_frames_available"), &AudioStreamGeneratorPlayback::get_frames_available);
 	ClassDB::bind_method(D_METHOD("get_skips"), &AudioStreamGeneratorPlayback::get_skips);
+	ClassDB::bind_method(D_METHOD("get_playback_position"), &AudioStreamGeneratorPlayback::get_playback_position);
+	ClassDB::bind_method(D_METHOD("is_playing"), &AudioStreamGeneratorPlayback::is_playing);
 	ClassDB::bind_method(D_METHOD("clear_buffer"), &AudioStreamGeneratorPlayback::clear_buffer);
 }
 
