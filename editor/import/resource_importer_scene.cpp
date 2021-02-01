@@ -1129,6 +1129,7 @@ void ResourceImporterScene::get_import_options(List<ImportOption> *r_options, in
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/ensure_tangents"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "meshes/storage", PROPERTY_HINT_ENUM, "Built-In,Files (.mesh),Files (.tres)"), meshes_out ? 1 : 0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/generate_lods"), true));
+	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/process_mesh"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/create_shadow_meshes"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "meshes/light_baking", PROPERTY_HINT_ENUM, "Disabled,Enable,Gen Lightmaps", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), 0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "meshes/lightmap_texel_size", PROPERTY_HINT_RANGE, "0.001,100,0.001"), 0.1));
@@ -1222,7 +1223,7 @@ Ref<Animation> ResourceImporterScene::import_animation_from_other_importer(Edito
 	return importer->import_animation(p_path, p_flags, p_bake_fps);
 }
 
-void ResourceImporterScene::_generate_meshes(Node *p_node, bool p_generate_lods, bool p_create_shadow_meshes) {
+void ResourceImporterScene::_generate_meshes(Node *p_node, bool p_generate_lods, bool p_create_shadow_meshes, bool p_process_mesh_lods) {
 	EditorSceneImporterMeshNode3D *src_mesh_node = Object::cast_to<EditorSceneImporterMeshNode3D>(p_node);
 	if (src_mesh_node) {
 		//is mesh
@@ -1235,6 +1236,9 @@ void ResourceImporterScene::_generate_meshes(Node *p_node, bool p_generate_lods,
 			Ref<ArrayMesh> mesh;
 			if (!src_mesh_node->get_mesh()->has_mesh()) {
 				//do mesh processing
+				if (process_mesh_lods) {								
+					src_mesh_node->get_mesh()->process_mesh();
+				}
 				if (p_generate_lods) {
 					src_mesh_node->get_mesh()->generate_lods();
 				}
@@ -1353,9 +1357,10 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 	}
 
 	bool gen_lods = bool(p_options["meshes/generate_lods"]);
+	bool process_mesh_lods = bool(p_options["meshes/process_mesh"]);
 	bool create_shadow_meshes = bool(p_options["meshes/create_shadow_meshes"]);
 
-	_generate_meshes(scene, gen_lods, create_shadow_meshes);
+	_generate_meshes(scene, gen_lods, create_shadow_meshes, process_mesh_lods);
 
 	err = OK;
 
