@@ -30,13 +30,13 @@
 
 #include "servers/visual/shader_language.h"
 #include "core/engine.h"
+#include "core/io/resource_loader.h"
 #include "core/os/os.h"
 #include "core/print_string.h"
-#include "servers/visual_server.h"
-#include "core/io/resource_loader.h"
-#include "servers/visual/shader_language.h"
-#include "servers/visual/rasterizer.h"
 #include "scene/resources/shader.h"
+#include "servers/visual/rasterizer.h"
+#include "servers/visual/shader_language.h"
+#include "servers/visual_server.h"
 
 static bool _is_text_char(CharType c) {
 
@@ -4879,7 +4879,7 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 
 	int texture_uniforms = 0;
 	int uniforms = 0;
-	
+
 	Set<String> includes;
 	int include_depth = 0;
 
@@ -4907,9 +4907,9 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 					return ERR_PARSE_ERROR;
 				}
 
-				String replacement = String("import \"") + tk.text +  String("\"");
+				String replacement = String("import \"") + tk.text + String("\"");
 				String empty;
-				for(int i = 0; i < replacement.size(); i++) {
+				for (int i = 0; i < replacement.size(); i++) {
 					empty += " ";
 				}
 				code = code.replace_first(replacement, empty);
