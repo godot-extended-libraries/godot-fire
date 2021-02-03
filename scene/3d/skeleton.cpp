@@ -852,6 +852,16 @@ Ref<SkinReference> Skeleton::register_skin(const Ref<Skin> &p_skin) {
 	return skin_ref;
 }
 
+void Skeleton::set_selected_bone(int p_bone) {
+	selected_bone = p_bone;
+	update_gizmo();
+	return;
+}
+
+int Skeleton::get_selected_bone() const {
+	return selected_bone;
+}
+
 void Skeleton::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("add_bone", "name"), &Skeleton::add_bone);
@@ -902,6 +912,7 @@ void Skeleton::_bind_methods() {
 
 #ifdef TOOLS_ENABLED
 	ADD_SIGNAL(MethodInfo("pose_updated"));
+	ADD_SIGNAL(MethodInfo("skeleton_updated"));
 #endif // TOOLS_ENABLED
 
 	BIND_CONSTANT(NOTIFICATION_UPDATE_SKELETON);

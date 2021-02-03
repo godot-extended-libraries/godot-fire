@@ -144,6 +144,8 @@ private:
 
 	void _update_process_order();
 
+	int selected_bone = -1;
+
 protected:
 	bool _get(const StringName &p_path, Variant &r_ret) const;
 	bool _set(const StringName &p_path, const Variant &p_value);
@@ -203,6 +205,9 @@ public:
 	Vector<int> get_bone_process_order();
 
 	Ref<SkinReference> register_skin(const Ref<Skin> &p_skin);
+
+	void set_selected_bone(int p_bone);
+	int get_selected_bone() const;
 
 #ifndef _3D_DISABLED
 	// Physical bone API
