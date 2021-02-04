@@ -36,14 +36,13 @@
 #include "core/method_bind_ext.gen.inc"
 #include "core/object.h"
 #include "core/rid.h"
+#include "scene/3d/collision_shape.h"
 #include "scene/scene_string_names.h"
+#include "servers/navigation_server.h"
 
 #ifdef TOOLS_ENABLED
 #include "editor/plugins/spatial_editor_plugin.h"
 #endif
-
-void PhysicsBody::_notification(int p_what) {
-}
 
 Vector3 PhysicsBody::get_linear_velocity() const {
 
@@ -1112,6 +1111,14 @@ Ref<KinematicCollision> KinematicBody::_move(const Vector3 &p_motion, bool p_inf
 	return Ref<KinematicCollision>();
 }
 
+Vector3 KinematicBody::get_linear_velocity() const {
+	return linear_velocity;
+}
+
+Vector3 KinematicBody::get_angular_velocity() const {
+	return angular_velocity;
+}
+
 bool KinematicBody::move_and_collide(const Vector3 &p_motion, bool p_infinite_inertia, Collision &r_collision, bool p_exclude_raycast_shapes, bool p_test_only) {
 
 	Transform gt = get_global_transform();
@@ -1409,6 +1416,8 @@ void KinematicBody::_notification(int p_what) {
 
 void KinematicBody::_bind_methods() {
 
+	ClassDB::bind_method(D_METHOD("_direct_state_changed"), &KinematicBody::_direct_state_changed);
+
 	ClassDB::bind_method(D_METHOD("move_and_collide", "rel_vec", "infinite_inertia", "exclude_raycast_shapes", "test_only"), &KinematicBody::_move, DEFVAL(true), DEFVAL(true), DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("move_and_slide", "linear_velocity", "up_direction", "stop_on_slope", "max_slides", "floor_max_angle", "infinite_inertia"), &KinematicBody::move_and_slide, DEFVAL(Vector3(0, 0, 0)), DEFVAL(false), DEFVAL(4), DEFVAL(Math::deg2rad((float)45)), DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("move_and_slide_with_snap", "linear_velocity", "snap", "up_direction", "stop_on_slope", "max_slides", "floor_max_angle", "infinite_inertia"), &KinematicBody::move_and_slide_with_snap, DEFVAL(Vector3(0, 0, 0)), DEFVAL(false), DEFVAL(4), DEFVAL(Math::deg2rad((float)45)), DEFVAL(true));
@@ -1437,6 +1446,17 @@ void KinematicBody::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "collision/safe_margin", PROPERTY_HINT_RANGE, "0.001,256,0.001"), "set_safe_margin", "get_safe_margin");
 }
 
+void KinematicBody::_direct_state_changed(Object *p_state) {
+#ifdef DEBUG_ENABLED
+	PhysicsDirectBodyState *state = Object::cast_to<PhysicsDirectBodyState>(p_state);
+#else
+	PhysicsDirectBodyState *state = (PhysicsDirectBodyState *)p_state; //trust it
+#endif
+
+	linear_velocity = state->get_linear_velocity();
+	angular_velocity = state->get_angular_velocity();
+}
+
 KinematicBody::KinematicBody() :
 		PhysicsBody(PhysicsServer::BODY_MODE_KINEMATIC) {
 	locked_axis = 0;
@@ -1444,7 +1464,7 @@ KinematicBody::KinematicBody() :
 	on_ceiling = false;
 	on_wall = false;
 
-	set_safe_margin(0.001);
+	PhysicsServer::get_singleton()->body_set_force_integration_callback(get_rid(), this, "_direct_state_changed");
 }
 
 KinematicBody::~KinematicBody() {
