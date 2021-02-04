@@ -254,6 +254,10 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme = 
 				icon_scale = 1.0f;
 			}
 
+			if (strcmp(editor_icons_names[i], "EditorBoneHandle") == 0) {
+				icon_scale *= 2.0f;
+			}
+
 			const int is_exception = exceptions.has(editor_icons_names[i]);
 			const Ref<ImageTexture> icon = editor_generate_icon(i, !is_exception, icon_scale);
 
