@@ -617,10 +617,10 @@ int EditorPlugin::update_overlays() const {
 	}
 }
 
-bool EditorPlugin::forward_spatial_gui_input(Camera *p_camera, const Ref<InputEvent> &p_event) {
+bool EditorPlugin::forward_spatial_gui_input(int p_index, Camera *p_camera, const Ref<InputEvent> &p_event) {
 
 	if (get_script_instance() && get_script_instance()->has_method("forward_spatial_gui_input")) {
-		return get_script_instance()->call("forward_spatial_gui_input", p_camera, p_event);
+		return get_script_instance()->call("forward_spatial_gui_input", p_index, p_camera, p_event);
 	}
 
 	return false;

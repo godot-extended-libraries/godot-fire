@@ -515,6 +515,8 @@ public:
 	void insert_value_key(const String &p_property, const Variant &p_value, bool p_advance);
 	void insert_transform_key(Spatial *p_node, const String &p_sub, const Transform &p_xform);
 
+	bool has_transform_key(Spatial *p_node, const String &p_sub);
+
 	void show_select_node_warning(bool p_show);
 
 	bool is_key_selected(int p_track, int p_key) const;

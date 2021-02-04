@@ -213,6 +213,7 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme = 
 		exceptions.insert("EditorPivot");
 		exceptions.insert("EditorHandle");
 		exceptions.insert("Editor3DHandle");
+		exceptions.insert("EditorBoneHandle");
 		exceptions.insert("Godot");
 		exceptions.insert("PanoramaSky");
 		exceptions.insert("ProceduralSky");
@@ -251,6 +252,10 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme = 
 			// Always keep the DefaultProjectIcon at the default size
 			if (strcmp(editor_icons_names[i], "DefaultProjectIcon") == 0) {
 				icon_scale = 1.0f;
+			}
+
+			if (strcmp(editor_icons_names[i], "EditorBoneHandle") == 0) {
+				icon_scale *= 2.0f;
 			}
 
 			const int is_exception = exceptions.has(editor_icons_names[i]);

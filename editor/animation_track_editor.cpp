@@ -3562,6 +3562,26 @@ void AnimationTrackEditor::_insert_delay() {
 	insert_queue = false;
 }
 
+bool AnimationTrackEditor::has_transform_key(Spatial *p_node, const String &p_sub) {
+
+	if (!keying)
+		return false;
+	if (!animation.is_valid())
+		return false;
+	if (!root)
+		return false;
+
+	//let's build a node path
+	String path = root->get_path_to(p_node);
+	if (p_sub != "")
+		path += ":" + p_sub;
+
+	if (animation->find_track(path) >= 0) {
+		return true;
+	}
+	return false;
+}
+
 void AnimationTrackEditor::insert_transform_key(Spatial *p_node, const String &p_sub, const Transform &p_xform) {
 
 	if (!keying)

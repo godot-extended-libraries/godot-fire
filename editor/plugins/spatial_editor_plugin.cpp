@@ -422,18 +422,15 @@ Point2 SpatialEditorViewport::_point_to_screen(const Vector3 &p_point) {
 	return camera->unproject_position(p_point) * viewport_container->get_stretch_shrink();
 }
 
-Vector3 SpatialEditorViewport::_get_ray_pos(const Vector2 &p_pos) const {
-
+Vector3 SpatialEditorViewport::get_ray_pos(const Vector2 &p_pos) const {
 	return camera->project_ray_origin(p_pos / viewport_container->get_stretch_shrink());
 }
 
-Vector3 SpatialEditorViewport::_get_camera_normal() const {
-
+Vector3 SpatialEditorViewport::get_camera_normal() const {
 	return -_get_camera_transform().basis.get_axis(2);
 }
 
-Vector3 SpatialEditorViewport::_get_ray(const Vector2 &p_pos) const {
-
+Vector3 SpatialEditorViewport::get_ray(const Vector2 &p_pos) const {
 	return camera->project_ray_normal(p_pos / viewport_container->get_stretch_shrink());
 }
 
@@ -490,8 +487,8 @@ ObjectID SpatialEditorViewport::_select_ray(const Point2 &p_pos, bool p_append, 
 	if (r_gizmo_handle)
 		*r_gizmo_handle = -1;
 
-	Vector3 ray = _get_ray(p_pos);
-	Vector3 pos = _get_ray_pos(p_pos);
+	Vector3 ray = get_ray(p_pos);
+	Vector3 pos = get_ray_pos(p_pos);
 	Vector2 shrinked_pos = p_pos / viewport_container->get_stretch_shrink();
 
 	Vector<ObjectID> instances = VisualServer::get_singleton()->instances_cull_ray(pos, ray, get_tree()->get_root()->get_world()->get_scenario());
@@ -558,8 +555,8 @@ ObjectID SpatialEditorViewport::_select_ray(const Point2 &p_pos, bool p_append, 
 
 void SpatialEditorViewport::_find_items_at_pos(const Point2 &p_pos, bool &r_includes_current, Vector<_RayResult> &results, bool p_alt_select) {
 
-	Vector3 ray = _get_ray(p_pos);
-	Vector3 pos = _get_ray_pos(p_pos);
+	Vector3 ray = get_ray(p_pos);
+	Vector3 pos = get_ray_pos(p_pos);
 
 	Vector<ObjectID> instances = VisualServer::get_singleton()->instances_cull_ray(pos, ray, get_tree()->get_root()->get_world()->get_scenario());
 	Set<Ref<EditorSpatialGizmo> > found_gizmos;
@@ -672,7 +669,7 @@ void SpatialEditorViewport::_select_region() {
 		}
 	}
 
-	Plane near(cam_pos, -_get_camera_normal());
+	Plane near(cam_pos, -get_camera_normal());
 	near.d -= get_znear();
 	frustum.push_back(near);
 
@@ -747,8 +744,8 @@ void SpatialEditorViewport::_update_name() {
 
 void SpatialEditorViewport::_compute_edit(const Point2 &p_point) {
 
-	_edit.click_ray = _get_ray(Vector2(p_point.x, p_point.y));
-	_edit.click_ray_pos = _get_ray_pos(Vector2(p_point.x, p_point.y));
+	_edit.click_ray = get_ray(Vector2(p_point.x, p_point.y));
+	_edit.click_ray_pos = get_ray_pos(Vector2(p_point.x, p_point.y));
 	_edit.plane = TRANSFORM_VIEW;
 	spatial_editor->update_transform_gizmo();
 	_edit.center = spatial_editor->get_gizmo_transform().origin;
@@ -805,8 +802,8 @@ bool SpatialEditorViewport::_gizmo_select(const Vector2 &p_screenpos, bool p_hig
 		return false;
 	}
 
-	Vector3 ray_pos = _get_ray_pos(Vector2(p_screenpos.x, p_screenpos.y));
-	Vector3 ray = _get_ray(Vector2(p_screenpos.x, p_screenpos.y));
+	Vector3 ray_pos = get_ray_pos(Vector2(p_screenpos.x, p_screenpos.y));
+	Vector3 ray = get_ray(Vector2(p_screenpos.x, p_screenpos.y));
 
 	Transform gt = spatial_editor->get_gizmo_transform();
 	float gs = gizmo_scale;
@@ -989,7 +986,7 @@ bool SpatialEditorViewport::_gizmo_select(const Vector2 &p_screenpos, bool p_hig
 		}
 	}
 
-	if (p_highlight_only)
+	if (p_highlight_only && spatial_editor->get_tool_mode() != SpatialEditor::TOOL_MODE_EXTERNAL)
 		spatial_editor->select_gizmo_highlight_axis(-1);
 
 	return false;
@@ -1078,7 +1075,7 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 		EditorNode *en = editor;
 		EditorPluginList *force_input_forwarding_list = en->get_editor_plugins_force_input_forwarding();
 		if (!force_input_forwarding_list->empty()) {
-			bool discard = force_input_forwarding_list->forward_spatial_gui_input(camera, p_event, true);
+			bool discard = force_input_forwarding_list->forward_spatial_gui_input(index, camera, p_event, true);
 			if (discard)
 				return;
 		}
@@ -1087,7 +1084,7 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 		EditorNode *en = editor;
 		EditorPluginList *over_plugin_list = en->get_editor_plugins_over();
 		if (!over_plugin_list->empty()) {
-			bool discard = over_plugin_list->forward_spatial_gui_input(camera, p_event, false);
+			bool discard = over_plugin_list->forward_spatial_gui_input(index, camera, p_event, false);
 			if (discard)
 				return;
 		}
@@ -1469,8 +1466,8 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 				if (_edit.mode == TRANSFORM_NONE)
 					return;
 
-				Vector3 ray_pos = _get_ray_pos(m->get_position());
-				Vector3 ray = _get_ray(m->get_position());
+				Vector3 ray_pos = get_ray_pos(m->get_position());
+				Vector3 ray = get_ray(m->get_position());
 				float snap = EDITOR_GET("interface/inspector/default_float_step");
 				int snap_step_decimals = Math::range_step_decimals(snap);
 
@@ -1485,19 +1482,19 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 						switch (_edit.plane) {
 							case TRANSFORM_VIEW:
 								motion_mask = Vector3(0, 0, 0);
-								plane = Plane(_edit.center, _get_camera_normal());
+								plane = Plane(_edit.center, get_camera_normal());
 								break;
 							case TRANSFORM_X_AXIS:
 								motion_mask = spatial_editor->get_gizmo_transform().basis.get_axis(0);
-								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(_get_camera_normal())).normalized());
+								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(get_camera_normal())).normalized());
 								break;
 							case TRANSFORM_Y_AXIS:
 								motion_mask = spatial_editor->get_gizmo_transform().basis.get_axis(1);
-								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(_get_camera_normal())).normalized());
+								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(get_camera_normal())).normalized());
 								break;
 							case TRANSFORM_Z_AXIS:
 								motion_mask = spatial_editor->get_gizmo_transform().basis.get_axis(2);
-								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(_get_camera_normal())).normalized());
+								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(get_camera_normal())).normalized());
 								break;
 							case TRANSFORM_YZ:
 								motion_mask = spatial_editor->get_gizmo_transform().basis.get_axis(2) + spatial_editor->get_gizmo_transform().basis.get_axis(1);
@@ -1632,19 +1629,19 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 
 						switch (_edit.plane) {
 							case TRANSFORM_VIEW:
-								plane = Plane(_edit.center, _get_camera_normal());
+								plane = Plane(_edit.center, get_camera_normal());
 								break;
 							case TRANSFORM_X_AXIS:
 								motion_mask = spatial_editor->get_gizmo_transform().basis.get_axis(0);
-								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(_get_camera_normal())).normalized());
+								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(get_camera_normal())).normalized());
 								break;
 							case TRANSFORM_Y_AXIS:
 								motion_mask = spatial_editor->get_gizmo_transform().basis.get_axis(1);
-								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(_get_camera_normal())).normalized());
+								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(get_camera_normal())).normalized());
 								break;
 							case TRANSFORM_Z_AXIS:
 								motion_mask = spatial_editor->get_gizmo_transform().basis.get_axis(2);
-								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(_get_camera_normal())).normalized());
+								plane = Plane(_edit.center, motion_mask.cross(motion_mask.cross(get_camera_normal())).normalized());
 								break;
 							case TRANSFORM_YZ:
 								plane = Plane(_edit.center, spatial_editor->get_gizmo_transform().basis.get_axis(0));
@@ -1741,7 +1738,7 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 
 						switch (_edit.plane) {
 							case TRANSFORM_VIEW:
-								plane = Plane(_edit.center, _get_camera_normal());
+								plane = Plane(_edit.center, get_camera_normal());
 								break;
 							case TRANSFORM_X_AXIS:
 								plane = Plane(_edit.center, spatial_editor->get_gizmo_transform().basis.get_axis(0));
@@ -3222,7 +3219,6 @@ void SpatialEditorViewport::update_transform_gizmo_view() {
 		return;
 
 	Transform xform = spatial_editor->get_gizmo_transform();
-
 	Transform camera_xform = camera->get_transform();
 
 	if (xform.origin.distance_squared_to(camera_xform.origin) < 0.01) {
@@ -3261,17 +3257,32 @@ void SpatialEditorViewport::update_transform_gizmo_view() {
 
 	xform.basis.scale(scale);
 
-	for (int i = 0; i < 3; i++) {
-		VisualServer::get_singleton()->instance_set_transform(move_gizmo_instance[i], xform);
-		VisualServer::get_singleton()->instance_set_visible(move_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SELECT || spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_MOVE));
-		VisualServer::get_singleton()->instance_set_transform(move_plane_gizmo_instance[i], xform);
-		VisualServer::get_singleton()->instance_set_visible(move_plane_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SELECT || spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_MOVE));
-		VisualServer::get_singleton()->instance_set_transform(rotate_gizmo_instance[i], xform);
-		VisualServer::get_singleton()->instance_set_visible(rotate_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SELECT || spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_ROTATE));
-		VisualServer::get_singleton()->instance_set_transform(scale_gizmo_instance[i], xform);
-		VisualServer::get_singleton()->instance_set_visible(scale_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SCALE));
-		VisualServer::get_singleton()->instance_set_transform(scale_plane_gizmo_instance[i], xform);
-		VisualServer::get_singleton()->instance_set_visible(scale_plane_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SCALE));
+	if (spatial_editor->is_tool_external()) {
+		for (int i = 0; i < 3; i++) {
+			VisualServer::get_singleton()->instance_set_transform(move_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(move_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_external_tool_mode() == SpatialEditor::EX_TOOL_MODE_SELECT || spatial_editor->get_external_tool_mode() == SpatialEditor::EX_TOOL_MODE_MOVE));
+			VisualServer::get_singleton()->instance_set_transform(move_plane_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(move_plane_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_external_tool_mode() == SpatialEditor::EX_TOOL_MODE_SELECT || spatial_editor->get_external_tool_mode() == SpatialEditor::EX_TOOL_MODE_MOVE));
+			VisualServer::get_singleton()->instance_set_transform(rotate_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(rotate_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_external_tool_mode() == SpatialEditor::EX_TOOL_MODE_SELECT || spatial_editor->get_external_tool_mode() == SpatialEditor::EX_TOOL_MODE_ROTATE));
+			VisualServer::get_singleton()->instance_set_transform(scale_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(scale_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_external_tool_mode() == SpatialEditor::EX_TOOL_MODE_SCALE));
+			VisualServer::get_singleton()->instance_set_transform(scale_plane_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(scale_plane_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_external_tool_mode() == SpatialEditor::EX_TOOL_MODE_SCALE));
+		}
+	} else {
+		for (int i = 0; i < 3; i++) {
+			VisualServer::get_singleton()->instance_set_transform(move_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(move_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SELECT || spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_MOVE));
+			VisualServer::get_singleton()->instance_set_transform(move_plane_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(move_plane_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SELECT || spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_MOVE));
+			VisualServer::get_singleton()->instance_set_transform(rotate_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(rotate_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SELECT || spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_ROTATE));
+			VisualServer::get_singleton()->instance_set_transform(scale_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(scale_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SCALE));
+			VisualServer::get_singleton()->instance_set_transform(scale_plane_gizmo_instance[i], xform);
+			VisualServer::get_singleton()->instance_set_visible(scale_plane_gizmo_instance[i], spatial_editor->is_gizmo_visible() && (spatial_editor->get_tool_mode() == SpatialEditor::TOOL_MODE_SCALE));
+		}
 	}
 	// Rotation white outline
 	VisualServer::get_singleton()->instance_set_transform(rotate_gizmo_instance[3], xform);
@@ -3505,8 +3516,8 @@ void SpatialEditorViewport::assign_pending_data_pointers(Spatial *p_preview_node
 Vector3 SpatialEditorViewport::_get_instance_position(const Point2 &p_pos) const {
 	const float MAX_DISTANCE = 10;
 
-	Vector3 world_ray = _get_ray(p_pos);
-	Vector3 world_pos = _get_ray_pos(p_pos);
+	Vector3 world_ray = get_ray(p_pos);
+	Vector3 world_pos = get_ray_pos(p_pos);
 
 	Vector<ObjectID> instances = VisualServer::get_singleton()->instances_cull_ray(world_pos, world_ray, get_tree()->get_root()->get_world()->get_scenario());
 	Set<Ref<EditorSpatialGizmo> > found_gizmos;
@@ -4417,42 +4428,60 @@ void SpatialEditor::select_gizmo_highlight_axis(int p_axis) {
 
 void SpatialEditor::update_transform_gizmo() {
 
-	List<Node *> &selection = editor_selection->get_selected_node_list();
 	AABB center;
 	bool first = true;
 
 	Basis gizmo_basis;
 	bool local_gizmo_coords = are_local_coords_enabled();
 
-	for (List<Node *>::Element *E = selection.front(); E; E = E->next()) {
-
-		Spatial *sp = Object::cast_to<Spatial>(E->get());
-		if (!sp)
-			continue;
-
-		SpatialEditorSelectedItem *se = editor_selection->get_node_editor_data<SpatialEditorSelectedItem>(sp);
-		if (!se)
-			continue;
-
-		Transform xf = se->sp->get_global_gizmo_transform();
-
-		if (first) {
-			center.position = xf.origin;
-			first = false;
-			if (local_gizmo_coords) {
-				gizmo_basis = xf.basis;
-				gizmo_basis.orthonormalize();
+	if (is_tool_external()) {
+		Vector<Transform> transforms = get_externals();
+		for (int i=0; i < transforms.size(); i++) {
+			Transform xf = transforms[i];
+			if (first) {
+				center.position = xf.origin;
+				first = false;
+				if (local_gizmo_coords) {
+					gizmo_basis = xf.basis;
+					gizmo_basis.orthonormalize();
+				}
+			} else {
+				center.expand_to(xf.origin);
+				gizmo_basis = Basis();
 			}
-		} else {
-			center.expand_to(xf.origin);
-			gizmo_basis = Basis();
+		}
+	} else {
+		List<Node *> &selection = editor_selection->get_selected_node_list();
+		for (List<Node *>::Element *E = selection.front(); E; E = E->next()) {
+
+			Spatial *sp = Object::cast_to<Spatial>(E->get());
+			if (!sp)
+				continue;
+
+			SpatialEditorSelectedItem *se = editor_selection->get_node_editor_data<SpatialEditorSelectedItem>(sp);
+			if (!se)
+				continue;
+
+			Transform xf = se->sp->get_global_gizmo_transform();
+
+			if (first) {
+				center.position = xf.origin;
+				first = false;
+				if (local_gizmo_coords) {
+					gizmo_basis = xf.basis;
+					gizmo_basis.orthonormalize();
+				}
+			} else {
+				center.expand_to(xf.origin);
+				gizmo_basis = Basis();
+			}
 		}
 	}
 
 	Vector3 pcenter = center.position + center.size * 0.5;
-	gizmo.visible = !first;
 	gizmo.transform.origin = pcenter;
 	gizmo.transform.basis = gizmo_basis;
+	gizmo.visible = !first;
 
 	for (uint32_t i = 0; i < VIEWPORTS_COUNT; i++) {
 		viewports[i]->update_transform_gizmo_view();
@@ -4887,12 +4916,15 @@ void SpatialEditor::_menu_item_pressed(int p_option) {
 		case MENU_TOOL_MOVE:
 		case MENU_TOOL_ROTATE:
 		case MENU_TOOL_SCALE:
-		case MENU_TOOL_LIST_SELECT: {
-
-			for (int i = 0; i < TOOL_MAX; i++)
+		case MENU_TOOL_LIST_SELECT:
+		case MENU_TOOL_EXTERNAL: {
+			for (int i = 0; i < TOOL_MAX; i++) {
 				tool_button[i]->set_pressed(i == p_option);
+			}
 			tool_mode = (ToolMode)p_option;
+			clear_externals();
 			update_transform_gizmo();
+			emit_signal("change_tool_mode");
 
 		} break;
 		case MENU_TRANSFORM_CONFIGURE_SNAP: {
@@ -6240,6 +6272,7 @@ void SpatialEditor::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("transform_key_request"));
 	ADD_SIGNAL(MethodInfo("item_lock_status_changed"));
 	ADD_SIGNAL(MethodInfo("item_group_status_changed"));
+	ADD_SIGNAL(MethodInfo("change_tool_mode"));
 }
 
 void SpatialEditor::clear() {
@@ -6267,6 +6300,10 @@ void SpatialEditor::clear() {
 	}
 
 	view_menu->get_popup()->set_item_checked(view_menu->get_popup()->get_item_index(MENU_VIEW_GRID), true);
+}
+
+Vector3 SpatialEditorViewport::_get_camera_normal() const {
+	return -_get_camera_transform().basis.get_axis(2);
 }
 
 SpatialEditor::SpatialEditor(EditorNode *p_editor) {
@@ -6332,6 +6369,10 @@ SpatialEditor::SpatialEditor(EditorNode *p_editor) {
 	button_binds.write[0] = MENU_TOOL_SCALE;
 	tool_button[TOOL_MODE_SCALE]->connect("pressed", this, "_menu_item_pressed", button_binds);
 	tool_button[TOOL_MODE_SCALE]->set_shortcut(ED_SHORTCUT("spatial_editor/tool_scale", TTR("Scale Mode"), KEY_R));
+
+	tool_button[TOOL_MODE_EXTERNAL] = memnew(ToolButton);
+	button_binds.write[0] = MENU_TOOL_EXTERNAL;
+	tool_button[TOOL_MODE_EXTERNAL]->connect("pressed", this, "_menu_item_pressed", button_binds);
 
 	hbc_menu->add_child(memnew(VSeparator));
 
@@ -6630,6 +6671,10 @@ SpatialEditor::SpatialEditor(EditorNode *p_editor) {
 
 SpatialEditor::~SpatialEditor() {
 	memdelete(preview_node);
+}
+
+void SpatialEditor::set_tool_mode(ToolMode p_tool_mode) {
+	_menu_item_pressed(p_tool_mode);
 }
 
 void SpatialEditorPlugin::make_visible(bool p_visible) {

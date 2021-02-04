@@ -292,7 +292,7 @@ PathSpatialGizmo::PathSpatialGizmo(Path *p_path) {
 	set_spatial_node(p_path);
 }
 
-bool PathEditorPlugin::forward_spatial_gui_input(Camera *p_camera, const Ref<InputEvent> &p_event) {
+bool PathEditorPlugin::forward_spatial_gui_input(int p_index, Camera *p_camera, const Ref<InputEvent> &p_event) {
 
 	if (!path)
 		return false;

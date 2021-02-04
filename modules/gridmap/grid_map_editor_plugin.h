@@ -261,7 +261,7 @@ protected:
 	void _notification(int p_what);
 
 public:
-	virtual bool forward_spatial_gui_input(Camera *p_camera, const Ref<InputEvent> &p_event) { return grid_map_editor->forward_spatial_input_event(p_camera, p_event); }
+	virtual bool forward_spatial_gui_input(int p_index, Camera *p_camera, const Ref<InputEvent> &p_event) { return grid_map_editor->forward_spatial_input_event(p_camera, p_event); }
 	virtual String get_name() const { return "GridMap"; }
 	bool has_main_screen() const { return false; }
 	virtual void edit(Object *p_object);
