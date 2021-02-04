@@ -32,8 +32,10 @@
 #define RESOURCEIMPORTERSCENE_H
 
 #include "core/io/resource_importer.h"
+#include "scene/3d/bone_attachment.h"
 #include "scene/3d/mesh_instance.h"
 #include "scene/3d/skeleton.h"
+#include "scene/animation/animation_player.h"
 #include "scene/resources/animation.h"
 #include "scene/resources/mesh.h"
 #include "scene/resources/shape.h"
@@ -133,7 +135,6 @@ public:
 		int parent_index;
 		Vector<int> children;
 	};
-
 private:
 	void _fix_meshes(Map<int, ResourceImporterScene::RestBone> &r_rest_bones, Vector<MeshInstance *> p_meshes);
 	void _fix_skeleton(Skeleton *p_skeleton, Map<int, ResourceImporterScene::RestBone> &r_rest_bones);
@@ -141,6 +142,12 @@ private:
 	Transform get_bone_global_transform(int p_id, Skeleton *p_skeleton, Vector<Vector<Transform> > p_local_transform_array);
 	Vector3 _get_perpendicular_vector(Vector3 v);
 	Quat _align_vectors(Vector3 a, Vector3 b);
+private:
+	Error _animation_player_move(Node *new_scene, const Node *scene, Map<MeshInstance *, Skeleton *> &r_moved_meshes);
+	void _move_nodes(Node *new_scene, const Map<MeshInstance *, Skeleton *> moved_meshes, const Map<BoneAttachment *, Skeleton *> moved_attachments);
+	void _moved_mesh_and_attachments(Node *p_current, Node *p_owner, Map<MeshInstance *, Skeleton *> &r_moved_meshes,
+			Map<BoneAttachment *, Skeleton *> &r_moved_attachments);
+	void _duplicate_children(Node *current_node, Node *matching_node, Node *owner, Transform global_xform);
 
 public:
 	static ResourceImporterScene *get_singleton() { return singleton; }
@@ -172,8 +179,7 @@ public:
 	void _create_clips(Node *scene, const Array &p_clips, bool p_bake_all);
 	void _filter_anim_tracks(Ref<Animation> anim, Set<String> &keep);
 	void _filter_tracks(Node *scene, const String &p_text);
-	void _optimize_animations(Node *scene, float p_max_lin_error, float p_max_ang_error, float p_max_angle, bool p_use_convert_bezier);
-	void _skeleton_point_to_children(Node *p_scene);
+	void _optimize_animations(Node *scene, float p_max_lin_error, float p_max_ang_error, float p_max_angle);
 
 	virtual Error import(const String &p_source_file, const String &p_save_path, const Map<StringName, Variant> &p_options, List<String> *r_platform_variants, List<String> *r_gen_files = NULL, Variant *r_metadata = NULL);
 
