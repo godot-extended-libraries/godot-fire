@@ -33,8 +33,10 @@
 #include "collision_object_3d.h"
 #include "core/config/engine.h"
 #include "core/math/camera_matrix.h"
+#include "modules/resonanceaudio/resonance_audio_wrapper.h"
 #include "scene/resources/material.h"
 #include "scene/resources/surface_tool.h"
+#include "servers/audio_server.h"
 
 void Camera3D::_update_audio_listener_state() {
 }
@@ -101,6 +103,17 @@ void Camera3D::_update_camera() {
 
 void Camera3D::_notification(int p_what) {
 	switch (p_what) {
+		case NOTIFICATION_ENTER_TREE: {
+			if (viewport->is_audio_listener() && GLOBAL_GET("audio/enable_resonance_audio")) {
+				AudioServer::get_singleton()->add_callback(_process_audio_cb, this);
+			}
+		} break;
+		case NOTIFICATION_EXIT_TREE: {
+			if (viewport->is_audio_listener() && GLOBAL_GET("audio/enable_resonance_audio")) {
+				AudioServer::get_singleton()->remove_callback(_process_audio_cb, this);
+			}
+		} break;
+
 		case NOTIFICATION_ENTER_WORLD: {
 			// Needs to track the Viewport  because it's needed on NOTIFICATION_EXIT_WORLD
 			// and Spatial will handle it first, including clearing its reference to the Viewport,
@@ -115,6 +128,10 @@ void Camera3D::_notification(int p_what) {
 
 		} break;
 		case NOTIFICATION_TRANSFORM_CHANGED: {
+			if (viewport->is_audio_listener() && GLOBAL_GET("audio/enable_resonance_audio")) {
+				ResonanceAudioWrapper::get_singleton()->set_head_transform(get_global_transform());
+			}
+
 			_request_camera_update();
 			if (doppler_tracking != DOPPLER_TRACKING_DISABLED) {
 				velocity_tracker->update_position(get_global_transform().origin);
@@ -649,6 +666,12 @@ Vector3 Camera3D::get_doppler_tracked_velocity() const {
 	} else {
 		return Vector3();
 	}
+}
+
+void Camera3D::_process_audio() {
+	AudioFrame *target = AudioServer::get_singleton()->thread_get_channel_mix_buffer(/* bus_index= */ 0, /* channel_idx= */ 0);
+	size_t num_frames = AudioServer::get_singleton()->thread_get_mix_buffer_size();
+	ResonanceAudioWrapper::get_singleton()->pull_listener_buffer(num_frames, target);
 }
 
 Camera3D::Camera3D() {
