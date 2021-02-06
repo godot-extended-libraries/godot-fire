@@ -35,6 +35,7 @@
 #include "core/object/message_queue.h"
 #include "core/variant/type_info.h"
 #include "scene/3d/physics_body_3d.h"
+#include "scene/resources/skeleton_modification_3d.h"
 #include "scene/resources/surface_tool.h"
 #include "scene/scene_string_names.h"
 
@@ -862,16 +863,6 @@ Transform Skeleton3D::bone_transform_to_world_transform(Transform p_bone_transfo
 
 Transform Skeleton3D::world_transform_to_bone_transform(Transform p_world_transform) {
 	return get_global_transform().affine_inverse() * p_world_transform;
-}
-
-void Skeleton3D::set_selected_bone(int p_bone) {
-	selected_bone = p_bone;
-	update_gizmo();
-	return;
-}
-
-int Skeleton3D::get_selected_bone() const {
-	return selected_bone;
 }
 
 void Skeleton3D::_bind_methods() {
