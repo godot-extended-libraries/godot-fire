@@ -142,6 +142,8 @@ private:
 	void _make_dirty();
 	bool dirty;
 
+	int selected_bone = -1;
+
 	uint64_t version;
 
 	void _update_process_order();
@@ -229,6 +231,8 @@ public:
 	void update_bone_rest_forward_axis(int p_bone, bool force_update = false);
 	Vector3 get_bone_axis_forward_vector(int p_bone);
 	int get_bone_axis_forward_enum(int p_bone);
+	void set_selected_bone(int p_bone);
+	int get_selected_bone() const;
 
 	// Helper functions
 	Transform global_pose_to_world_transform(Transform p_global_pose);
