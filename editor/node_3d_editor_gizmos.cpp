@@ -33,6 +33,7 @@
 #include "core/math/geometry_2d.h"
 #include "core/math/geometry_3d.h"
 #include "core/math/quick_hull.h"
+#include "editor/plugins/skeleton_3d_editor_plugin.h"
 #include "scene/3d/audio_stream_player_3d.h"
 #include "scene/3d/baked_lightmap.h"
 #include "scene/3d/collision_polygon_3d.h"
@@ -1550,8 +1551,34 @@ void Position3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 /////
 
 Skeleton3DGizmoPlugin::Skeleton3DGizmoPlugin() {
-	Color gizmo_color = EDITOR_DEF("editors/3d_gizmos/gizmo_colors/skeleton", Color(1, 0.8, 0.4));
-	create_material("skeleton_material", gizmo_color);
+	skeleton_color = EDITOR_DEF("editors/3d_gizmos/gizmo_colors/skeleton", Color(1, 0.8, 0.4));
+	selected_bone_color = EDITOR_DEF("editors/3d_gizmos/gizmo_colors/selected_bone", Color(1, 0, 0));
+	bone_axis_length = EDITOR_DEF("editors/3d_gizmos/gizmo_settings/bone_axis_length", (float)0.015);
+	create_material("skeleton_material", skeleton_color);
+	selected_mat = Ref<ShaderMaterial>(memnew(ShaderMaterial));
+	selected_sh = Ref<Shader>(memnew(Shader));
+	selected_sh->set_code(" \
+		shader_type spatial; \
+		render_mode unshaded; \
+		uniform vec4 albedo : hint_color = vec4(1,1,1,1); \
+		uniform sampler2D texture_albedo : hint_albedo; \
+		void vertex() { \
+			if (!OUTPUT_IS_SRGB) { \
+				COLOR.rgb = mix( pow((COLOR.rgb + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)), COLOR.rgb* (1.0 / 12.92), lessThan(COLOR.rgb,vec3(0.04045)) ); \
+			} \
+			VERTEX = VERTEX; \
+			POSITION=PROJECTION_MATRIX*INV_CAMERA_MATRIX*WORLD_MATRIX*vec4(VERTEX.xyz,1.0); \
+			POSITION.z = mix(POSITION.z, 0, 0.998); \
+		} \
+		void fragment() { \
+			vec2 base_uv = UV; \
+			vec4 albedo_tex = texture(texture_albedo,base_uv); \
+			albedo_tex *= COLOR; \
+			if (albedo.a * albedo_tex.a < 0.5) { discard; } \
+			ALBEDO = albedo.rgb * albedo_tex.rgb; \
+		} \
+	");
+	selected_mat->set_shader(selected_sh);
 }
 
 bool Skeleton3DGizmoPlugin::has_gizmo(Node3D *p_spatial) {
@@ -1571,7 +1598,12 @@ void Skeleton3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 
 	p_gizmo->clear();
 
-	Ref<Material> material = get_material("skeleton_material", p_gizmo);
+	Ref<Material> material;
+	if (p_gizmo->is_selected()) {
+		material = selected_mat;
+	} else {
+		material = get_material("skeleton_material", p_gizmo);
+	}
 
 	Ref<SurfaceTool> surface_tool(memnew(SurfaceTool));
 
@@ -1592,15 +1624,17 @@ void Skeleton3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 
 	weights.write[0] = 1;
 
+	Color bone_color;
 	AABB aabb;
 
-	Color bonecolor = Color(1.0, 0.4, 0.4, 0.3);
-	Color rootcolor = Color(0.4, 1.0, 0.4, 0.1);
+	for (int current_bone_idx = 0; current_bone_idx < skel->get_bone_count(); current_bone_idx++) {
+		if (skel->get_bone_parent(current_bone_idx) == skel->get_selected_bone()) {
+			bone_color = selected_bone_color;
+		} else {
+			bone_color = skeleton_color;
+		}
 
-	Vector<int> bones_to_process = skel->get_parentless_bones();
-	while (bones_to_process.size() > 0) {
-		int current_bone_idx = bones_to_process[0];
-		bones_to_process.erase(current_bone_idx);
+		int i = current_bone_idx;
 
 		Vector<int> child_bones_vector = skel->get_bone_children(current_bone_idx);
 		int child_bones_size = child_bones_vector.size();
@@ -1633,16 +1667,32 @@ void Skeleton3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 			Vector3 first;
 			Vector3 points[4];
 			int point_idx = 0;
+			Color axis_color[3];
+			axis_color[0] = Color(1, 0, 0);
+			axis_color[1] = Color(0, 1, 0);
+			axis_color[2] = Color(0, 0, 1);
 			for (int j = 0; j < 3; j++) {
-				bones.write[0] = current_bone_idx;
-				surface_tool->set_bones(bones);
-				surface_tool->set_weights(weights);
-				surface_tool->set_color(rootcolor);
-				surface_tool->add_vertex(v0 - grests[current_bone_idx].basis[j].normalized() * dist * 0.05);
-				surface_tool->set_bones(bones);
-				surface_tool->set_weights(weights);
-				surface_tool->set_color(rootcolor);
-				surface_tool->add_vertex(v0 + grests[current_bone_idx].basis[j].normalized() * dist * 0.05);
+				if (p_gizmo->is_selected()) {
+					bones.write[0] = i;
+					surface_tool->set_bones(bones);
+					surface_tool->set_weights(weights);
+					surface_tool->set_color(axis_color[j]);
+					surface_tool->add_vertex(v1);
+					surface_tool->set_bones(bones);
+					surface_tool->set_weights(weights);
+					surface_tool->set_color(axis_color[j]);
+					surface_tool->add_vertex(v1 + grests[i].basis[j].normalized() * bone_axis_length);
+				} else {
+					bones.write[0] = i;
+					surface_tool->set_bones(bones);
+					surface_tool->set_weights(weights);
+					surface_tool->set_color(axis_color[j]);
+					surface_tool->add_vertex(v1 - grests[i].basis[j].normalized() * dist * 0.05);
+					surface_tool->set_bones(bones);
+					surface_tool->set_weights(weights);
+					surface_tool->set_color(axis_color[j]);
+					surface_tool->add_vertex(v1 + grests[i].basis[j].normalized() * dist * 0.05);
+				}
 
 				if (j == closest) {
 					continue;
@@ -1666,22 +1716,22 @@ void Skeleton3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 					bones.write[0] = current_bone_idx;
 					surface_tool->set_bones(bones);
 					surface_tool->set_weights(weights);
-					surface_tool->set_color(bonecolor);
+					surface_tool->set_color(bone_color);
 					surface_tool->add_vertex(v0);
 					surface_tool->set_bones(bones);
 					surface_tool->set_weights(weights);
-					surface_tool->set_color(bonecolor);
+					surface_tool->set_color(bone_color);
 					surface_tool->add_vertex(point);
 
 					bones.write[0] = current_bone_idx;
 					surface_tool->set_bones(bones);
 					surface_tool->set_weights(weights);
-					surface_tool->set_color(bonecolor);
+					surface_tool->set_color(bone_color);
 					surface_tool->add_vertex(point);
 					bones.write[0] = child_bone_idx;
 					surface_tool->set_bones(bones);
 					surface_tool->set_weights(weights);
-					surface_tool->set_color(bonecolor);
+					surface_tool->set_color(bone_color);
 					surface_tool->add_vertex(v1);
 					points[point_idx++] = point;
 				}
@@ -1691,16 +1741,13 @@ void Skeleton3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 				bones.write[0] = current_bone_idx;
 				surface_tool->set_bones(bones);
 				surface_tool->set_weights(weights);
-				surface_tool->set_color(bonecolor);
+				surface_tool->set_color(bone_color);
 				surface_tool->add_vertex(points[j]);
 				surface_tool->set_bones(bones);
 				surface_tool->set_weights(weights);
-				surface_tool->set_color(bonecolor);
+				surface_tool->set_color(bone_color);
 				surface_tool->add_vertex(points[(j + 1) % 4]);
 			}
-
-			// Add the bone's children to the list of bones to be processed
-			bones_to_process.push_back(child_bones_vector[i]);
 		}
 	}
 

@@ -146,7 +146,6 @@ void SkeletonModificationStack3D::set_modification(int p_mod_idx, Ref<SkeletonMo
 
 void SkeletonModificationStack3D::set_modification_count(int p_count) {
 	modifications.resize(p_count);
-	_change_notify();
 }
 
 int SkeletonModificationStack3D::get_modification_count() const {
@@ -485,7 +484,6 @@ void SkeletonModification3DLookAt::set_bone_name(String p_name) {
 		}
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 String SkeletonModification3DLookAt::get_bone_name() const {
@@ -506,7 +504,6 @@ void SkeletonModification3DLookAt::set_bone_index(int p_bone_idx) {
 		}
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 void SkeletonModification3DLookAt::update_cache() {
@@ -555,7 +552,6 @@ bool SkeletonModification3DLookAt::get_lock_rotation_to_plane() const {
 
 void SkeletonModification3DLookAt::set_lock_rotation_to_plane(bool p_lock_rotation) {
 	lock_rotation_to_plane = p_lock_rotation;
-	_change_notify();
 }
 
 int SkeletonModification3DLookAt::get_lock_rotation_plane() const {
@@ -902,7 +898,6 @@ void SkeletonModification3DCCDIK::set_ccdik_joint_bone_name(int p_joint_idx, Str
 		}
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 int SkeletonModification3DCCDIK::get_ccdik_joint_bone_index(int p_joint_idx) const {
@@ -921,7 +916,6 @@ void SkeletonModification3DCCDIK::set_ccdik_joint_bone_index(int p_joint_idx, in
 		}
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 int SkeletonModification3DCCDIK::get_ccdik_joint_ccdik_axis(int p_joint_idx) const {
@@ -933,7 +927,6 @@ void SkeletonModification3DCCDIK::set_ccdik_joint_ccdik_axis(int p_joint_idx, in
 	ERR_FAIL_INDEX(p_joint_idx, ccdik_data_chain.size());
 	ERR_FAIL_COND_MSG(p_axis < 0, "CCDIK axis is out of range: The axis mode is too low!");
 	ccdik_data_chain.write[p_joint_idx].ccdik_axis = p_axis;
-	_change_notify();
 }
 
 bool SkeletonModification3DCCDIK::get_ccdik_joint_enable_constraint(int p_joint_idx) const {
@@ -944,7 +937,6 @@ bool SkeletonModification3DCCDIK::get_ccdik_joint_enable_constraint(int p_joint_
 void SkeletonModification3DCCDIK::set_ccdik_joint_enable_constraint(int p_joint_idx, bool p_enable) {
 	ERR_FAIL_INDEX(p_joint_idx, ccdik_data_chain.size());
 	ccdik_data_chain.write[p_joint_idx].enable_constraint = p_enable;
-	_change_notify();
 }
 
 float SkeletonModification3DCCDIK::get_ccdik_joint_constraint_angle_min(int p_joint_idx) const {
@@ -984,7 +976,6 @@ void SkeletonModification3DCCDIK::set_ccdik_data_chain_length(int p_length) {
 	ERR_FAIL_COND(p_length < 0);
 	ccdik_data_chain.resize(p_length);
 	execution_error_found = false;
-	_change_notify();
 }
 
 void SkeletonModification3DCCDIK::_bind_methods() {
@@ -1375,7 +1366,6 @@ void SkeletonModification3DFABRIK::set_fabrik_data_chain_length(int p_length) {
 	ERR_FAIL_COND(p_length < 0);
 	fabrik_data_chain.resize(p_length);
 	execution_error_found = false;
-	_change_notify();
 }
 
 float SkeletonModification3DFABRIK::get_chain_tolerance() {
@@ -1411,7 +1401,6 @@ void SkeletonModification3DFABRIK::set_fabrik_joint_bone_name(int p_joint_idx, S
 		}
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 int SkeletonModification3DFABRIK::get_fabrik_joint_bone_index(int p_joint_idx) const {
@@ -1430,7 +1419,6 @@ void SkeletonModification3DFABRIK::set_fabrik_joint_bone_index(int p_joint_idx, 
 		}
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 float SkeletonModification3DFABRIK::get_fabrik_joint_length(int p_joint_idx) const {
@@ -1476,7 +1464,6 @@ void SkeletonModification3DFABRIK::set_fabrik_joint_auto_calculate_length(int p_
 	ERR_FAIL_INDEX(p_joint_idx, fabrik_data_chain.size());
 	fabrik_data_chain.write[p_joint_idx].auto_calculate_length = p_auto_calculate;
 	fabrik_joint_auto_calculate_length(p_joint_idx);
-	_change_notify();
 }
 
 void SkeletonModification3DFABRIK::fabrik_joint_auto_calculate_length(int p_joint_idx) {
@@ -1519,7 +1506,6 @@ void SkeletonModification3DFABRIK::fabrik_joint_auto_calculate_length(int p_join
 		fabrik_data_chain.write[p_joint_idx].length = final_length / bone_children.size();
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 bool SkeletonModification3DFABRIK::get_fabrik_joint_use_tip_node(int p_joint_idx) const {
@@ -1530,7 +1516,6 @@ bool SkeletonModification3DFABRIK::get_fabrik_joint_use_tip_node(int p_joint_idx
 void SkeletonModification3DFABRIK::set_fabrik_joint_use_tip_node(int p_joint_idx, bool p_use_tip_node) {
 	ERR_FAIL_INDEX(p_joint_idx, fabrik_data_chain.size());
 	fabrik_data_chain.write[p_joint_idx].use_tip_node = p_use_tip_node;
-	_change_notify();
 }
 
 NodePath SkeletonModification3DFABRIK::get_fabrik_joint_tip_node(int p_joint_idx) const {
@@ -1927,7 +1912,6 @@ Vector3 SkeletonModification3DJiggle::get_gravity() const {
 
 void SkeletonModification3DJiggle::set_use_colliders(bool p_use_collider) {
 	use_colliders = p_use_collider;
-	_change_notify();
 }
 
 bool SkeletonModification3DJiggle::get_use_colliders() const {
@@ -1951,7 +1935,6 @@ void SkeletonModification3DJiggle::set_jiggle_data_chain_length(int p_length) {
 	ERR_FAIL_COND(p_length < 0);
 	jiggle_data_chain.resize(p_length);
 	execution_error_found = false;
-	_change_notify();
 }
 
 void SkeletonModification3DJiggle::set_jiggle_joint_bone_name(int joint_idx, String p_name) {
@@ -1962,7 +1945,6 @@ void SkeletonModification3DJiggle::set_jiggle_joint_bone_name(int joint_idx, Str
 		jiggle_data_chain.write[joint_idx].bone_idx = stack->skeleton->find_bone(p_name);
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 String SkeletonModification3DJiggle::get_jiggle_joint_bone_name(int joint_idx) const {
@@ -1986,14 +1968,12 @@ void SkeletonModification3DJiggle::set_jiggle_joint_bone_index(int joint_idx, in
 		}
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 void SkeletonModification3DJiggle::set_jiggle_joint_override(int joint_idx, bool p_override) {
 	ERR_FAIL_INDEX(joint_idx, jiggle_data_chain.size());
 	jiggle_data_chain.write[joint_idx].override_defaults = p_override;
 	_update_jiggle_joint_data();
-	_change_notify();
 }
 
 bool SkeletonModification3DJiggle::get_jiggle_joint_override(int joint_idx) const {
@@ -2037,7 +2017,6 @@ float SkeletonModification3DJiggle::get_jiggle_joint_damping(int joint_idx) cons
 void SkeletonModification3DJiggle::set_jiggle_joint_use_gravity(int joint_idx, bool p_use_gravity) {
 	ERR_FAIL_INDEX(joint_idx, jiggle_data_chain.size());
 	jiggle_data_chain.write[joint_idx].use_gravity = p_use_gravity;
-	_change_notify();
 }
 
 bool SkeletonModification3DJiggle::get_jiggle_joint_use_gravity(int joint_idx) const {
@@ -2483,7 +2462,6 @@ NodePath SkeletonModification3DTwoBoneIK::get_target_node() const {
 
 void SkeletonModification3DTwoBoneIK::set_use_tip_node(const bool p_use_tip_node) {
 	use_tip_node = p_use_tip_node;
-	_change_notify();
 }
 
 bool SkeletonModification3DTwoBoneIK::get_use_tip_node() const {
@@ -2501,7 +2479,6 @@ NodePath SkeletonModification3DTwoBoneIK::get_tip_node() const {
 
 void SkeletonModification3DTwoBoneIK::set_use_pole_node(const bool p_use_pole_node) {
 	use_pole_node = p_use_pole_node;
-	_change_notify();
 }
 
 bool SkeletonModification3DTwoBoneIK::get_use_pole_node() const {
@@ -2522,7 +2499,6 @@ void SkeletonModification3DTwoBoneIK::set_auto_calculate_joint_length(bool p_cal
 	if (p_calculate) {
 		calculate_joint_lengths();
 	}
-	_change_notify();
 }
 
 bool SkeletonModification3DTwoBoneIK::get_auto_calculate_joint_length() const {
@@ -2578,7 +2554,6 @@ void SkeletonModification3DTwoBoneIK::set_joint_one_bone_name(String p_bone_name
 		joint_one_bone_idx = stack->skeleton->find_bone(p_bone_name);
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 String SkeletonModification3DTwoBoneIK::get_joint_one_bone_name() const {
@@ -2591,7 +2566,6 @@ void SkeletonModification3DTwoBoneIK::set_joint_one_bone_idx(int p_bone_idx) {
 		joint_one_bone_name = stack->skeleton->get_bone_name(p_bone_idx);
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 int SkeletonModification3DTwoBoneIK::get_joint_one_bone_idx() const {
@@ -2612,7 +2586,6 @@ void SkeletonModification3DTwoBoneIK::set_joint_two_bone_name(String p_bone_name
 		joint_two_bone_idx = stack->skeleton->find_bone(p_bone_name);
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 String SkeletonModification3DTwoBoneIK::get_joint_two_bone_name() const {
@@ -2625,7 +2598,6 @@ void SkeletonModification3DTwoBoneIK::set_joint_two_bone_idx(int p_bone_idx) {
 		joint_two_bone_name = stack->skeleton->get_bone_name(p_bone_idx);
 	}
 	execution_error_found = false;
-	_change_notify();
 }
 
 int SkeletonModification3DTwoBoneIK::get_joint_two_bone_idx() const {
