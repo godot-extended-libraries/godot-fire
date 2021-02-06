@@ -262,8 +262,6 @@ void BoneAttachment3D::set_bone_idx(const int &p_idx) {
 	if (is_inside_tree()) {
 		_check_bind();
 	}
-
-	_change_notify();
 }
 
 int BoneAttachment3D::get_bone_idx() const {
@@ -288,7 +286,6 @@ void BoneAttachment3D::set_override_pose(bool p_override) {
 		}
 		_transform_changed();
 	}
-	_change_notify();
 }
 
 bool BoneAttachment3D::get_override_pose() const {
@@ -328,7 +325,6 @@ void BoneAttachment3D::set_use_external_skeleton(bool p_use_external) {
 		_transform_changed();
 	}
 
-	_change_notify();
 }
 
 bool BoneAttachment3D::get_use_external_skeleton() const {
@@ -338,7 +334,6 @@ bool BoneAttachment3D::get_use_external_skeleton() const {
 void BoneAttachment3D::set_external_skeleton(NodePath p_path) {
 	external_skeleton_node = p_path;
 	_update_external_skeleton_cache();
-	_change_notify();
 }
 
 NodePath BoneAttachment3D::get_external_skeleton() const {
