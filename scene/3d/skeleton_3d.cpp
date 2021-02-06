@@ -191,10 +191,10 @@ void Skeleton3D::_update_process_order() {
 				bonesptr[parent_bone_idx].child_bones.push_back(i);
 			} else {
 				ERR_PRINT("Skeleton3D parenthood graph is cyclic");
-			}
+		}
 		} else {
 			parentless_bones.push_back(i);
-		}
+	}
 	}
 
 	process_order_dirty = false;
@@ -279,15 +279,15 @@ void Skeleton3D::_notification(int p_what) {
 			// This is active only if the skeleton animates the physical bones
 			// and the state of the bone is not active.
 			if (Engine::get_singleton()->is_editor_hint()) {
-				if (animate_physical_bones) {
-					for (int i = 0; i < bones.size(); i += 1) {
-						if (bones[i].physical_bone) {
-							if (bones[i].physical_bone->is_simulating_physics() == false) {
-								bones[i].physical_bone->reset_to_rest_position();
-							}
+			if (animate_physical_bones) {
+				for (int i = 0; i < bones.size(); i += 1) {
+					if (bones[i].physical_bone) {
+						if (bones[i].physical_bone->is_simulating_physics() == false) {
+							bones[i].physical_bone->reset_to_rest_position();
 						}
 					}
 				}
+			}
 			}
 
 			if (modification_stack.is_valid()) {
@@ -299,7 +299,7 @@ void Skeleton3D::_notification(int p_what) {
 
 #ifndef _3D_DISABLED
 		case NOTIFICATION_READY: {
-			set_physics_process_internal(true);
+				set_physics_process_internal(true);
 			set_process_internal(true);
 
 			if (modification_stack.is_valid()) {
@@ -993,6 +993,10 @@ Transform Skeleton3D::world_transform_to_global_pose(Transform p_world_transform
 	return get_global_transform().affine_inverse() * p_world_transform;
 }
 
+void Skeleton3D::set_selected_bone(int p_bone) {
+	selected_bone = p_bone;
+	update_gizmo();
+	return;
 Transform Skeleton3D::global_pose_to_local_pose(int p_bone_idx, Transform p_global_pose) {
 	if (bones[p_bone_idx].parent >= 0) {
 		int parent_bone_idx = bones[p_bone_idx].parent;
@@ -1061,6 +1065,10 @@ void Skeleton3D::set_modification_stack(Ref<SkeletonModificationStack3D> p_stack
 }
 Ref<SkeletonModificationStack3D> Skeleton3D::get_modification_stack() {
 	return modification_stack;
+}
+
+int Skeleton3D::get_selected_bone() const {
+	return selected_bone;
 }
 
 void Skeleton3D::execute_modifications(float delta, int execution_mode) {
