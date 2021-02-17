@@ -216,7 +216,10 @@ void AudioStreamPlayer3D::_mix_audio() {
 			if (!AudioServer::get_singleton()->thread_has_channel_mix_buffer(current.bus_index, k)) {
 				continue; //may have been deleted, will be updated on process
 			}
-
+			if (GLOBAL_GET("audio/enable_resonance_audio")) {
+				ResonanceAudioWrapper::get_singleton()->push_source_buffer(audio_source_id, buffer_size, buffer);
+				continue;
+			}
 			AudioFrame *target = AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, k);
 			current.filter.set_mode(AudioFilterSW::HIGHSHELF);
 			current.filter.set_sampling_rate(AudioServer::get_singleton()->get_mix_rate());
@@ -329,6 +332,10 @@ float AudioStreamPlayer3D::_get_attenuation_db(float p_distance) const {
 
 void AudioStreamPlayer3D::_notification(int p_what) {
 	if (p_what == NOTIFICATION_ENTER_TREE) {
+		if (GLOBAL_GET("audio/enable_resonance_audio")) {
+			audio_source_id = ResonanceAudioWrapper::get_singleton()->register_audio_source();
+		}
+
 		velocity_tracker->reset(get_global_transform().origin);
 		AudioServer::get_singleton()->add_callback(_mix_audios, this);
 		if (autoplay && !Engine::get_singleton()->is_editor_hint()) {
@@ -338,6 +345,10 @@ void AudioStreamPlayer3D::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_EXIT_TREE) {
 		AudioServer::get_singleton()->remove_callback(_mix_audios, this);
+
+		if (GLOBAL_GET("audio/enable_resonance_audio")) {
+			ResonanceAudioWrapper::get_singleton()->unregister_audio_source(audio_source_id);
+		}
 	}
 
 	if (p_what == NOTIFICATION_PAUSED) {
@@ -358,6 +369,10 @@ void AudioStreamPlayer3D::_notification(int p_what) {
 	}
 
 	if (p_what == NOTIFICATION_INTERNAL_PHYSICS_PROCESS) {
+		if (GLOBAL_GET("audio/enable_resonance_audio")) {
+			ResonanceAudioWrapper::get_singleton()->set_source_transform(audio_source_id, get_global_transform());
+		}
+
 		//update anything related to position first, if possible of course
 
 		if (!output_ready) {
@@ -468,6 +483,10 @@ void AudioStreamPlayer3D::_notification(int p_what) {
 				}
 
 				output.filter_gain = Math::db2linear(db_att);
+
+				if (GLOBAL_GET("audio/enable_resonance_audio")) {
+					ResonanceAudioWrapper::get_singleton()->set_source_attenuation(audio_source_id, Math::db2linear(db_att));
+				}
 
 				//TODO: The lower the second parameter (tightness) the more the sound will "enclose" the listener (more undirected / playing from
 				//      speakers not facing the source) - this could be made distance dependent.

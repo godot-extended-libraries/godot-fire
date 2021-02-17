@@ -88,6 +88,9 @@ private:
 	friend class Viewport;
 	void _update_audio_listener_state();
 
+	void _process_audio();
+	static void _process_audio_cb(void *self) { reinterpret_cast<Camera3D *>(self)->_process_audio(); }
+
 	DopplerTracking doppler_tracking = DOPPLER_TRACKING_DISABLED;
 	Ref<VelocityTracker3D> velocity_tracker;
 
