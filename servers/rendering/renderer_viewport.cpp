@@ -544,25 +544,30 @@ void RendererViewport::draw_viewports() {
 			Size2 render_size = xr_interface->get_render_targetsize();
 			vp->size = render_size;
 			RSG::storage->render_target_set_size(vp->render_target, vp->size.x, vp->size.y);
-
+			
 			// render mono or left eye first
-			XRInterface::Eyes leftOrMono = xr_interface->is_stereo() ? XRInterface::EYE_LEFT : XRInterface::EYE_MONO;
-
+ 			XRInterface::Eyes leftOrMono = xr_interface->is_stereo() ? XRInterface::EYE_LEFT : XRInterface::EYE_MONO;
+ 
+			if (leftOrMono == XRInterface::EYE_LEFT) {
+				ERR_CONTINUE(!vp->right_eye_render_target.is_valid());
+				RSG::storage->render_target_set_size(vp->right_eye_render_target, vp->size.x, vp->size.y);
+			}
 			// check for an external texture destination for our left eye/mono
 			// TODO investigate how we're going to make external textures work
 			RSG::storage->render_target_set_external_texture(vp->render_target, xr_interface->get_external_texture_for_eye(leftOrMono));
 
 			// and draw left eye/mono
 			_draw_viewport(vp, leftOrMono);
-			RSG::viewport->commit_for_eye(blit_to_screen_list, leftOrMono, vp);
-
 			// render right eye
 			if (leftOrMono == XRInterface::EYE_LEFT) {
 				// check for an external texture destination for our right eye
-				RSG::storage->render_target_set_external_texture(vp->render_target, xr_interface->get_external_texture_for_eye(XRInterface::EYE_RIGHT));
+				RSG::storage->render_target_set_external_texture(vp->right_eye_render_target, xr_interface->get_external_texture_for_eye(XRInterface::EYE_RIGHT));
 
 				_draw_viewport(vp, XRInterface::EYE_RIGHT);
+				RSG::viewport->commit_for_eye(blit_to_screen_list, leftOrMono, vp);
 				RSG::viewport->commit_for_eye(blit_to_screen_list, XRInterface::EYE_RIGHT, vp);
+			} else {
+				RSG::viewport->commit_for_eye(blit_to_screen_list, leftOrMono, vp);
 			}
 
 			// and for our frame timing, mark when we've finished committing our eyes
@@ -596,6 +601,7 @@ void RendererViewport::viewport_initialize(RID p_rid) {
 	viewport->hide_scenario = false;
 	viewport->hide_canvas = false;
 	viewport->render_target = RSG::storage->render_target_create();
+	viewport->right_eye_render_target = RSG::storage->render_target_create();
 	viewport->shadow_atlas = RSG::scene->shadow_atlas_create();
 	viewport->viewport_render_direct_to_screen = false;
 
@@ -617,6 +623,7 @@ void RendererViewport::viewport_set_size(RID p_viewport, int p_width, int p_heig
 
 	viewport->size = Size2(p_width, p_height);
 	RSG::storage->render_target_set_size(viewport->render_target, p_width, p_height);
+	RSG::storage->render_target_set_size(viewport->right_eye_render_target, p_width, p_height);
 	if (viewport->render_buffers.is_valid()) {
 		if (p_width == 0 || p_height == 0) {
 			RSG::scene->free(viewport->render_buffers);
@@ -951,6 +958,7 @@ bool RendererViewport::free(RID p_rid) {
 		Viewport *viewport = viewport_owner.getornull(p_rid);
 
 		RSG::storage->free(viewport->render_target);
+		RSG::storage->free(viewport->right_eye_render_target);
 		RSG::scene->free(viewport->shadow_atlas);
 		if (viewport->render_buffers.is_valid()) {
 			RSG::scene->free(viewport->render_buffers);
@@ -1015,9 +1023,13 @@ void RendererViewport::commit_for_eye(Map<DisplayServer::WindowID, Vector<Render
 	// VR) we should give an error when p_screen_rect is not set
 	// For an interface that outputs to an external device we should render a copy
 	// of one of the eyes to the main viewport if p_screen_rect is set, and only
-	// output to the external device if not.	
+	// output to the external device if not.
 	RendererCompositor::BlitToScreen blit;
-	blit.render_target = p_viewport->render_target;
+	if (p_eye == XRInterface::EYE_LEFT) {
+		blit.render_target = p_viewport->render_target;
+	} else {
+		blit.render_target = p_viewport->right_eye_render_target;
+	}
 	blit.rect.set_size(Size2i(p_viewport->size.x, p_viewport->size.y));
 	blit.eye = p_eye;
 	blit.vr = true;

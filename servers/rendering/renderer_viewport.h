@@ -54,7 +54,7 @@ public:
 
 		RS::ViewportUpdateMode update_mode;
 		RID render_target;
-		RID render_target_texture;
+		RID right_eye_render_target;
 		RID render_buffers;
 
 		RS::ViewportMSAA msaa;

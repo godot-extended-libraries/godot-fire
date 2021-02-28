@@ -2163,14 +2163,12 @@ void RendererSceneCull::render_camera(RID p_render_buffers, RID p_camera, RID p_
 	}
 
 	RID environment = _render_get_environment(p_camera, p_scenario);
-
 	_render_scene(camera->transform, camera_matrix, ortho, camera->vaspect, p_render_buffers, environment, camera->effects, camera->visible_layers, p_scenario, p_shadow_atlas, RID(), -1, p_screen_lod_threshold);
 #endif
 }
 
 void RendererSceneCull::render_camera(RID p_render_buffers, Ref<XRInterface> &p_interface, XRInterface::Eyes p_eye, RID p_camera, RID p_scenario, Size2 p_viewport_size, float p_screen_lod_threshold, RID p_shadow_atlas) {
 	// render for AR/VR interface
-#if 0
 	Camera *camera = camera_owner.getornull(p_camera);
 	ERR_FAIL_COND(!camera);
 
@@ -2242,16 +2240,15 @@ void RendererSceneCull::render_camera(RID p_render_buffers, Ref<XRInterface> &p_
 		mono_transform *= apply_z_shift;
 
 		// now prepare our scene with our adjusted transform projection matrix
-		_prepare_scene(mono_transform, combined_matrix, false, false, p_render_buffers, environment, camera->visible_layers, p_scenario, p_shadow_atlas, RID(), p_screen_lod_threshold);
+		_prepare_scene(mono_transform, combined_matrix, false, false, p_render_buffers, environment, camera->visible_layers, p_scenario, p_shadow_atlas, RID(), p_screen_lod_threshold, true);
 	} else if (p_eye == XRInterface::EYE_MONO) {
 		// For mono render, prepare as per usual
-		_prepare_scene(cam_transform, camera_matrix, false, false, p_render_buffers, environment, camera->visible_layers, p_scenario, p_shadow_atlas, RID(), p_screen_lod_threshold);
+		_prepare_scene(cam_transform, camera_matrix, false, false, p_render_buffers, environment, camera->visible_layers, p_scenario, p_shadow_atlas, RID(), p_screen_lod_threshold, true);
 	}
-
+	
 	// And render our scene...
-	_render_scene(p_render_buffers, cam_transform, camera_matrix, false, environment, camera->effects, p_scenario, p_shadow_atlas, RID(), -1, p_screen_lod_threshold);
-#endif
-};
+	_render_scene(cam_transform, camera_matrix, false, camera->vaspect, p_render_buffers, environment, camera->effects, camera->visible_layers, p_scenario, p_shadow_atlas, RID(), -1, p_screen_lod_threshold, false);
+}
 
 void RendererSceneCull::_frustum_cull_threaded(uint32_t p_thread, FrustumCullData *cull_data) {
 	uint32_t cull_total = cull_data->scenario->instance_data.size();
@@ -3554,4 +3551,306 @@ RendererSceneCull::~RendererSceneCull() {
 		frustum_cull_result_threads[i].reset();
 	}
 	frustum_cull_result_threads.clear();
+}
+void RendererSceneCull::_prepare_scene(const Transform p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_orthogonal, bool p_cam_vaspect, RID p_render_buffers, RID p_environment, uint32_t p_visible_layers, RID p_scenario, RID p_shadow_atlas, RID p_reflection_probe, float p_screen_lod_threshold, bool p_using_shadows) {
+	// Note, in stereo rendering:
+	// - p_cam_transform will be a transform in the middle of our two eyes
+	// - p_cam_projection is a wider frustrum that encompasses both eyes
+
+	Instance *render_reflection_probe = instance_owner.getornull(p_reflection_probe); //if null, not rendering to it
+
+	Scenario *scenario = scenario_owner.getornull(p_scenario);
+
+	render_pass++;
+
+	scene_render->set_scene_pass(render_pass);
+
+	if (p_render_buffers.is_valid()) {
+		scene_render->sdfgi_update(p_render_buffers, p_environment, p_cam_transform.origin); //update conditions for SDFGI (whether its used or not)
+	}
+
+	RENDER_TIMESTAMP("Frustum Culling");
+
+	//rasterizer->set_camera(camera->transform, camera_matrix,ortho);
+
+	Vector<Plane> planes = p_cam_projection.get_projection_planes(p_cam_transform);
+
+	Plane near_plane(p_cam_transform.origin, -p_cam_transform.basis.get_axis(2).normalized());
+
+	/* STEP 2 - CULL */
+
+	cull.frustum = Frustum(planes);
+
+	Vector<RID> directional_lights;
+	// directional lights
+	{
+		cull.shadow_count = 0;
+
+		Vector<Instance *> lights_with_shadow;
+
+		for (List<Instance *>::Element *E = scenario->directional_lights.front(); E; E = E->next()) {
+			if (!E->get()->visible) {
+				continue;
+			}
+
+			if (directional_lights.size() > RendererSceneRender::MAX_DIRECTIONAL_LIGHTS) {
+				break;
+			}
+
+			InstanceLightData *light = static_cast<InstanceLightData *>(E->get()->base_data);
+
+			//check shadow..
+
+			if (light) {
+				if (p_using_shadows && p_shadow_atlas.is_valid() && RSG::storage->light_has_shadow(E->get()->base) && !(RSG::storage->light_get_type(E->get()->base) == RS::LIGHT_DIRECTIONAL && RSG::storage->light_directional_is_sky_only(E->get()->base))) {
+					lights_with_shadow.push_back(E->get());
+				}
+				//add to list
+				directional_lights.push_back(light->instance);
+			}
+		}
+
+		scene_render->set_directional_shadow_count(lights_with_shadow.size());
+
+		for (int i = 0; i < lights_with_shadow.size(); i++) {
+			_light_instance_setup_directional_shadow(i, lights_with_shadow[i], p_cam_transform, p_cam_projection, p_cam_orthogonal, p_cam_vaspect);
+		}
+	}
+
+	{ //sdfgi
+		cull.sdfgi.region_count = 0;
+
+		if (p_render_buffers.is_valid()) {
+			cull.sdfgi.cascade_light_count = 0;
+
+			uint32_t prev_cascade = 0xFFFFFFFF;
+			uint32_t pending_region_count = scene_render->sdfgi_get_pending_region_count(p_render_buffers);
+
+			for (uint32_t i = 0; i < pending_region_count; i++) {
+				cull.sdfgi.region_aabb[i] = scene_render->sdfgi_get_pending_region_bounds(p_render_buffers, i);
+				uint32_t region_cascade = scene_render->sdfgi_get_pending_region_cascade(p_render_buffers, i);
+				cull.sdfgi.region_cascade[i] = region_cascade;
+
+				if (region_cascade != prev_cascade) {
+					cull.sdfgi.cascade_light_index[cull.sdfgi.cascade_light_count] = region_cascade;
+					cull.sdfgi.cascade_light_count++;
+					prev_cascade = region_cascade;
+				}
+			}
+
+			cull.sdfgi.region_count = pending_region_count;
+		}
+	}
+
+	frustum_cull_result.clear();
+
+	{
+		uint64_t cull_from = 0;
+		uint64_t cull_to = scenario->instance_data.size();
+
+		FrustumCullData cull_data;
+
+		//prepare for eventual thread usage
+		cull_data.cull = &cull;
+		cull_data.scenario = scenario;
+		cull_data.shadow_atlas = p_shadow_atlas;
+		cull_data.cam_transform = p_cam_transform;
+		cull_data.visible_layers = p_visible_layers;
+		cull_data.render_reflection_probe = render_reflection_probe;
+//#define DEBUG_CULL_TIME
+#ifdef DEBUG_CULL_TIME
+		uint64_t time_from = OS::get_singleton()->get_ticks_usec();
+#endif
+		if (cull_to > thread_cull_threshold) {
+			//multiple threads
+			for (uint32_t i = 0; i < frustum_cull_result_threads.size(); i++) {
+				frustum_cull_result_threads[i].clear();
+			}
+
+			RendererThreadPool::singleton->thread_work_pool.do_work(frustum_cull_result_threads.size(), this, &RendererSceneCull::_frustum_cull_threaded, &cull_data);
+
+			for (uint32_t i = 0; i < frustum_cull_result_threads.size(); i++) {
+				frustum_cull_result.append_from(frustum_cull_result_threads[i]);
+			}
+
+		} else {
+			//single threaded
+			_frustum_cull(cull_data, frustum_cull_result, cull_from, cull_to);
+		}
+
+#ifdef DEBUG_CULL_TIME
+		static float time_avg = 0;
+		static uint32_t time_count = 0;
+		time_avg += double(OS::get_singleton()->get_ticks_usec() - time_from) / 1000.0;
+		time_count++;
+		print_line("time taken: " + rtos(time_avg / time_count));
+#endif
+
+		if (frustum_cull_result.mesh_instances.size()) {
+			for (uint64_t i = 0; i < frustum_cull_result.mesh_instances.size(); i++) {
+				RSG::storage->mesh_instance_check_for_update(frustum_cull_result.mesh_instances[i]);
+			}
+			RSG::storage->update_mesh_instances();
+		}
+	}
+
+	//render shadows
+	/* // TODO Render Shadows 2021-02-28 
+	for (uint32_t i = 0; i < cull.shadow_count; i++) {
+		for (uint32_t j = 0; j < cull.shadows[i].cascade_count; j++) {
+			const Cull::Shadow::Cascade &c = cull.shadows[i].cascades[j];
+			//			print_line("shadow " + itos(i) + " cascade " + itos(j) + " elements: " + itos(c.cull_result.size()));
+			scene_render->light_instance_set_shadow_transform(cull.shadows[i].light_instance, c.projection, c.transform, c.zfar, c.split, j, c.shadow_texel_size, c.bias_scale, c.range_begin, c.uv_scale);
+			scene_render->render_shadow(cull.shadows[i].light_instance, p_shadow_atlas, j, frustum_cull_result.directional_shadows[i].cascade_geometry_instances[j], near_plane, p_cam_projection.get_lod_multiplier(), p_screen_lod_threshold);
+		}
+	}
+	*/
+
+	//render SDFGI
+	/* // TODO RESTORE FIRE 2021-02-28
+	{
+		if (cull.sdfgi.region_count > 0) {
+			//update regions
+			for (uint32_t i = 0; i < cull.sdfgi.region_count; i++) {
+				scene_render->render_sdfgi(p_render_buffers, i, frustum_cull_result.sdfgi_region_geometry_instances[i]);
+			}
+			//check if static lights were culled
+			bool static_lights_culled = false;
+			for (uint32_t i = 0; i < cull.sdfgi.cascade_light_count; i++) {
+				if (frustum_cull_result.sdfgi_cascade_lights[i].size()) {
+					static_lights_culled = true;
+					break;
+				}
+			}
+
+			if (static_lights_culled) {
+				scene_render->render_sdfgi_static_lights(p_render_buffers, cull.sdfgi.cascade_light_count, cull.sdfgi.cascade_light_index, frustum_cull_result.sdfgi_cascade_lights);
+			}
+		}
+
+		if (p_render_buffers.is_valid()) {
+			scene_render->sdfgi_update_probes(p_render_buffers, p_environment, directional_lights, scenario->dynamic_lights.ptr(), scenario->dynamic_lights.size());
+		}
+	}
+	*/
+
+	//light_samplers_culled=0;
+
+	/*
+	print_line("OT: "+rtos( (OS::get_singleton()->get_ticks_usec()-t)/1000.0));
+	print_line("OTO: "+itos(p_scenario->octree.get_octant_count()));
+	print_line("OTE: "+itos(p_scenario->octree.get_elem_count()));
+	print_line("OTP: "+itos(p_scenario->octree.get_pair_count()));
+	*/
+
+	/* STEP 3 - PROCESS PORTALS, VALIDATE ROOMS */
+	//removed, will replace with culling
+
+	/* STEP 4 - REMOVE FURTHER CULLED OBJECTS, ADD LIGHTS */
+
+	/* STEP 5 - PROCESS POSITIONAL LIGHTS */
+
+	if (p_using_shadows) { //setup shadow maps
+
+		//SortArray<Instance*,_InstanceLightsort> sorter;
+		//sorter.sort(light_cull_result,light_cull_count);
+		for (uint32_t i = 0; i < (uint32_t)frustum_cull_result.lights.size(); i++) {
+			Instance *ins = frustum_cull_result.lights[i];
+
+			if (!p_shadow_atlas.is_valid() || !RSG::storage->light_has_shadow(ins->base)) {
+				continue;
+			}
+
+			InstanceLightData *light = static_cast<InstanceLightData *>(ins->base_data);
+
+			float coverage = 0.f;
+
+			{ //compute coverage
+
+				Transform cam_xf = p_cam_transform;
+				float zn = p_cam_projection.get_z_near();
+				Plane p(cam_xf.origin + cam_xf.basis.get_axis(2) * -zn, -cam_xf.basis.get_axis(2)); //camera near plane
+
+				// near plane half width and height
+				Vector2 vp_half_extents = p_cam_projection.get_viewport_half_extents();
+
+				switch (RSG::storage->light_get_type(ins->base)) {
+					case RS::LIGHT_OMNI: {
+						float radius = RSG::storage->light_get_param(ins->base, RS::LIGHT_PARAM_RANGE);
+
+						//get two points parallel to near plane
+						Vector3 points[2] = {
+							ins->transform.origin,
+							ins->transform.origin + cam_xf.basis.get_axis(0) * radius
+						};
+
+						if (!p_cam_orthogonal) {
+							//if using perspetive, map them to near plane
+							for (int j = 0; j < 2; j++) {
+								if (p.distance_to(points[j]) < 0) {
+									points[j].z = -zn; //small hack to keep size constant when hitting the screen
+								}
+
+								p.intersects_segment(cam_xf.origin, points[j], &points[j]); //map to plane
+							}
+						}
+
+						float screen_diameter = points[0].distance_to(points[1]) * 2;
+						coverage = screen_diameter / (vp_half_extents.x + vp_half_extents.y);
+					} break;
+					case RS::LIGHT_SPOT: {
+						float radius = RSG::storage->light_get_param(ins->base, RS::LIGHT_PARAM_RANGE);
+						float angle = RSG::storage->light_get_param(ins->base, RS::LIGHT_PARAM_SPOT_ANGLE);
+
+						float w = radius * Math::sin(Math::deg2rad(angle));
+						float d = radius * Math::cos(Math::deg2rad(angle));
+
+						Vector3 base = ins->transform.origin - ins->transform.basis.get_axis(2).normalized() * d;
+
+						Vector3 points[2] = {
+							base,
+							base + cam_xf.basis.get_axis(0) * w
+						};
+
+						if (!p_cam_orthogonal) {
+							//if using perspetive, map them to near plane
+							for (int j = 0; j < 2; j++) {
+								if (p.distance_to(points[j]) < 0) {
+									points[j].z = -zn; //small hack to keep size constant when hitting the screen
+								}
+
+								p.intersects_segment(cam_xf.origin, points[j], &points[j]); //map to plane
+							}
+						}
+
+						float screen_diameter = points[0].distance_to(points[1]) * 2;
+						coverage = screen_diameter / (vp_half_extents.x + vp_half_extents.y);
+
+					} break;
+					default: {
+						ERR_PRINT("Invalid Light Type");
+					}
+				}
+			}
+
+			if (light->shadow_dirty) {
+				light->last_version++;
+				light->shadow_dirty = false;
+			}
+
+			bool redraw = scene_render->shadow_atlas_update_light(p_shadow_atlas, light->instance, coverage, light->last_version);
+
+			if (redraw) {
+				//must redraw!
+				RENDER_TIMESTAMP(">Rendering Light " + itos(i));
+				light->shadow_dirty = _light_instance_update_shadow(ins, p_cam_transform, p_cam_projection, p_cam_orthogonal, p_cam_vaspect, p_shadow_atlas, scenario, p_screen_lod_threshold);
+				RENDER_TIMESTAMP("<Rendering Light " + itos(i));
+			}
+		}
+	}
+
+	//append the directional lights to the lights culled
+	for (int i = 0; i < directional_lights.size(); i++) {
+		frustum_cull_result.light_instances.push_back(directional_lights[i]);
+	}
 }
