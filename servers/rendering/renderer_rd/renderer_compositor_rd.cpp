@@ -80,7 +80,7 @@ void RendererCompositorRD::blit_render_targets_to_screen(DisplayServer::WindowID
 		RD::get_singleton()->draw_list_set_push_constant(draw_list, push_constant, 4 * sizeof(float));
 		RD::get_singleton()->draw_list_draw(draw_list, true);
 	}
-	RD::get_singleton()->draw_list_end(RD::BARRIER_MASK_RASTER | RD::BARRIER_MASK_TRANSFER);
+	RD::get_singleton()->draw_list_end();
 }
 
 void RendererCompositorRD::begin_frame(double frame_step) {
