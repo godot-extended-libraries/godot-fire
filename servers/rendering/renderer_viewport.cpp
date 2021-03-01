@@ -81,7 +81,7 @@ void RendererViewport::_draw_3d(Viewport *p_viewport, XRInterface::Eyes p_eye) {
 
 	float screen_lod_threshold = p_viewport->lod_threshold / float(p_viewport->size.width);
 	if (p_viewport->use_xr && xr_interface.is_valid()) {
-		RSG::scene->render_camera(p_viewport->render_buffers, xr_interface, p_eye, p_viewport->camera, p_viewport->scenario, p_viewport->size, screen_lod_threshold, p_viewport->shadow_atlas);
+		RSG::scene->render_camera(p_eye == XRInterface::EYE_RIGHT ? p_viewport->right_eye_render_buffers : p_viewport->render_buffers, xr_interface, p_eye, p_viewport->camera, p_viewport->scenario, p_viewport->size, screen_lod_threshold, p_viewport->shadow_atlas);
 	} else {
 		RSG::scene->render_camera(p_viewport->render_buffers, p_viewport->camera, p_viewport->scenario, p_viewport->size, screen_lod_threshold, p_viewport->shadow_atlas);
 	}
@@ -96,6 +96,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, XRInterface::Eyes p_
 	}
 
 	RID current_eye_render_target = p_eye == XRInterface::EYE_RIGHT ? p_viewport->right_eye_render_target : p_viewport->render_target;
+	RID current_eye_render_buffers = p_eye == XRInterface::EYE_RIGHT ? p_viewport->right_eye_render_buffers : p_viewport->render_buffers;
 
 	/* Camera should always be BEFORE any other 3D */
 
@@ -123,10 +124,16 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, XRInterface::Eyes p_
 		}
 	}
 
-	if ((scenario_draw_canvas_bg || can_draw_3d) && !p_viewport->render_buffers.is_valid()) {
+	if ((scenario_draw_canvas_bg || can_draw_3d) && !current_eye_render_buffers.is_valid()) {
 		//wants to draw 3D but there is no render buffer, create
-		p_viewport->render_buffers = RSG::scene->render_buffers_create();
-		RSG::scene->render_buffers_configure(p_viewport->render_buffers, current_eye_render_target, p_viewport->size.width, p_viewport->size.height, p_viewport->msaa, p_viewport->screen_space_aa, p_viewport->use_debanding);
+		if (p_eye == XRInterface::EYE_RIGHT) {
+			p_viewport->right_eye_render_buffers = RSG::scene->render_buffers_create();
+			current_eye_render_buffers = p_viewport->right_eye_render_buffers;
+		} else {
+			p_viewport->render_buffers = RSG::scene->render_buffers_create();
+			current_eye_render_buffers = p_viewport->render_buffers;
+		}
+		RSG::scene->render_buffers_configure(current_eye_render_buffers, current_eye_render_target, p_viewport->size.width, p_viewport->size.height, p_viewport->msaa, p_viewport->screen_space_aa, p_viewport->use_debanding);
 	}
 
 	RSG::storage->render_target_request_clear(current_eye_render_target, bgcolor);
@@ -374,7 +381,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, XRInterface::Eyes p_
 
 		if (scenario_draw_canvas_bg && canvas_map.front() && canvas_map.front()->key().get_layer() > scenario_canvas_max_layer) {
 			if (!can_draw_3d) {
-				RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
+				RSG::scene->render_empty_scene(current_eye_render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
 			} else {
 				_draw_3d(p_viewport, p_eye);
 			}
@@ -415,7 +422,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, XRInterface::Eyes p_
 
 			if (scenario_draw_canvas_bg && E->key().get_layer() >= scenario_canvas_max_layer) {
 				if (!can_draw_3d) {
-					RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
+					RSG::scene->render_empty_scene(current_eye_render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
 				} else {
 					_draw_3d(p_viewport, p_eye);
 				}
@@ -426,7 +433,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, XRInterface::Eyes p_
 
 		if (scenario_draw_canvas_bg) {
 			if (!can_draw_3d) {
-				RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
+				RSG::scene->render_empty_scene(current_eye_render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
 			} else {
 				_draw_3d(p_viewport, p_eye);
 			}
@@ -513,10 +520,10 @@ void RendererViewport::draw_viewports() {
 			Size2 render_size = xr_interface->get_render_targetsize();
 			vp->size = render_size;
 			RSG::storage->render_target_set_size(vp->render_target, vp->size.x, vp->size.y);
-			
+
 			// render mono or left eye first
- 			XRInterface::Eyes leftOrMono = xr_interface->is_stereo() ? XRInterface::EYE_LEFT : XRInterface::EYE_MONO;
- 
+			XRInterface::Eyes leftOrMono = xr_interface->is_stereo() ? XRInterface::EYE_LEFT : XRInterface::EYE_MONO;
+
 			if (leftOrMono == XRInterface::EYE_LEFT) {
 				RSG::storage->render_target_set_size(vp->right_eye_render_target, vp->size.x, vp->size.y);
 			}
@@ -633,6 +640,14 @@ void RendererViewport::viewport_set_size(RID p_viewport, int p_width, int p_heig
 			viewport->render_buffers = RID();
 		} else {
 			RSG::scene->render_buffers_configure(viewport->render_buffers, viewport->render_target, viewport->size.width, viewport->size.height, viewport->msaa, viewport->screen_space_aa, viewport->use_debanding);
+		}
+	}
+	if (viewport->right_eye_render_buffers.is_valid()) {
+		if (p_width == 0 || p_height == 0) {
+			RSG::scene->free(viewport->right_eye_render_buffers);
+			viewport->right_eye_render_buffers = RID();
+		} else {
+			RSG::scene->render_buffers_configure(viewport->right_eye_render_buffers, viewport->right_eye_render_target, viewport->size.width, viewport->size.height, viewport->msaa, viewport->screen_space_aa, viewport->use_debanding);
 		}
 	}
 }
@@ -849,7 +864,7 @@ void RendererViewport::viewport_set_msaa(RID p_viewport, RS::ViewportMSAA p_msaa
 	viewport->msaa = p_msaa;
 	if (viewport->render_buffers.is_valid()) {
 		RSG::scene->render_buffers_configure(viewport->render_buffers, viewport->render_target, viewport->size.width, viewport->size.height, p_msaa, viewport->screen_space_aa, viewport->use_debanding);
-		RSG::scene->render_buffers_configure(viewport->render_buffers, viewport->right_eye_render_target, viewport->size.width, viewport->size.height, p_msaa, viewport->screen_space_aa, viewport->use_debanding);
+		RSG::scene->render_buffers_configure(viewport->right_eye_render_buffers, viewport->right_eye_render_target, viewport->size.width, viewport->size.height, p_msaa, viewport->screen_space_aa, viewport->use_debanding);
 	}
 }
 
@@ -863,7 +878,7 @@ void RendererViewport::viewport_set_screen_space_aa(RID p_viewport, RS::Viewport
 	viewport->screen_space_aa = p_mode;
 	if (viewport->render_buffers.is_valid()) {
 		RSG::scene->render_buffers_configure(viewport->render_buffers, viewport->render_target, viewport->size.width, viewport->size.height, viewport->msaa, p_mode, viewport->use_debanding);
-		RSG::scene->render_buffers_configure(viewport->render_buffers, viewport->right_eye_render_target, viewport->size.width, viewport->size.height, viewport->msaa, p_mode, viewport->use_debanding);
+		RSG::scene->render_buffers_configure(viewport->right_eye_render_buffers, viewport->right_eye_render_target, viewport->size.width, viewport->size.height, viewport->msaa, p_mode, viewport->use_debanding);
 	}
 }
 
@@ -877,7 +892,7 @@ void RendererViewport::viewport_set_use_debanding(RID p_viewport, bool p_use_deb
 	viewport->use_debanding = p_use_debanding;
 	if (viewport->render_buffers.is_valid()) {
 		RSG::scene->render_buffers_configure(viewport->render_buffers, viewport->render_target, viewport->size.width, viewport->size.height, viewport->msaa, viewport->screen_space_aa, p_use_debanding);
-		RSG::scene->render_buffers_configure(viewport->render_buffers, viewport->right_eye_render_target, viewport->size.width, viewport->size.height, viewport->msaa, viewport->screen_space_aa, p_use_debanding);
+		RSG::scene->render_buffers_configure(viewport->right_eye_render_buffers, viewport->right_eye_render_target, viewport->size.width, viewport->size.height, viewport->msaa, viewport->screen_space_aa, p_use_debanding);
 	}
 }
 
@@ -971,6 +986,9 @@ bool RendererViewport::free(RID p_rid) {
 		RSG::scene->free(viewport->shadow_atlas);
 		if (viewport->render_buffers.is_valid()) {
 			RSG::scene->free(viewport->render_buffers);
+		}
+		if (viewport->right_eye_render_buffers.is_valid()) {
+			RSG::scene->free(viewport->right_eye_render_buffers);
 		}
 
 		while (viewport->canvas_map.front()) {

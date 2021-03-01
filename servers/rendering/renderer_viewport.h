@@ -56,6 +56,7 @@ public:
 		RID render_target;
 		RID right_eye_render_target;
 		RID render_buffers;
+		RID right_eye_render_buffers;
 
 		RS::ViewportMSAA msaa;
 		RS::ViewportScreenSpaceAA screen_space_aa;
