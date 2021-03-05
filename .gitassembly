@@ -1,0 +1,20 @@
+stage extended-fire-master remotes/godotengine/master
+merge extended-fire-master remotes/extended-fire-godot/feature/bone-parent-to-child
+merge extended-fire-master remotes/fire/cubic-interpolation
+# merge extended-fire-master remotes/extended-fire-godot/feature/spatial-audio
+merge extended-fire-master remotes/GodotECS/customizable_iterator
+merge extended-fire-master remotes/extended-fire-godot/features/process-geometry-func
+merge extended-fire-master remotes/extended-fire-godot/features/ik-gizmos
+# merge extended-fire-master remotes/extended-fire-godot/features/simple-shader-additions
+# merge extended-fire-master remotes/extended-fire-godot/features/basic-import-shader
+# merge extended-fire-master remotes/extended-fire-godot/features/non-constant-global-variable
+# merge extended-fire-master remotes/extended-fire-godot/features/divide-by-pi
+# merge extended-fire-master remotes/extended-fire-godot/features/ik-gizmos
+# merge extended-fire-master remotes/extended-fire-godot/feature/mesh-unwrap
+# merge extended-fire-master remotes/lyuma/audio_effect_stream
+# merge extended-fire-master remotes/lyuma/speech_master
+# merge extended-fire-master remotes/fire/bc7e
+# merge extended-fire-master remotes/extended-fire-godot/feature/wireframe
+# merge extended-fire-master remotes/fire/sentry-io-cleanup
+# merge extended-fire-master remotes/extended-fire-godot/feature/remove-empties
+# merge extended-fire-master remotes/extended-fire-godot/feature/move-mesh-to-root
