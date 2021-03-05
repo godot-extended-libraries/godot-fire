@@ -37,6 +37,7 @@ SurfaceTool::OptimizeVertexCacheFunc SurfaceTool::optimize_vertex_cache_func = n
 SurfaceTool::SimplifyFunc SurfaceTool::simplify_func = nullptr;
 SurfaceTool::SimplifyScaleFunc SurfaceTool::simplify_scale_func = nullptr;
 SurfaceTool::SimplifySloppyFunc SurfaceTool::simplify_sloppy_func = nullptr;
+SurfaceTool::ProcessGeometryFunc SurfaceTool::process_geometry_func = nullptr;
 
 bool SurfaceTool::Vertex::operator==(const Vertex &p_vertex) const {
 	if (vertex != p_vertex.vertex) {
