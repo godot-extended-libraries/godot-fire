@@ -36,6 +36,9 @@
 #include "core/templates/hashfuncs.h"
 #include "drivers/vulkan/vulkan_context.h"
 
+#include "modules/openxr/src/openxr/OpenXRApi.h"
+#include "servers/xr/xr_interface.h"
+#include "servers/xr_server.h"
 #include "thirdparty/spirv-reflect/spirv_reflect.h"
 
 //#define FORCE_FULL_BARRIER
@@ -6229,7 +6232,7 @@ Error RenderingDeviceVulkan::draw_list_begin_split(RID p_framebuffer, uint32_t p
 			VkCommandPoolCreateInfo cmd_pool_info;
 			cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			cmd_pool_info.pNext = nullptr;
-			cmd_pool_info.queueFamilyIndex = context->get_graphics_queue();
+			cmd_pool_info.queueFamilyIndex = context->get_graphics_queue_family();
 			cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 			VkResult res = vkCreateCommandPool(device, &cmd_pool_info, nullptr, &split_draw_list_allocators.write[i].command_pool);
@@ -7865,7 +7868,7 @@ void RenderingDeviceVulkan::initialize(VulkanContext *p_context, bool p_local_de
 			VkCommandPoolCreateInfo cmd_pool_info;
 			cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			cmd_pool_info.pNext = nullptr;
-			cmd_pool_info.queueFamilyIndex = p_context->get_graphics_queue();
+			cmd_pool_info.queueFamilyIndex = p_context->get_graphics_queue_family();
 			cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 			VkResult res = vkCreateCommandPool(device, &cmd_pool_info, nullptr, &frames[i].command_pool);
@@ -8260,4 +8263,38 @@ RenderingDeviceVulkan::~RenderingDeviceVulkan() {
 		finalize();
 		context->local_device_free(local_device);
 	}
+}
+
+#include "modules/openxr/openxr_loader_windows/1.0.12/include/openxr/openxr.h"
+#include "modules/openxr/src/XRInterface.h"
+void RenderingDeviceVulkan::submit_vr_texture(int p_eye, const RID p_texture) {
+	Ref<OpenXRInterface> xr_interface = XRServer::get_singleton()->get_primary_interface();
+	if (xr_interface.is_null()) {
+		return;
+	}
+	OpenXRApi *openxr_api = xr_interface->arvr_data.openxr_api;
+	if (!openxr_api) {
+		return;
+	}
+	int eye = p_eye - 1;
+	bool has_external_texture_support = xr_interface->arvr_data.has_external_texture_support;
+	XrResult result;
+	openxr_api->projection_views[eye].fov = openxr_api->views[eye].fov;
+	openxr_api->projection_views[eye].pose = openxr_api->views[eye].pose;
+
+	if (eye == 1) {
+		openxr_api->projectionLayer->views = openxr_api->projection_views;
+		const XrCompositionLayerBaseHeader *const projectionlayers[1] = { (const XrCompositionLayerBaseHeader *const)
+					openxr_api->projectionLayer };
+		XrFrameEndInfo frameEndInfo = {
+			.type = XR_TYPE_FRAME_END_INFO,
+			.next = NULL,
+			.displayTime = openxr_api->frameState.predictedDisplayTime,
+			.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE,
+			.layerCount = 1,
+			.layers = projectionlayers,
+		};
+		result = xrEndFrame(openxr_api->session, &frameEndInfo);
+	}
+	openxr_api->xr_result(result, "failed to end frame!");
 }

@@ -36,6 +36,7 @@
 #include "core/templates/oa_hash_map.h"
 #include "core/templates/rid_owner.h"
 #include "servers/rendering/rendering_device.h"
+#include "vulkan/vulkan_core.h"
 
 #ifdef DEBUG_ENABLED
 #ifndef _DEBUG
@@ -946,12 +947,14 @@ public:
 	virtual RID framebuffer_create_empty(const Size2i &p_size, TextureSamples p_samples = TEXTURE_SAMPLES_1, FramebufferFormatID p_format_check = INVALID_ID);
 
 	virtual FramebufferFormatID framebuffer_get_format(RID p_framebuffer);
+	virtual void submit_vr_texture(int p_eye, const RID p_texture);
 
 	/*****************/
 	/**** SAMPLER ****/
 	/*****************/
 
-	virtual RID sampler_create(const SamplerState &p_state);
+	virtual RID
+	sampler_create(const SamplerState &p_state);
 
 	/**********************/
 	/**** VERTEX ARRAY ****/
