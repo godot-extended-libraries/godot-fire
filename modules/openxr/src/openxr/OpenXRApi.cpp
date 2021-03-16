@@ -1955,7 +1955,7 @@ int OpenXRApi::get_external_texture_for_eye(int eye, bool &has_support) {
 	}
 
 	// process should be called by now but just in case...
-#warning Restore get_external_texture_for_eye 2021-03-12
+#pragma warning Restore get_external_texture_for_eye 2021-03-12
 	// if (state > XR_SESSION_STATE_UNKNOWN && buffer_index != NULL) {
 	// 	// make sure we know that we're rendering directly to our
 	// 	// texture chain
