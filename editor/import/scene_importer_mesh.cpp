@@ -136,6 +136,18 @@ Ref<Material> EditorSceneImporterMesh::get_surface_material(int p_surface) const
 	return surfaces[p_surface].material;
 }
 
+void EditorSceneImporterMesh::process_mesh() {
+	if (!SurfaceTool::process_geometry_func) {
+		return;
+	}
+	for (int i = 0; i < surfaces.size(); i++) {
+		if (surfaces[i].primitive != Mesh::PRIMITIVE_TRIANGLES) {
+			continue;
+		}
+		surfaces.write[i].arrays = SurfaceTool::process_geometry_func(surfaces[i].arrays);
+	}
+}
+
 void EditorSceneImporterMesh::generate_lods() {
 	if (!SurfaceTool::simplify_func) {
 		return;
