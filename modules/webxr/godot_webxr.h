@@ -31,6 +31,7 @@
 #ifndef GODOT_WEBXR_H
 #define GODOT_WEBXR_H
 
+#include "core/templates/rid.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,7 +66,7 @@ extern int godot_webxr_get_view_count();
 extern int *godot_webxr_get_render_targetsize();
 extern float *godot_webxr_get_transform_for_eye(int p_eye);
 extern float *godot_webxr_get_projection_for_eye(int p_eye);
-extern int godot_webxr_get_external_texture_for_eye(int p_eye);
+extern void godot_webxr_get_external_texture_for_eye(int p_eye, RID r_texture);
 extern void godot_webxr_commit_for_eye(int p_eye);
 
 extern void godot_webxr_sample_controller_data();

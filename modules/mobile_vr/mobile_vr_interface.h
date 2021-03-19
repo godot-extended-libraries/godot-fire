@@ -138,20 +138,17 @@ public:
 	virtual void uninitialize() override;
 
 	virtual Size2 get_render_targetsize() override;
-	virtual uint32_t get_view_count() override;
-	virtual Transform get_camera_transform() override;
-	virtual Transform get_transform_for_view(uint32_t p_view, const Transform &p_cam_transform) override;
-	virtual CameraMatrix get_projection_for_view(uint32_t p_view, real_t p_aspect, real_t p_z_near, real_t p_z_far) override;
-	virtual Vector<BlitToScreen> commit_views(RID p_render_target, const Rect2 &p_screen_rect) override;
+	virtual bool is_stereo() override;
+	virtual Transform get_transform_for_eye(XRInterface::Eyes p_eye, const Transform &p_cam_transform) override;
+	virtual CameraMatrix get_projection_for_eye(XRInterface::Eyes p_eye, real_t p_aspect, real_t p_z_near, real_t p_z_far) override;
+	
+	virtual void get_external_texture_for_eye(XRInterface::Eyes p_eye, RID r_texture) override;
 
 	virtual void process() override;
 	virtual void notification(int p_what) override {}
 
 	MobileVRInterface();
 	~MobileVRInterface();
-
-	// deprecated
-	virtual void commit_for_eye(XRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) override;
 };
 
 #endif // !MOBILE_VR_INTERFACE_H

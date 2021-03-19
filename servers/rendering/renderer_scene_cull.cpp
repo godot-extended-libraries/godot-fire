@@ -2203,16 +2203,15 @@ void RendererSceneCull::render_camera(RID p_render_buffers, RID p_camera, RID p_
 		ERR_FAIL_COND_MSG(view_count > 2, "Requested view count is not supported"); // only support monoscopic and stereoscopic for now
 		// ERR_FAIL_COND_MSG(view_count > RENDER_MAX_VIEWS, "Requested view count is not supported");
 
-		float aspect = p_viewport_size.width / (float)p_viewport_size.height;
+	RID environment = _render_get_environment(p_camera, p_scenario);
+	_render_scene(camera->transform, camera_matrix, ortho, camera->vaspect, p_render_buffers, environment, camera->effects, camera->visible_layers, p_scenario, p_shadow_atlas, RID(), -1, p_screen_lod_threshold);
+#endif
+}
 
-		Transform world_origin = XRServer::get_singleton()->get_world_origin();
-
-		// We ignore our camera position, it will have been positioned with a slightly old tracking position.
-		// Instead we take our origin point and have our XR interface add fresh tracking data! Whoohoo!
-		for (uint32_t v = 0; v < view_count; v++) {
-			transforms[v] = p_interface->get_transform_for_view(v, world_origin);
-			projections[v] = p_interface->get_projection_for_view(v, aspect, camera->znear, camera->zfar);
-		}
+void RendererSceneCull::render_camera(RID p_render_buffers, Ref<XRInterface> &p_interface, XRInterface::Eyes p_eye, RID p_camera, RID p_scenario, Size2 p_viewport_size, float p_screen_lod_threshold, RID p_shadow_atlas) {
+	// render for AR/VR interface
+	Camera *camera = camera_owner.getornull(p_camera);
+	ERR_FAIL_COND(!camera);
 
 		if (view_count == 1) {
 			view_data.set_single_view(transforms[0], projections[0], false, camera->vaspect);
@@ -2245,29 +2244,12 @@ void RendererSceneCull::render_camera(RID p_render_buffers, RID p_camera, RID p_
 						camera->zfar,
 						camera->vaspect);
 
-			} break;
-			case Camera::FRUSTUM: {
-				projection.set_frustum(
-						camera->size,
-						p_viewport_size.width / (float)p_viewport_size.height,
-						camera->offset,
-						camera->znear,
-						camera->zfar,
-						camera->vaspect);
-			} break;
-		}
-
-		view_data.set_single_view(transform, projection, is_ortogonal, vaspect);
-	}
-
 	RID environment = _render_get_environment(p_camera, p_scenario);
 
-	RENDER_TIMESTAMP("Update occlusion buffer")
-	// For now just cull on the first camera
-	RendererSceneOcclusionCull::get_singleton()->buffer_update(p_viewport, view_data.main_transform, view_data.main_projection, view_data.is_ortogonal, RendererThreadPool::singleton->thread_work_pool);
+	// Removed code to create a per eye and combined camera matrix.
 
-	_render_scene(&view_data, p_render_buffers, environment, camera->effects, camera->visible_layers, p_scenario, p_viewport, p_shadow_atlas, RID(), -1, p_screen_lod_threshold);
-#endif
+	// And render our scene...
+	_render_scene(cam_transform, camera_matrix, false, camera->vaspect, p_render_buffers, environment, camera->effects, camera->visible_layers, p_scenario, p_shadow_atlas, RID(), -1, p_screen_lod_threshold, false);
 }
 
 void RendererSceneCull::_frustum_cull_threaded(uint32_t p_thread, CullData *cull_data) {

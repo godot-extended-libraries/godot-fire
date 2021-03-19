@@ -1,0 +1,38 @@
+Import('env')
+
+env.Append(CPPDEFINES=["XR_USE_GRAPHICS_API_VULKAN"])
+
+# First, create a custom env for the shared library.
+module_env = env.Clone()
+
+# Add library includes
+module_env.Append(CPPPATH=[
+    "openxr_loader_windows/1.0.16/include/",
+    "src",
+    ]) # this is a relative path
+
+
+module_env.add_source_files(env.modules_sources, "*.cpp")
+module_env.add_source_files(env.modules_sources, "src/*.cpp")
+module_env.add_source_files(env.modules_sources, "src/*/*.cpp")
+module_env.add_source_files(env.modules_sources, "src/*/*/*.cpp")
+
+platform_string = ''
+extension_string = ''
+
+if (env['platform'] == 'windows'):
+    platform_string = 'x64'
+    extension_string = '.lib'
+elif (env['platform'] == 'darwin'):
+    platform_string = 'osx32'
+    extension_string = '.dylib'
+elif (env['platform'] == "linuxbsd"):
+    platform_string = 'linux'
+    extension_string = '.so.1'
+
+if env['platform'] == "windows":
+    library_location = 'openxr_loader_windows/1.0.16/' + platform_string + '/lib/openxr_loader' + extension_string
+else:
+    library_location = '/usr/lib64/libopenxr_loader' + extension_string
+
+env.Append(LIBS=[File(library_location)])
