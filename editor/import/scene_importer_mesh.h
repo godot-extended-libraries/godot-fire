@@ -88,9 +88,8 @@ public:
 	Vector<int> get_surface_lod_indices(int p_surface, int p_lod) const;
 	float get_surface_lod_size(int p_surface, int p_lod) const;
 	Ref<Material> get_surface_material(int p_surface) const;
-
+	void process_mesh();
 	void generate_lods();
-
 	void create_shadow_mesh();
 	Ref<EditorSceneImporterMesh> get_shadow_mesh() const;
 
