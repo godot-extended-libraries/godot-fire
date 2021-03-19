@@ -54,8 +54,9 @@ public:
 
 		RS::ViewportUpdateMode update_mode;
 		RID render_target;
-		RID render_target_texture;
+		RID right_eye_render_target;
 		RID render_buffers;
+		RID right_eye_render_buffers;
 
 		RS::ViewportMSAA msaa;
 		RS::ViewportScreenSpaceAA screen_space_aa;
@@ -188,6 +189,8 @@ private:
 public:
 	RID viewport_allocate();
 	void viewport_initialize(RID p_rid);
+
+	void commit_for_eye(Map<DisplayServer::WindowID, Vector<RendererCompositor::BlitToScreen>> &blit_to_screen_list, XRInterface::Eyes p_eye, Viewport *p_viewport);
 
 	void viewport_set_use_xr(RID p_viewport, bool p_use_xr);
 

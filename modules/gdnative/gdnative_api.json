@@ -5095,16 +5095,6 @@
 					]
 				},
 				{
-					"name": "godot_xr_get_texid",
-					"return_type": "godot_int",
-					"arguments": [
-						[
-							"godot_rid *",
-							"p_render_target"
-						]
-					]
-				},
-				{
 					"name": "godot_xr_add_controller",
 					"return_type": "godot_int",
 					"arguments": [

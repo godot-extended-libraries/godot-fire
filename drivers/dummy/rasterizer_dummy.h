@@ -274,6 +274,101 @@ public:
 	void canvas_texture_set_texture_filter(RID p_item, RS::CanvasItemTextureFilter p_filter) override {}
 	void canvas_texture_set_texture_repeat(RID p_item, RS::CanvasItemTextureRepeat p_repeat) override {}
 
+#if 0
+	RID texture_create() override {
+		DummyTexture *texture = memnew(DummyTexture);
+		ERR_FAIL_COND_V(!texture, RID());
+		return texture_owner.make_rid(texture);
+	}
+
+	void texture_allocate(RID p_texture, int p_width, int p_height, int p_depth_3d, Image::Format p_format, RenderingServer::TextureType p_type = RS::TEXTURE_TYPE_2D, uint32_t p_flags = RS::TEXTURE_FLAGS_DEFAULT) override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND(!t);
+		t->width = p_width;
+		t->height = p_height;
+		t->flags = p_flags;
+		t->format = p_format;
+		t->image = Ref<Image>(memnew(Image));
+		t->image->create(p_width, p_height, false, p_format);
+	}
+	void texture_set_data(RID p_texture, const Ref<Image> &p_image, int p_level) override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND(!t);
+		t->width = p_image->get_width();
+		t->height = p_image->get_height();
+		t->format = p_image->get_format();
+		t->image->create(t->width, t->height, false, t->format, p_image->get_data());
+	}
+
+	void texture_set_data_partial(RID p_texture, const Ref<Image> &p_image, int src_x, int src_y, int src_w, int src_h, int dst_x, int dst_y, int p_dst_mip, int p_level) override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+
+		ERR_FAIL_COND(!t);
+		ERR_FAIL_COND_MSG(p_image.is_null(), "It's not a reference to a valid Image object.");
+		ERR_FAIL_COND(t->format != p_image->get_format());
+		ERR_FAIL_COND(src_w <= 0 || src_h <= 0);
+		ERR_FAIL_COND(src_x < 0 || src_y < 0 || src_x + src_w > p_image->get_width() || src_y + src_h > p_image->get_height());
+		ERR_FAIL_COND(dst_x < 0 || dst_y < 0 || dst_x + src_w > t->width || dst_y + src_h > t->height);
+
+		t->image->blit_rect(p_image, Rect2(src_x, src_y, src_w, src_h), Vector2(dst_x, dst_y));
+	}
+
+	Ref<Image> texture_get_data(RID p_texture, int p_level) const override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND_V(!t, Ref<Image>());
+		return t->image;
+	}
+	void texture_set_flags(RID p_texture, uint32_t p_flags) override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND(!t);
+		t->flags = p_flags;
+	}
+	uint32_t texture_get_flags(RID p_texture) const override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND_V(!t, 0);
+		return t->flags;
+	}
+	Image::Format texture_get_format(RID p_texture) const override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND_V(!t, Image::FORMAT_RGB8);
+		return t->format;
+	}
+
+	RenderingServer::TextureType texture_get_type(RID p_texture) const override { return RS::TEXTURE_TYPE_2D; }
+	uint32_t texture_get_width(RID p_texture) const override { return 0; }
+	uint32_t texture_get_height(RID p_texture) const override { return 0; }
+	uint32_t texture_get_depth(RID p_texture) const override { return 0; }
+	void texture_set_size_override(RID p_texture, int p_width, int p_height, int p_depth_3d) override {}
+	void texture_bind(RID p_texture, uint32_t p_texture_no) override {}
+
+	void texture_set_path(RID p_texture, const String &p_path) override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND(!t);
+		t->path = p_path;
+	}
+	String texture_get_path(RID p_texture) const override {
+		DummyTexture *t = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND_V(!t, String());
+		return t->path;
+	}
+
+	void texture_set_shrink_all_x2_on_set_data(bool p_enable) override {}
+
+	void texture_debug_usage(List<RS::TextureInfo> *r_info) override {}
+
+	RID texture_create_radiance_cubemap(RID p_source, int p_resolution = -1) const override { return RID(); }
+
+	void texture_set_detect_3d_callback(RID p_texture, RenderingServer::TextureDetectCallback p_callback, void *p_userdata) override {}
+	void texture_set_detect_srgb_callback(RID p_texture, RenderingServer::TextureDetectCallback p_callback, void *p_userdata) override {}
+	void texture_set_detect_normal_callback(RID p_texture, RenderingServer::TextureDetectCallback p_callback, void *p_userdata) override {}
+
+	void textures_keep_original(bool p_enable) override {}
+
+	void texture_set_proxy(RID p_proxy, RID p_base) override {}
+	Size2 texture_size_with_proxy(RID p_texture) const override { return Size2(); }
+	void texture_set_force_redraw_if_visible(RID p_texture, bool p_enable) override {}
+#endif
+
 	/* SHADER API */
 
 	RID shader_allocate() override { return RID(); }
