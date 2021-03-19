@@ -124,11 +124,6 @@ XRInterface::XRInterface() {
 
 XRInterface::~XRInterface() {}
 
-// optional render to external texture which enhances performance on those platforms that require us to submit our end result into special textures.
-unsigned int XRInterface::get_external_texture_for_eye(XRInterface::Eyes p_eye) {
-	return 0;
-};
-
 /** these will only be implemented on AR interfaces, so we want dummies for VR **/
 bool XRInterface::get_anchor_detection_is_enabled() const {
 	return false;

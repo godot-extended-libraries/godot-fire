@@ -1083,6 +1083,7 @@ public:
 	virtual String get_device_vendor_name() const = 0;
 	virtual String get_device_name() const = 0;
 	virtual String get_device_pipeline_cache_uuid() const = 0;
+	virtual void submit_vr_texture(RID p_texture, int p_eye) = 0;
 
 	static RenderingDevice *get_singleton();
 	RenderingDevice();

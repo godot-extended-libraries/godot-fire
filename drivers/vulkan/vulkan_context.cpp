@@ -1522,8 +1522,12 @@ int VulkanContext::get_swapchain_image_count() const {
 	return swapchainImageCount;
 }
 
-uint32_t VulkanContext::get_graphics_queue() const {
+uint32_t VulkanContext::get_graphics_queue_family() const {
 	return graphics_queue_family_index;
+}
+
+VkQueue VulkanContext::get_graphics_queue() {
+	return graphics_queue;
 }
 
 VkFormat VulkanContext::get_screen_format() const {

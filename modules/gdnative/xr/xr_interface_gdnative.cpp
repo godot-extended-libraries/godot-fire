@@ -195,16 +195,10 @@ CameraMatrix XRInterfaceGDNative::get_projection_for_eye(XRInterface::Eyes p_eye
 	return cm;
 }
 
-unsigned int XRInterfaceGDNative::get_external_texture_for_eye(XRInterface::Eyes p_eye) {
-	ERR_FAIL_COND_V(interface == nullptr, 0);
-
-	return (unsigned int)interface->get_external_texture_for_eye(data, (godot_int)p_eye);
-}
-
-void XRInterfaceGDNative::commit_for_eye(XRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) {
+void XRInterfaceGDNative::get_external_texture_for_eye(XRInterface::Eyes p_eye, RID p_texture) {
 	ERR_FAIL_COND(interface == nullptr);
 
-	interface->commit_for_eye(data, (godot_int)p_eye, (godot_rid *)&p_render_target, (godot_rect2 *)&p_screen_rect);
+	interface->get_external_texture_for_eye(data, (godot_int)p_eye, (godot_rid *)&p_texture);
 }
 
 void XRInterfaceGDNative::process() {
@@ -275,23 +269,6 @@ void GDAPI godot_xr_blit(godot_int p_eye, godot_rid *p_render_target, godot_rect
 #if 0
 	RSG::rasterizer->blit_render_target_to_screen(*render_target, screen_rect, 0);
 #endif
-}
-
-godot_int GDAPI godot_xr_get_texid(godot_rid *p_render_target) {
-	// In order to send off our textures to display on our hardware we need the opengl texture ID instead of the render target RID
-	// This is a handy function to expose that.
-#if 0
-	RID *render_target = (RID *)p_render_target;
-
-	RID eye_texture = RSG::storage->render_target_get_texture(*render_target);
-#endif
-
-#ifndef _MSC_VER
-#warning need to obtain this ID again
-#endif
-	uint32_t texid = 0; //RS::get_singleton()->texture_get_texid(eye_texture);
-
-	return texid;
 }
 
 godot_int GDAPI godot_xr_add_controller(char *p_device_name, godot_int p_hand, godot_bool p_tracks_orientation, godot_bool p_tracks_position) {

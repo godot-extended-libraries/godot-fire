@@ -36,6 +36,7 @@
 #include "core/templates/oa_hash_map.h"
 #include "core/templates/rid_owner.h"
 #include "servers/rendering/rendering_device.h"
+#include "vulkan/vulkan_core.h"
 
 #ifdef DEBUG_ENABLED
 #ifndef _DEBUG
@@ -951,7 +952,8 @@ public:
 	/**** SAMPLER ****/
 	/*****************/
 
-	virtual RID sampler_create(const SamplerState &p_state);
+	virtual RID
+	sampler_create(const SamplerState &p_state);
 
 	/**********************/
 	/**** VERTEX ARRAY ****/
@@ -1083,7 +1085,7 @@ public:
 
 	virtual void submit(); //for local device
 	virtual void sync(); //for local device
-
+	
 	virtual uint32_t get_frame_delay() const;
 
 	virtual RenderingDevice *create_local_device();
@@ -1099,6 +1101,12 @@ public:
 	virtual String get_device_vendor_name() const;
 	virtual String get_device_name() const;
 	virtual String get_device_pipeline_cache_uuid() const;
+	
+	virtual void submit_vr_texture(RID p_texture, int p_eye);
+
+	virtual VulkanContext *get_vulkan_context() {
+		return context;
+	}
 
 	RenderingDeviceVulkan();
 	~RenderingDeviceVulkan();

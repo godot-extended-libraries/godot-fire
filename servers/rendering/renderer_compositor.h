@@ -59,6 +59,8 @@ public:
 	struct BlitToScreen {
 		RID render_target;
 		Rect2i rect;
+		int eye = -1;
+		bool vr = false;
 		//lens distorted parameters for VR should go here
 	};
 

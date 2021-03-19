@@ -32,6 +32,9 @@
 
 #include "core/config/project_settings.h"
 
+#include "modules/openxr/openxr_loader_windows/1.0.14/include/openxr/openxr.h"
+#include "modules/openxr/src/XRInterface.h"
+
 void RendererCompositorRD::prepare_for_blitting_render_targets() {
 	RD::get_singleton()->prepare_screen_for_drawing();
 }
@@ -40,6 +43,35 @@ void RendererCompositorRD::blit_render_targets_to_screen(DisplayServer::WindowID
 	RD::DrawListID draw_list = RD::get_singleton()->draw_list_begin_for_screen(p_screen);
 
 	for (int i = 0; i < p_amount; i++) {
+		if (p_render_targets[i].vr) {
+			int rendered_eye = p_render_targets[i].eye;
+			Ref<OpenXRInterface> xr_interface = XRServer::get_singleton()->get_primary_interface();
+			if (xr_interface.is_null()) {
+				return;
+			}
+			OpenXRApi *openxr_api = xr_interface->arvr_data.openxr_api;
+			if (!openxr_api) {
+				return;
+			}
+			int eye = rendered_eye - 1;
+			openxr_api->projection_views[eye].fov = openxr_api->views[eye].fov;
+			openxr_api->projection_views[eye].pose = openxr_api->views[eye].pose;
+
+			openxr_api->projectionLayer->views = openxr_api->projection_views;
+			const XrCompositionLayerBaseHeader *const projectionlayers[1] = { (const XrCompositionLayerBaseHeader *const)
+																						openxr_api->projectionLayer };
+			XrFrameEndInfo frameEndInfo = {
+				.type = XR_TYPE_FRAME_END_INFO,
+				.next = NULL,
+				.displayTime = openxr_api->frameState.predictedDisplayTime,
+				.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE,
+				.layerCount = 1,
+				.layers = projectionlayers,
+			};
+			XrResult result = xrEndFrame(openxr_api->session, &frameEndInfo);
+			openxr_api->xr_result(result, "failed to end frame!");
+			continue;
+		}
 		RID texture = storage->render_target_get_texture(p_render_targets[i].render_target);
 		ERR_CONTINUE(texture.is_null());
 		RID rd_texture = storage->texture_get_rd_texture(texture);
@@ -72,7 +104,6 @@ void RendererCompositorRD::blit_render_targets_to_screen(DisplayServer::WindowID
 		RD::get_singleton()->draw_list_set_push_constant(draw_list, push_constant, 4 * sizeof(float));
 		RD::get_singleton()->draw_list_draw(draw_list, true);
 	}
-
 	RD::get_singleton()->draw_list_end();
 }
 

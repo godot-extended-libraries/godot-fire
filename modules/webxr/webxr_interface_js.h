@@ -86,8 +86,7 @@ public:
 	virtual bool is_stereo() override;
 	virtual Transform get_transform_for_eye(XRInterface::Eyes p_eye, const Transform &p_cam_transform) override;
 	virtual CameraMatrix get_projection_for_eye(XRInterface::Eyes p_eye, real_t p_aspect, real_t p_z_near, real_t p_z_far) override;
-	virtual unsigned int get_external_texture_for_eye(XRInterface::Eyes p_eye) override;
-	virtual void commit_for_eye(XRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) override;
+	virtual void get_external_texture_for_eye(XRInterface::Eyes p_eye, RID r_texture) override;
 
 	virtual void process() override;
 	virtual void notification(int p_what) override;

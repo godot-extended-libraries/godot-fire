@@ -36,6 +36,12 @@
 #include "core/templates/hashfuncs.h"
 #include "drivers/vulkan/vulkan_context.h"
 
+#include "modules/openxr/src/XRInterface.h"
+#include "modules/openxr/src/openxr/OpenXRApi.h"
+#include "servers/rendering/rendering_device.h"
+#include "servers/rendering_server.h"
+#include "servers/xr/xr_interface.h"
+#include "servers/xr_server.h"
 #include "thirdparty/spirv-reflect/spirv_reflect.h"
 
 //#define FORCE_FULL_BARRIER
@@ -6229,7 +6235,7 @@ Error RenderingDeviceVulkan::draw_list_begin_split(RID p_framebuffer, uint32_t p
 			VkCommandPoolCreateInfo cmd_pool_info;
 			cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			cmd_pool_info.pNext = nullptr;
-			cmd_pool_info.queueFamilyIndex = context->get_graphics_queue();
+			cmd_pool_info.queueFamilyIndex = context->get_graphics_queue_family();
 			cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 			VkResult res = vkCreateCommandPool(device, &cmd_pool_info, nullptr, &split_draw_list_allocators.write[i].command_pool);
@@ -7865,7 +7871,7 @@ void RenderingDeviceVulkan::initialize(VulkanContext *p_context, bool p_local_de
 			VkCommandPoolCreateInfo cmd_pool_info;
 			cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			cmd_pool_info.pNext = nullptr;
-			cmd_pool_info.queueFamilyIndex = p_context->get_graphics_queue();
+			cmd_pool_info.queueFamilyIndex = p_context->get_graphics_queue_family();
 			cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 			VkResult res = vkCreateCommandPool(device, &cmd_pool_info, nullptr, &frames[i].command_pool);
@@ -8259,5 +8265,30 @@ RenderingDeviceVulkan::~RenderingDeviceVulkan() {
 	if (local_device.is_valid()) {
 		finalize();
 		context->local_device_free(local_device);
+	}
+}
+void RenderingDeviceVulkan::submit_vr_texture(RID p_texture, int p_eye) {
+	Ref<OpenXRInterface> xr_interface = XRServer::get_singleton()->get_primary_interface();
+	if (xr_interface.is_null()) {
+		return;
+	}
+	OpenXRApi *openxr_api = xr_interface->arvr_data.openxr_api;
+	if (!openxr_api) {
+		return;
+	}
+	if (!openxr_api->initialised) {
+		return;
+	}
+
+	// this won't prevent us from rendering but we won't output to OpenXR
+	if (!openxr_api->running || openxr_api->state >= XR_SESSION_STATE_STOPPING) {
+		return;
+	}
+
+	// process should be called by now but just in case...
+	if (openxr_api->state > XR_SESSION_STATE_UNKNOWN && openxr_api->buffer_index != nullptr) {
+		Texture *texture = texture_owner.getornull(p_texture);
+		ERR_FAIL_COND(!texture);
+		texture->image = openxr_api->images[p_eye][openxr_api->buffer_index[p_eye]].image;
 	}
 }

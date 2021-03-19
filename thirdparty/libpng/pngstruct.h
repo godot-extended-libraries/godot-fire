@@ -404,7 +404,7 @@ struct png_struct_def
    png_uint_32 mng_features_permitted;
 #endif
 
-/* New member added in libpng-1.0.9, ifdef'ed out in 1.0.12, enabled in 1.2.0 */
+/* New member added in libpng-1.0.9, ifdef'ed out in 1.0.14, enabled in 1.2.0 */
 #ifdef PNG_MNG_FEATURES_SUPPORTED
    png_byte filter_type;
 #endif

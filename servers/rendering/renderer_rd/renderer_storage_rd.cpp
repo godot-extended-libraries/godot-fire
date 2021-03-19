@@ -32,8 +32,11 @@
 
 #include "core/config/engine.h"
 #include "core/config/project_settings.h"
+#include "core/error/error_macros.h"
 #include "core/io/resource_loader.h"
+#include "drivers/vulkan/rendering_device_vulkan.h"
 #include "renderer_compositor_rd.h"
+#include "servers/rendering/rendering_server_globals.h"
 #include "servers/rendering/shader_language.h"
 
 bool RendererStorageRD::can_create_resources_async() const {
@@ -6708,6 +6711,8 @@ RID RendererStorageRD::render_target_get_texture(RID p_render_target) {
 }
 
 void RendererStorageRD::render_target_set_external_texture(RID p_render_target, unsigned int p_texture_id) {
+	RenderTarget *rt = render_target_owner.getornull(p_render_target);
+	ERR_FAIL_COND(!rt);
 }
 
 void RendererStorageRD::render_target_set_flag(RID p_render_target, RenderTargetFlags p_flag, bool p_value) {
