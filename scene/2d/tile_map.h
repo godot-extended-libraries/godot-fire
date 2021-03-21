@@ -140,7 +140,7 @@ private:
 		SelfList<Quadrant> dirty_list;
 
 		struct NavPoly {
-			int id;
+			RID region;
 			Transform2D xform;
 		};
 

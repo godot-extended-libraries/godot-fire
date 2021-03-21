@@ -1,12 +1,12 @@
 /*************************************************************************/
-/*  register_types.h                                                     */
+/*  navigation_obstacle_2d.h                                             */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -28,10 +28,44 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef RECAST_REGISTER_TYPES_H
-#define RECAST_REGISTER_TYPES_H
+#ifndef NAVIGATION_OBSTACLE_2D_H
+#define NAVIGATION_OBSTACLE_2D_H
 
-void register_recast_types();
-void unregister_recast_types();
+#include "scene/main/node.h"
 
-#endif // RECAST_REGISTER_TYPES_H
+class Navigation2D;
+
+class NavigationObstacle2D : public Node {
+	GDCLASS(NavigationObstacle2D, Node);
+
+	Navigation2D *navigation;
+
+	RID agent;
+
+protected:
+	static void _bind_methods();
+	void _notification(int p_what);
+
+public:
+	NavigationObstacle2D();
+	virtual ~NavigationObstacle2D();
+
+	void set_navigation(Navigation2D *p_nav);
+	const Navigation2D *get_navigation() const {
+		return navigation;
+	}
+
+	void set_navigation_node(Node *p_nav);
+	Node *get_navigation_node() const;
+
+	RID get_rid() const {
+		return agent;
+	}
+
+	virtual String get_configuration_warning() const;
+
+private:
+	void update_agent_shape();
+};
+
+#endif

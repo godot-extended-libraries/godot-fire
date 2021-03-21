@@ -1,12 +1,12 @@
 /*************************************************************************/
-/*  register_types.cpp                                                   */
+/*  rvo_agent.h                                                          */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -28,34 +28,50 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "register_types.h"
+#ifndef RVO_AGENT_H
+#define RVO_AGENT_H
 
-#include "navigation_mesh_editor_plugin.h"
+#include "core/object.h"
+#include "nav_rid.h"
+#include <Agent.h>
 
-#ifdef TOOLS_ENABLED
-EditorNavigationMeshGenerator *_nav_mesh_generator = NULL;
-#endif
+/**
+	@author AndreaCatania
+*/
 
-void register_recast_types() {
-#ifdef TOOLS_ENABLED
-	ClassDB::APIType prev_api = ClassDB::get_current_api();
-	ClassDB::set_current_api(ClassDB::API_EDITOR);
+class NavMap;
 
-	EditorPlugins::add_by_type<NavigationMeshEditorPlugin>();
-	_nav_mesh_generator = memnew(EditorNavigationMeshGenerator);
+class RvoAgent : public NavRid {
+	struct AvoidanceComputedCallback {
+		ObjectID id;
+		StringName method;
+		Variant udata;
+		Variant new_velocity;
+	};
 
-	ClassDB::register_class<EditorNavigationMeshGenerator>();
+	NavMap *map;
+	RVO::Agent agent;
+	AvoidanceComputedCallback callback;
+	uint32_t map_update_id;
 
-	Engine::get_singleton()->add_singleton(Engine::Singleton("NavigationMeshGenerator", EditorNavigationMeshGenerator::get_singleton()));
+public:
+	RvoAgent();
 
-	ClassDB::set_current_api(prev_api);
-#endif
-}
-
-void unregister_recast_types() {
-#ifdef TOOLS_ENABLED
-	if (_nav_mesh_generator) {
-		memdelete(_nav_mesh_generator);
+	void set_map(NavMap *p_map);
+	NavMap *get_map() {
+		return map;
 	}
-#endif
-}
+
+	RVO::Agent *get_agent() {
+		return &agent;
+	}
+
+	bool is_map_changed();
+
+	void set_callback(ObjectID p_id, const StringName p_method, const Variant p_udata = Variant());
+	bool has_callback() const;
+
+	void dispatch_callback();
+};
+
+#endif // RVO_AGENT_H
