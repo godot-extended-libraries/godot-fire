@@ -7029,7 +7029,7 @@ bool EditorPluginList::forward_gui_input(const Ref<InputEvent> &p_event) {
 	return discard;
 }
 
-bool EditorPluginList::forward_spatial_gui_input(Camera3D *p_camera, const Ref<InputEvent> &p_event, bool serve_when_force_input_enabled) {
+bool EditorPluginList::forward_spatial_gui_input(int p_index, Camera3D *p_camera, const Ref<InputEvent> &p_event, bool serve_when_force_input_enabled) {
 	bool discard = false;
 
 	for (int i = 0; i < plugins_list.size(); i++) {
@@ -7037,7 +7037,7 @@ bool EditorPluginList::forward_spatial_gui_input(Camera3D *p_camera, const Ref<I
 			continue;
 		}
 
-		if (plugins_list[i]->forward_spatial_gui_input(p_camera, p_event)) {
+		if (plugins_list[i]->forward_spatial_gui_input(p_index, p_camera, p_event)) {
 			discard = true;
 		}
 	}
