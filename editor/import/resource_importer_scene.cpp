@@ -1055,12 +1055,14 @@ void ResourceImporterScene::get_import_options(List<ImportOption> *r_options, in
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "nodes/root_scale", PROPERTY_HINT_RANGE, "0.001,1000,0.001"), 1.0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/ensure_tangents"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/generate_lods"), true));
+	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/process_mesh"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/create_shadow_meshes"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "meshes/light_baking", PROPERTY_HINT_ENUM, "Disabled,Dynamic,Static,Static Lightmaps", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), 2));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "meshes/lightmap_texel_size", PROPERTY_HINT_RANGE, "0.001,100,0.001"), 0.1));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "skins/use_named_skins"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/import"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "animation/fps", PROPERTY_HINT_RANGE, "1,120,1"), 15));
+	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/point_parent_bone_to_children"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::STRING, "import_script/path", PROPERTY_HINT_FILE, script_ext_hint), ""));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::DICTIONARY, "_subresources", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR), Dictionary()));
 }
@@ -1305,7 +1307,7 @@ Node *ResourceImporterScene::pre_import(const String &p_source_file) {
 
 	ERR_FAIL_COND_V(!importer.is_valid(), nullptr);
 
-	Error err;
+	Error err = OK;
 	Node *scene = importer->import_scene(p_source_file, EditorSceneImporter::IMPORT_ANIMATION | EditorSceneImporter::IMPORT_GENERATE_TANGENT_ARRAYS, 15, nullptr, &err);
 	if (!scene || err != OK) {
 		return nullptr;
@@ -1620,11 +1622,11 @@ Vector3 ResourceImporterScene::_get_perpendicular_vector(Vector3 v) {
 	if (v[0] != 0 && v[1] != 0) {
 		perpendicular = Vector3(0, 0, 1).cross(v).normalized();
 	} else {
-		perpendicular = Vector3(1, 0, 0);
 	}
 	return perpendicular;
 }
 
+		perpendicular = Vector3(1, 0, 0);
 bool ResourceImporterScene::ResourceImporterScene::has_advanced_options() const {
 	return true;
 }
