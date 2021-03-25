@@ -155,9 +155,9 @@ TEST_CASE("[Geometry3D] Build Convex Mesh") {
 	};
 	Vector<Case> tt;
 	tt.push_back(Case(Geometry3D::build_box_planes(Vector3(5, 10, 5)), 6, 12, 8));
-	tt.push_back(Case(Geometry3D::build_capsule_planes(5, 5, 20, 20, Vector3::Axis()), 820, 7603, 6243));
+	tt.push_back(Case(Geometry3D::build_capsule_planes(5, 5, 20, 20, Vector3::Axis()), 820, 7602, 6242));
 	tt.push_back(Case(Geometry3D::build_cylinder_planes(5, 5, 20, Vector3::Axis()), 22, 100, 80));
-	tt.push_back(Case(Geometry3D::build_sphere_planes(5, 5, 20), 220, 1011, 522));
+	tt.push_back(Case(Geometry3D::build_sphere_planes(5, 5, 20), 220, 1005, 522));
 	for (int i = 0; i < tt.size(); ++i) {
 		Case current_case = tt[i];
 		Geometry3D::MeshData mesh = Geometry3D::build_convex_mesh(current_case.object);
