@@ -104,6 +104,11 @@ public:
 		return current_work != nullptr;
 	}
 
+	bool is_done_dispatching() const {
+		ERR_FAIL_COND_V(current_work == nullptr, false);
+		return current_work->max_elements == index;
+	}
+
 	uint32_t get_work_index() const {
 		return index;
 	}
