@@ -78,6 +78,8 @@ def configure(env):
     # As such, we only support 64-bit
     env["bits"] = "64"
 
+    env.Prepend(CCFLAGS=["-march=skylake"])
+
     ## Compiler configuration
 
     # Save this in environment for use by other modules
