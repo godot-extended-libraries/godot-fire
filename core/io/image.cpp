@@ -3010,9 +3010,12 @@ Image::UsedChannels Image::detect_used_channels(CompressSource p_source) {
 	ERR_FAIL_COND_V(is_compressed(), USED_CHANNELS_RGBA);
 	bool r = false, g = false, b = false, a = false, c = false;
 
+	const uint8_t *data_ptr = data.ptr();
+
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
-			Color col = get_pixel(i, j);
+			uint32_t ofs = j * width + i;
+			Color col = _get_color_at_ofs(data_ptr, ofs);
 
 			if (col.r > 0.001) {
 				r = true;
