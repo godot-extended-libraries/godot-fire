@@ -32,7 +32,9 @@
 #define RESOURCEIMPORTERSCENE_H
 
 #include "core/io/resource_importer.h"
+#include "editor/import/scene_importer_mesh_node_3d.h"
 #include "scene/3d/node_3d.h"
+#include "scene/3d/skeleton_3d.h"
 #include "scene/resources/animation.h"
 #include "scene/resources/mesh.h"
 #include "scene/resources/shape_3d.h"
@@ -121,6 +123,26 @@ class ResourceImporterScene : public ResourceImporter {
 	void _replace_owner(Node *p_node, Node *p_scene, Node *p_new_owner);
 	void _generate_meshes(Node *p_node, const Dictionary &p_mesh_data, bool p_generate_lods, bool p_create_shadow_meshes, LightBakeMode p_light_bake_mode, float p_lightmap_texel_size, const Vector<uint8_t> &p_src_lightmap_cache, Vector<uint8_t> &r_dst_lightmap_cache);
 	void _add_shapes(Node *p_node, const List<Ref<Shape3D>> &p_shapes);
+
+public:
+	struct RestBone {
+		NodePath path;
+		Transform rest_local_before;
+		Transform rest_local_after;
+		Quat rest_delta;
+		Vector3 children_centroid_direction;
+		int parent_index;
+		Vector<int> children;
+	};
+
+private:
+	void _fix_meshes(Map<int, ResourceImporterScene::RestBone> &r_rest_bones, Vector<EditorSceneImporterMeshNode3D *> p_meshes);
+	void _fix_skeleton(Skeleton3D *p_skeleton, Map<int, ResourceImporterScene::RestBone> &r_rest_bones);
+	void _align_animations(Node *scene, const Map<int, RestBone> &p_rest_bones);
+	Transform get_bone_global_transform(int p_id, Skeleton3D *p_skeleton, Vector<Vector<Transform>> p_local_transform_array);
+	Vector3 _get_perpendicular_vector(Vector3 v);
+	Quat _align_vectors(Vector3 a, Vector3 b);
+	void _skeleton_point_to_children(Node *p_scene);
 
 public:
 	static ResourceImporterScene *get_singleton() { return singleton; }
