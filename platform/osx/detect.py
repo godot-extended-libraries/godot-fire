@@ -78,6 +78,11 @@ def configure(env):
     # As such, we only support 64-bit
     env["bits"] = "64"
 
+    env.Prepend(CCFLAGS=["-msse4.1"])
+    env.Prepend(CCFLAGS=["-mavx"])
+    env.Prepend(CCFLAGS=["-mavx2"])
+    env.Prepend(CCFLAGS=["-march=skylake"])
+
     ## Compiler configuration
 
     # Save this in environment for use by other modules

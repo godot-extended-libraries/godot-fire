@@ -468,6 +468,11 @@ def configure_mingw(env):
 
     env.Append(CPPDEFINES=["MINGW_ENABLED", ("MINGW_HAS_SECURE_API", 1)])
 
+    env.Prepend(CCFLAGS=["-msse4.1"])
+    env.Prepend(CCFLAGS=["-mavx"])
+    env.Prepend(CCFLAGS=["-mavx2"])
+    env.Prepend(CCFLAGS=["-march=skylake"])
+
     # resrc
     env.Append(BUILDERS={"RES": env.Builder(action=build_res_file, suffix=".o", src_suffix=".rc")})
 
