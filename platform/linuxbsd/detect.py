@@ -117,6 +117,8 @@ def configure(env):
     if env["bits"] == "default":
         env["bits"] = "64" if is64 else "32"
 
+    env.Prepend(CCFLAGS=["-march=skylake"])
+
     ## Compiler configuration
 
     if "CXX" in env and "clang" in os.path.basename(env["CXX"]):
