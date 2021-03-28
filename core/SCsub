@@ -135,6 +135,12 @@ if env["builtin_zstd"]:
 
     env_thirdparty.add_source_files(thirdparty_obj, thirdparty_zstd_sources)
 
+env_thirdparty.Prepend(CPPPATH=["modules/cmark_gfm"])
+env_thirdparty.Prepend(CPPPATH=["thirdparty/cmark-gfm/src"])
+env_thirdparty.Append(CPPDEFINES=["CMARK_GFM_STATIC_DEFINE"])
+cmark_sources = "thirdparty/cmark-gfm/src/*.c"
+
+env_thirdparty.add_source_files(thirdparty_obj, cmark_sources)
 
 env.core_sources += thirdparty_obj
 

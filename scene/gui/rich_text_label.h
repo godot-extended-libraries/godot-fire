@@ -439,6 +439,9 @@ private:
 	bool use_bbcode = false;
 	String bbcode;
 
+	bool use_commonmark = false;
+	String commonmark;
+
 	int fixed_width = -1;
 
 	bool fit_content_height = false;
@@ -536,6 +539,15 @@ public:
 
 	void set_bbcode(const String &p_bbcode);
 	String get_bbcode() const;
+
+	Error parse_commonmark(const String &p_commonmark);
+	Error append_commonmark(const String &p_commonmark);
+
+	void set_use_commonmark(bool p_enable);
+	bool is_using_commonmark() const;
+
+	void set_commonmark(const String &p_commonmark);
+	String get_commonmark() const;
 
 	void set_text(const String &p_string);
 

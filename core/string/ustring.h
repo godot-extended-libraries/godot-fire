@@ -417,6 +417,8 @@ public:
 	String json_escape() const;
 	String word_wrap(int p_chars_per_line) const;
 
+	String commonmark_to_html(const String &p_commonmark);
+
 	String property_name_encode() const;
 
 	// node functions

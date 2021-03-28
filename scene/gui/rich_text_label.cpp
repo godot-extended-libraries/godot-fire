@@ -45,6 +45,8 @@
 #include "editor/editor_scale.h"
 #endif
 
+#include "drivers/cmark_gfm/cmark_gfm.h"
+
 RichTextLabel::Item *RichTextLabel::_get_next_item(Item *p_item, bool p_free) const {
 	if (p_free) {
 		if (p_item->subitems.size()) {
@@ -1366,8 +1368,11 @@ void RichTextLabel::_notification(int p_what) {
 		} break;
 		case NOTIFICATION_THEME_CHANGED:
 		case NOTIFICATION_ENTER_TREE: {
-			if (bbcode != "") {
+			if (!bbcode.is_empty()) {
 				set_bbcode(bbcode);
+			}
+			if (!commonmark.is_empty()) {
+				set_commonmark(commonmark);
 			}
 
 			main->first_invalid_line = 0; //invalidate ALL
@@ -3874,6 +3879,12 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bbcode", "text"), &RichTextLabel::set_bbcode);
 	ClassDB::bind_method(D_METHOD("get_bbcode"), &RichTextLabel::get_bbcode);
 
+	ClassDB::bind_method(D_METHOD("parse_commonmark", "commonmark"), &RichTextLabel::parse_commonmark);
+	ClassDB::bind_method(D_METHOD("append_commonmark", "commonmark"), &RichTextLabel::append_commonmark);
+
+	ClassDB::bind_method(D_METHOD("set_commonmark", "text"), &RichTextLabel::set_commonmark);
+	ClassDB::bind_method(D_METHOD("get_commonmark"), &RichTextLabel::get_commonmark);
+
 	ClassDB::bind_method(D_METHOD("set_visible_characters", "amount"), &RichTextLabel::set_visible_characters);
 	ClassDB::bind_method(D_METHOD("get_visible_characters"), &RichTextLabel::get_visible_characters);
 
@@ -3922,6 +3933,10 @@ void RichTextLabel::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "text_direction", PROPERTY_HINT_ENUM, "Auto,LTR,RTL,Inherited"), "set_text_direction", "get_text_direction");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "language"), "set_language", "get_language");
+
+	ADD_GROUP("Commonmark", "commonmark_");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "commonmark_enabled"), "set_use_commonmark", "is_using_commonmark");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "commonmark_text", PROPERTY_HINT_MULTILINE_TEXT), "set_commonmark", "get_commonmark");
 
 	ADD_GROUP("Structured Text", "structured_text_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "structured_text_bidi_override", PROPERTY_HINT_ENUM, "Default,URI,File,Email,List,None,Custom"), "set_structured_text_bidi_override", "get_structured_text_bidi_override");
@@ -4111,4 +4126,116 @@ RichTextLabel::RichTextLabel() {
 
 RichTextLabel::~RichTextLabel() {
 	memdelete(main);
+}
+
+String RichTextLabel::get_commonmark() const {
+	return commonmark;
+}
+
+void RichTextLabel::set_commonmark(const String &p_commonmark) {
+	commonmark = p_commonmark;
+
+	if (is_inside_tree() && use_commonmark) {
+		parse_commonmark(p_commonmark);
+	} else { // raw text
+		clear();
+		add_text(p_commonmark);
+	}
+}
+
+bool RichTextLabel::is_using_commonmark() const {
+	return use_commonmark;
+}
+
+void RichTextLabel::set_use_commonmark(bool p_enable) {
+	use_commonmark = p_enable;
+	set_commonmark(bbcode);
+	notify_property_list_changed();
+}
+
+Error RichTextLabel::append_commonmark(const String &p_commonmark) {
+	Vector<uint8_t> string_bytes = p_commonmark.to_utf8_buffer();
+
+	List<String> tag_stack;
+	Ref<Font> normal_font = get_theme_font("normal_font");
+	Ref<Font> bold_font = get_theme_font("bold_font");
+	Ref<Font> italics_font = get_theme_font("italics_font");
+	Ref<Font> bold_italics_font = get_theme_font("bold_italics_font");
+	Ref<Font> mono_font = get_theme_font("mono_font");
+
+	Color base_color = get_theme_color("default_color");
+
+	int indent_level = 0;
+
+	bool in_bold = false;
+	bool in_italics = false;
+
+	set_process_internal(false);
+
+	cmark_node *root = cmark_parse_document((const char *)string_bytes.ptr(), string_bytes.size() - 1,
+			CMARK_OPT_DEFAULT);
+	cmark_event_type ev_type;
+	cmark_iter *iter = cmark_iter_new(root);
+
+	while ((ev_type = cmark_iter_next(iter)) != CMARK_EVENT_DONE) {
+		cmark_node *cur = cmark_iter_get_node(iter);
+		cmark_node_type node_type = cmark_node_get_type(cur);
+		switch (cmark_node_type) {
+			case CMARK_NODE_DOCUMENT: {
+				break;
+			}
+			case CMARK_NODE_BLOCK_QUOTE: {
+				break;
+			}
+			case CMARK_NODE_LIST: {
+				break;
+			}
+			case CMARK_NODE_ITEM: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				add_text(utf8_item);
+				break;
+			}
+			case CMARK_NODE_CODE_BLOCK: {
+				break;
+			}
+			case CMARK_NODE_HTML_BLOCK: {
+				break;
+			}
+			case CMARK_NODE_CUSTOM_BLOCK: {
+				break;
+			}
+			case CMARK_NODE_PARAGRAPH: {
+				break;
+			}
+			case CMARK_NODE_HEADING: {
+				int level = cmark_node_get_heading_level(cur);
+				add_text("Heading " + itos(level));
+				break;
+			}
+			case CMARK_NODE_THEMATIC_BREAK: {
+				break;
+			}
+			case CMARK_NODE_FOOTNOTE_DEFINITION: {
+				break;
+			}
+			case CMARK_NODE_NONE: {
+				break;
+			}
+			default: {
+				break;
+			}
+		}
+	}
+
+	cmark_iter_free(iter);
+
+	set_process_internal(true);
+	return OK;
+}
+
+Error RichTextLabel::parse_commonmark(const String &p_commonmark) {
+	clear();
+	return append_commonmark(p_commonmark);
 }
