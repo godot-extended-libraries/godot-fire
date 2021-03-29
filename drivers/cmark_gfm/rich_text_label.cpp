@@ -30,6 +30,7 @@
 
 #include "rich_text_label.h"
 
+#include "core/error/error_macros.h"
 #include "core/math/math_defs.h"
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
@@ -45,8 +46,8 @@
 #include "editor/editor_scale.h"
 #endif
 
-#include "drivers/cmark_gfm/config.h"
 #include "drivers/cmark_gfm/cmark-gfm_export.h"
+#include "drivers/cmark_gfm/config.h"
 #include "thirdparty/cmark-gfm/src/cmark-gfm.h"
 
 RichTextLabel::Item *RichTextLabel::_get_next_item(Item *p_item, bool p_free) const {
@@ -3898,6 +3899,9 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_use_bbcode", "enable"), &RichTextLabel::set_use_bbcode);
 	ClassDB::bind_method(D_METHOD("is_using_bbcode"), &RichTextLabel::is_using_bbcode);
 
+	ClassDB::bind_method(D_METHOD("set_use_commonmark", "enable"), &RichTextLabel::set_use_commonmark);
+	ClassDB::bind_method(D_METHOD("is_using_commonmark"), &RichTextLabel::is_using_commonmark);
+
 	ClassDB::bind_method(D_METHOD("get_line_count"), &RichTextLabel::get_line_count);
 	ClassDB::bind_method(D_METHOD("get_visible_line_count"), &RichTextLabel::get_visible_line_count);
 
@@ -4151,14 +4155,16 @@ bool RichTextLabel::is_using_commonmark() const {
 
 void RichTextLabel::set_use_commonmark(bool p_enable) {
 	use_commonmark = p_enable;
-	set_commonmark(bbcode);
+	set_commonmark(commonmark);
 	notify_property_list_changed();
 }
 
 Error RichTextLabel::append_commonmark(const String &p_commonmark) {
+	if (p_commonmark.is_empty()) {
+		return OK;
+	}
 	Vector<uint8_t> string_bytes = p_commonmark.to_utf8_buffer();
 
-	List<String> tag_stack;
 	Ref<Font> normal_font = get_theme_font("normal_font");
 	Ref<Font> bold_font = get_theme_font("bold_font");
 	Ref<Font> italics_font = get_theme_font("italics_font");
@@ -4179,68 +4185,120 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 	cmark_event_type ev_type;
 	cmark_iter *iter = cmark_iter_new(root);
 
+	List<cmark_node_type> tag_stack;
 	while ((ev_type = cmark_iter_next(iter)) != CMARK_EVENT_DONE) {
 		cmark_node *cur = cmark_iter_get_node(iter);
 		cmark_node_type node_type = cmark_node_get_type(cur);
+		if (ev_type == CMARK_EVENT_EXIT) {
+			if (!tag_stack.front()) {
+				continue;
+			}
+			cmark_node_type exit_tag = tag_stack.front()->get();
+			tag_stack.pop_front();
+
+			indent_level--;
+			switch (exit_tag) {
+				case CMARK_NODE_BLOCK_QUOTE: {
+					break;
+				}
+				case CMARK_NODE_LIST: {
+					break;
+				}
+				case CMARK_NODE_CUSTOM_BLOCK: {
+					break;
+				}
+				case CMARK_NODE_CODE_BLOCK: {
+					push_font(normal_font);
+					break;
+				}
+				case CMARK_NODE_HTML_BLOCK: {
+					break;
+				}
+				case CMARK_NODE_HEADING: {
+					break;
+				}
+				default: {
+					break;
+				}
+			}
+			continue;
+		}
 		switch (node_type) {
 			case CMARK_NODE_DOCUMENT: {
 				break;
 			}
 			case CMARK_NODE_BLOCK_QUOTE: {
+				push_indent(indent_level);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
+				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_LIST: {
+				push_indent(indent_level);
+				push_list(indent_level, LIST_DOTS, false);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
+				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_ITEM: {
+				push_indent(indent_level);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
+				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_CODE_BLOCK: {
+				push_indent(indent_level);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
+				push_font(mono_font);
 				add_text(utf8_item);
+				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_HTML_BLOCK: {
+				push_indent(indent_level);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
+				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_CUSTOM_BLOCK: {
+				push_indent(indent_level);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
+				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_PARAGRAPH: {
+				push_indent(indent_level);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
+				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_HEADING: {
-				int level = cmark_node_get_heading_level(cur);				
+				push_indent(indent_level);
 				const char *item = cmark_node_get_literal(cur);
-				String header;
-				header.parse_utf8(item);
-				add_text(vformat("%s\n", header));
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				add_text(utf8_item);
+				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_THEMATIC_BREAK: {
@@ -4248,9 +4306,90 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
+				add_text("\n");
 				break;
 			}
 			case CMARK_NODE_FOOTNOTE_DEFINITION: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				add_text(utf8_item);
+				break;
+			}
+// ---- Inline
+			case CMARK_NODE_TEXT: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				add_text(utf8_item);
+				break;
+			}
+			case CMARK_NODE_SOFTBREAK: {
+				add_text("-");
+				break;
+			}
+			case CMARK_NODE_LINEBREAK: {
+				add_text("\n");
+				break;
+			}
+			case CMARK_NODE_CODE: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				push_font(mono_font);
+				add_text(utf8_item);
+				push_font(normal_font);
+				break;
+			}
+			case CMARK_NODE_HTML_INLINE: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				push_font(mono_font);
+				add_text(utf8_item);
+				push_font(normal_font);
+				break;
+			}
+			case CMARK_NODE_CUSTOM_INLINE: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				add_text(utf8_item);
+				break;
+			}
+			case CMARK_NODE_EMPH: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				push_font(italics_font);
+				add_text(utf8_item);
+				push_font(normal_font);
+				break;
+			}
+			case CMARK_NODE_STRONG: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				push_font(bold_font);
+				add_text(utf8_item);
+				push_font(normal_font);
+				break;
+			}
+			case CMARK_NODE_LINK: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				add_text(utf8_item);
+				break;
+			}
+			case CMARK_NODE_IMAGE: {
+				const char *item = cmark_node_get_literal(cur);
+				String utf8_item;
+				utf8_item.parse_utf8(item);
+				add_text(utf8_item);
+				break;
+			}
+			case CMARK_NODE_FOOTNOTE_REFERENCE: {
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
