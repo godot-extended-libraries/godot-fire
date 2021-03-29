@@ -4190,6 +4190,18 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 		cmark_node *cur = cmark_iter_get_node(iter);
 		cmark_node_type node_type = cmark_node_get_type(cur);
 		if (ev_type == CMARK_EVENT_EXIT) {
+ /* Iterators will never return `EXIT` events for leaf nodes, which are nodes
+ * of type:
+ *
+ * * CMARK_NODE_HTML_BLOCK
+ * * CMARK_NODE_THEMATIC_BREAK
+ * * CMARK_NODE_CODE_BLOCK
+ * * CMARK_NODE_TEXT
+ * * CMARK_NODE_SOFTBREAK
+ * * CMARK_NODE_LINEBREAK
+ * * CMARK_NODE_CODE
+ * * CMARK_NODE_HTML_INLINE
+ */
 			if (!tag_stack.front()) {
 				continue;
 			}
@@ -4202,19 +4214,17 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 					break;
 				}
 				case CMARK_NODE_LIST: {
+					pop();
 					break;
 				}
 				case CMARK_NODE_CUSTOM_BLOCK: {
 					break;
 				}
-				case CMARK_NODE_CODE_BLOCK: {
-					pop();
-					break;
-				}
-				case CMARK_NODE_HTML_BLOCK: {
-					break;
-				}
 				case CMARK_NODE_HEADING: {
+					break;
+				}
+				case CMARK_NODE_PARAGRAPH: {
+					pop();
 					break;
 				}
 				default: {
@@ -4237,7 +4247,7 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_LIST: {
-				push_indent(indent_level);
+				indent_level++;
 				push_list(indent_level, LIST_DOTS, false);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
@@ -4247,12 +4257,11 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_ITEM: {
-				push_indent(indent_level);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
-				tag_stack.push_front(node_type);
+				add_newline();
 				break;
 			}
 			case CMARK_NODE_CODE_BLOCK: {
@@ -4262,7 +4271,6 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				utf8_item.parse_utf8(item);
 				push_font(mono_font);
 				add_text(utf8_item);
-				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_HTML_BLOCK: {
@@ -4271,7 +4279,6 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				String utf8_item;
 				utf8_item.parse_utf8(item);
 				add_text(utf8_item);
-				tag_stack.push_front(node_type);
 				break;
 			}
 			case CMARK_NODE_CUSTOM_BLOCK: {
@@ -4284,7 +4291,7 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_PARAGRAPH: {
-				push_indent(indent_level);
+				push_paragraph(ALIGN_LEFT);
 				const char *item = cmark_node_get_literal(cur);
 				String utf8_item;
 				utf8_item.parse_utf8(item);
@@ -4321,7 +4328,7 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_SOFTBREAK: {
-				add_text("-");
+				add_newline();
 				break;
 			}
 			case CMARK_NODE_LINEBREAK: {
