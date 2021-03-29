@@ -549,6 +549,8 @@ public:
 	void set_commonmark(const String &p_commonmark);
 	String get_commonmark() const;
 
+	String commonmark_to_html();
+
 	void set_text(const String &p_string);
 
 	void set_text_direction(TextDirection p_text_direction);
