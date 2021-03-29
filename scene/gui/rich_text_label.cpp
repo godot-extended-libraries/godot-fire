@@ -45,7 +45,7 @@
 #include "editor/editor_scale.h"
 #endif
 
-#include "drivers/cmark_gfm/cmark_gfm.h"
+#include "modules/cmark_gfm/cmark_gfm.h"
 
 RichTextLabel::Item *RichTextLabel::_get_next_item(Item *p_item, bool p_free) const {
 	if (p_free) {
