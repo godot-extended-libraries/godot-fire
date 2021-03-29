@@ -4220,15 +4220,6 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 			add_newline();
 			continue;
 		}
-		if (!(node_type == CMARK_NODE_HTML_BLOCK ||
-					node_type == CMARK_NODE_THEMATIC_BREAK ||
-					node_type == CMARK_NODE_CODE_BLOCK ||
-					node_type == CMARK_NODE_TEXT ||
-					node_type == CMARK_NODE_SOFTBREAK ||
-					node_type == CMARK_NODE_LINEBREAK ||
-					node_type == CMARK_NODE_HTML_INLINE)) {
-			tag_stack.push_front(node_type);
-		}
 		const char *literal = cmark_node_get_literal(cur);
 		String item;
 		item.parse_utf8(literal);
@@ -4237,6 +4228,7 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_BLOCK_QUOTE: {
+				push_indent(indent_level);
 				break;
 			}
 			case CMARK_NODE_LIST: {
@@ -4245,13 +4237,16 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_ITEM: {
+				push_indent(indent_level);
 				break;
 			}
 			case CMARK_NODE_CODE_BLOCK: {
+				push_indent(indent_level);
 				push_font(mono_font);
 				break;
 			}
 			case CMARK_NODE_HTML_BLOCK: {
+				push_indent(indent_level);
 				break;
 			}
 			case CMARK_NODE_CUSTOM_BLOCK: {
@@ -4263,13 +4258,16 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_HEADING: {
+				push_indent(indent_level);
 				break;
 			}
 			case CMARK_NODE_THEMATIC_BREAK: {
+				push_indent(indent_level);
 				add_newline();
 				break;
 			}
 			case CMARK_NODE_FOOTNOTE_DEFINITION: {
+				push_indent(indent_level);
 				break;
 			}
 			// ---- Inline
@@ -4278,6 +4276,7 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_SOFTBREAK: {
+				add_text(" ");
 				break;
 			}
 			case CMARK_NODE_LINEBREAK: {
@@ -4330,6 +4329,15 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 			default: {
 				break;
 			}
+		}
+		if (!(node_type == CMARK_NODE_HTML_BLOCK ||
+					node_type == CMARK_NODE_THEMATIC_BREAK ||
+					node_type == CMARK_NODE_CODE_BLOCK ||
+					node_type == CMARK_NODE_TEXT ||
+					node_type == CMARK_NODE_SOFTBREAK ||
+					node_type == CMARK_NODE_LINEBREAK ||
+					node_type == CMARK_NODE_HTML_INLINE)) {
+			tag_stack.push_front(node_type);
 		}
 	}
 
