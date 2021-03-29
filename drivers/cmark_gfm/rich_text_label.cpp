@@ -4217,7 +4217,6 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 					break;
 				}
 			}
-			add_newline();
 			continue;
 		}
 		const char *literal = cmark_node_get_literal(cur);
