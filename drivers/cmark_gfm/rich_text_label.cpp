@@ -4197,26 +4197,6 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 			tag_stack.pop_front();
 
 			indent_level--;
-			switch (exit_tag) {
-				case CMARK_NODE_BLOCK_QUOTE: {
-					break;
-				}
-				case CMARK_NODE_LIST: {
-					break;
-				}
-				case CMARK_NODE_CUSTOM_BLOCK: {
-					break;
-				}
-				case CMARK_NODE_HEADING: {
-					break;
-				}
-				case CMARK_NODE_PARAGRAPH: {
-					break;
-				}
-				default: {
-					break;
-				}
-			}
 			continue;
 		}
 		const char *literal = cmark_node_get_literal(cur);
