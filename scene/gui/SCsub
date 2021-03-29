@@ -2,4 +2,10 @@
 
 Import("env")
 
+env.Prepend(CPPPATH=["#modules/cmark_gfm"])
+env.Prepend(CPPPATH=["#thirdparty/cmark-gfm/src"])
+env.Append(CPPDEFINES=["CMARK_NO_SHORT_NAMES"])
+env.Append(CPPDEFINES=["CMARK_GFM_STATIC_DEFINE"])
+env.add_source_files(env.scene_sources, "#thirdparty/cmark-gfm/src/*.c")
+
 env.add_source_files(env.scene_sources, "*.cpp")

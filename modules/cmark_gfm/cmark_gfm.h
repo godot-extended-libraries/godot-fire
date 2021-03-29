@@ -31,10 +31,19 @@
 #ifndef CMARK_GFM_H
 #define CMARK_GFM_H
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include "modules/cmark_gfm/config.h"
+#include "modules/cmark_gfm/cmark-gfm_export.h"
 #include "thirdparty/cmark-gfm/src/cmark-gfm.h"
 #include "thirdparty/cmark-gfm/src/buffer.h"
-#include "thirdparty/cmark-gfm/src/registry.h"
 #include "thirdparty/cmark-gfm/src/node.h"
+#include "thirdparty/cmark-gfm/src/cmark-gfm-extension_api.h"
+#include "thirdparty/cmark-gfm/src/syntax_extension.h"
+#include "thirdparty/cmark-gfm/src/parser.h"
+#include "thirdparty/cmark-gfm/src/registry.h"
 #include "thirdparty/cmark-gfm/src/extensions/cmark-gfm-core-extensions.h"
 
 #endif
