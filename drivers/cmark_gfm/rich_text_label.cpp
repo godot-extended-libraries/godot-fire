@@ -4240,7 +4240,6 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				const char *item = cmark_node_get_literal(cur);
 				String header;
 				header.parse_utf8(item);
-				add_text(header);
 				add_text(vformat("%s\n", header));
 				break;
 			}
