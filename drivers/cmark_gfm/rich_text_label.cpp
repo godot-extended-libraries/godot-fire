@@ -4247,7 +4247,6 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 			continue;
 		}
 		if (node_type == CMARK_NODE_LIST) {
-			indent_level++;
 			push_list(indent_level, LIST_DOTS, false);
 			tag_stack.push_front(node_type);
 		} else if (node_type == CMARK_NODE_ITEM) {
