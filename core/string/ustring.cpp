@@ -39,8 +39,6 @@
 #include "core/string/ucaps.h"
 #include "core/variant/variant.h"
 
-#include "drivers/cmark_gfm/cmark_gfm.h"
-
 #include <cstdint>
 
 #ifndef NO_USE_STDLIB
@@ -4895,15 +4893,4 @@ String RTRN(const String &p_text, const String &p_text_plural, int p_n, const St
 		return p_text;
 	}
 	return p_text_plural;
-}
-
-String String::commonmark_to_html(const String &p_commonmark) {
-	Vector<uint8_t> string_bytes = p_commonmark.to_utf8_buffer();
-	char *cmark_bytes = cmark_markdown_to_html((const char *)string_bytes.ptr(), string_bytes.size() - 1, CMARK_OPT_DEFAULT);
-	String new_string;
-	new_string.parse_utf8(cmark_bytes);
-	if (cmark_bytes) {
-		free(cmark_bytes);
-	}
-	return new_string;
 }
