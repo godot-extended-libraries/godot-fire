@@ -34,6 +34,7 @@
 #include "core/math/math_defs.h"
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
+#include "core/variant/variant.h"
 #include "scene/scene_string_names.h"
 #include "servers/display_server.h"
 
@@ -4164,92 +4165,14 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 		return OK;
 	}
 	Vector<uint8_t> string_bytes = p_commonmark.to_utf8_buffer();
-
-	Ref<Font> normal_font = get_theme_font("normal_font");
-	Ref<Font> bold_font = get_theme_font("bold_font");
-	Ref<Font> italics_font = get_theme_font("italics_font");
-	Ref<Font> bold_italics_font = get_theme_font("bold_italics_font");
-	Ref<Font> mono_font = get_theme_font("mono_font");
-
-	Color base_color = get_theme_color("default_color");
-
-	int indent_level = 0;
-
-	bool in_bold = false;
-	bool in_italics = false;
-
 	set_process_internal(false);
-
 	cmark_node *root = cmark_parse_document((const char *)string_bytes.ptr(), string_bytes.size() - 1,
 			CMARK_OPT_DEFAULT);
-	cmark_event_type ev_type;
-	cmark_iter *iter = cmark_iter_new(root);
-
-	List<cmark_node_type> tag_stack;
-	while ((ev_type = cmark_iter_next(iter)) != CMARK_EVENT_DONE) {
-		cmark_node *cur = cmark_iter_get_node(iter);
-		cmark_node_type node_type = cmark_node_get_type(cur);
-		if (ev_type == CMARK_EVENT_EXIT) {
-			if (!tag_stack.size()) {
-				continue;
-			}
-			cmark_node_type exit_tag = tag_stack.front()->get();
-			indent_level--;
-			tag_stack.pop_front();
-			continue;
-		}
-		const char *literal = cmark_node_get_literal(cur);
-		String item;
-		item.parse_utf8(literal);
-
-		if (node_type == CMARK_NODE_STRONG) {
-			push_font(bold_font);
-			add_text(item);
-			pop();
-			continue;
-		} else if (node_type == CMARK_NODE_EMPH) {
-			push_font(italics_font);
-			add_text(item);
-			pop();
-			continue;
-		} else if (node_type == CMARK_NODE_SOFTBREAK) {
-			add_text(" ");
-			continue;
-		} else if (node_type == CMARK_NODE_LINEBREAK) {
-			add_newline();
-			continue;
-		} else if (node_type == CMARK_NODE_CODE) {
-			push_font(mono_font);
-			add_text(item);
-			pop();
-			continue;
-		} else if (node_type == CMARK_NODE_HTML_INLINE) {
-			push_font(mono_font);
-			add_text(item);
-			pop();
-			continue;
-		}
-
-		bool text_node = node_type == CMARK_NODE_TEXT ||
-						 node_type == CMARK_NODE_CUSTOM_INLINE ||
-						 node_type == CMARK_NODE_LINK ||
-						 node_type == CMARK_NODE_IMAGE ||
-						 node_type == CMARK_NODE_FOOTNOTE_REFERENCE;
-		if (text_node) {
-			add_text(item);
-			continue;
-		}
-		indent_level++;
-		if (node_type == CMARK_NODE_LIST) {
-			push_list(indent_level, LIST_DOTS, false);
-		} else {
-			push_indent(indent_level);
-		}
-		tag_stack.push_front(node_type);
-	}
-
-	cmark_iter_free(iter);
-
+	char * literal =  cmark_render_plaintext(root, CMARK_OPT_DEFAULT, 120);
+	String plaintext;
+	plaintext.parse_utf8(literal);
+	free(literal);
+	add_text(plaintext);
 	set_process_internal(true);
 	return OK;
 }
