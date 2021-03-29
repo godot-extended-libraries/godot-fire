@@ -4195,7 +4195,9 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 			}
 			cmark_node_type exit_tag = tag_stack.front()->get();
 			tag_stack.pop_front();
-
+			if (!tag_stack.size()) {
+				continue;
+			}
 			indent_level--;
 			continue;
 		}
@@ -4208,29 +4210,23 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 			add_text(item);
 			pop();
 			continue;
-		}
-
-		if (node_type == CMARK_NODE_EMPH) {
+		} else if (node_type == CMARK_NODE_EMPH) {
 			push_font(italics_font);
 			add_text(item);
 			pop();
 			continue;
-		}
-		if (node_type == CMARK_NODE_SOFTBREAK) {
+		} else if (node_type == CMARK_NODE_SOFTBREAK) {
 			add_text(" ");
 			continue;
-		}
-		if (node_type == CMARK_NODE_LINEBREAK) {
+		} else if (node_type == CMARK_NODE_LINEBREAK) {
 			add_newline();
 			continue;
-		}
-		if (node_type == CMARK_NODE_CODE) {
+		} else if (node_type == CMARK_NODE_CODE) {
 			push_font(mono_font);
 			add_text(item);
 			pop();
 			continue;
-		}
-		if (node_type == CMARK_NODE_HTML_INLINE) {
+		} else if (node_type == CMARK_NODE_HTML_INLINE) {
 			push_font(mono_font);
 			add_text(item);
 			pop();
@@ -4247,14 +4243,17 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 			continue;
 		}
 		if (node_type == CMARK_NODE_LIST) {
+			indent_level++;
 			push_list(indent_level, LIST_DOTS, false);
 			tag_stack.push_front(node_type);
 		} else if (node_type == CMARK_NODE_ITEM) {
-			push_indent(indent_level);
-			tag_stack.push_front(node_type);
+			continue;
 		} else if (node_type == CMARK_NODE_CODE_BLOCK) {
 			push_indent(indent_level);
 			push_font(mono_font);
+			tag_stack.push_front(node_type);
+		} else if (node_type == CMARK_NODE_BLOCK_QUOTE) {
+			push_indent(indent_level);
 			tag_stack.push_front(node_type);
 		} else if (node_type == CMARK_NODE_HTML_BLOCK) {
 			push_indent(indent_level);
@@ -4268,7 +4267,8 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 		} else if (node_type == CMARK_NODE_HEADING) {
 			push_indent(indent_level);
 			tag_stack.push_front(node_type);
-		} else if (node_type == CMARK_NODE_THEMATIC_BREAK) {			
+		} else if (node_type == CMARK_NODE_THEMATIC_BREAK) {
+			continue;
 		} else if (node_type == CMARK_NODE_FOOTNOTE_DEFINITION) {
 			push_indent(indent_level);
 			tag_stack.push_front(node_type);
