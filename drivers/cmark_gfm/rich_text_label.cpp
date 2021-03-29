@@ -4229,52 +4229,53 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 					node_type == CMARK_NODE_HTML_INLINE)) {
 			tag_stack.push_front(node_type);
 		}
-		const char *item = cmark_node_get_literal(cur);
-		String utf8_item;
-		utf8_item.parse_utf8(item);
+		const char *literal = cmark_node_get_literal(cur);
+		String item;
+		item.parse_utf8(literal);
 		switch (node_type) {
 			case CMARK_NODE_DOCUMENT: {
 				break;
 			}
 			case CMARK_NODE_BLOCK_QUOTE: {
 				push_indent(indent_level);
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_LIST: {
 				indent_level++;
 				push_list(indent_level, LIST_DOTS, false);
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_ITEM: {
-				add_text(utf8_item);
+				add_text(item);
+				add_newline();
 				break;
 			}
 			case CMARK_NODE_CODE_BLOCK: {
 				push_indent(indent_level);
 				push_font(mono_font);
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_HTML_BLOCK: {
 				push_indent(indent_level);
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_CUSTOM_BLOCK: {
 				push_indent(indent_level);
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_PARAGRAPH: {
 				push_paragraph(ALIGN_LEFT);
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_HEADING: {
 				push_indent(indent_level);
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_THEMATIC_BREAK: {
@@ -4282,12 +4283,12 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_FOOTNOTE_DEFINITION: {
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 				// ---- Inline
 			case CMARK_NODE_TEXT: {
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_SOFTBREAK: {
@@ -4300,42 +4301,42 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 			}
 			case CMARK_NODE_CODE: {
 				push_font(mono_font);
-				add_text(utf8_item);
+				add_text(item);
 				pop();
 				break;
 			}
 			case CMARK_NODE_HTML_INLINE: {
 				push_font(mono_font);
-				add_text(utf8_item);
+				add_text(item);
 				pop();
 				break;
 			}
 			case CMARK_NODE_CUSTOM_INLINE: {
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_EMPH: {
 				push_font(italics_font);
-				add_text(utf8_item);
+				add_text(item);
 				pop();
 				break;
 			}
 			case CMARK_NODE_STRONG: {
 				push_font(bold_font);
-				add_text(utf8_item);
+				add_text(item);
 				pop();
 				break;
 			}
 			case CMARK_NODE_LINK: {
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_IMAGE: {
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_FOOTNOTE_REFERENCE: {
-				add_text(utf8_item);
+				add_text(item);
 				break;
 			}
 			case CMARK_NODE_NONE: {
