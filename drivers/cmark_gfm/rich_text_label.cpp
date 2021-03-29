@@ -4236,8 +4236,12 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 				break;
 			}
 			case CMARK_NODE_HEADING: {
-				int level = cmark_node_get_heading_level(cur);
-				add_text("Heading " + itos(level));
+				int level = cmark_node_get_heading_level(cur);				
+				const char *item = cmark_node_get_literal(cur);
+				String header;
+				header.parse_utf8(item);
+				add_text(header);
+				add_text(vformat("%s\n", header));
 				break;
 			}
 			case CMARK_NODE_THEMATIC_BREAK: {
