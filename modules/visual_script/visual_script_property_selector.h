@@ -33,7 +33,7 @@
 
 #include "editor/editor_help.h"
 #include "editor/property_editor.h"
-#include "scene/gui/rich_text_label.h"
+#include "drivers/cmark_gfm/rich_text_label.h"
 
 class VisualScriptPropertySelector : public ConfirmationDialog {
 	GDCLASS(VisualScriptPropertySelector, ConfirmationDialog);

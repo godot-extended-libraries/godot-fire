@@ -34,7 +34,7 @@
 #include "scene/gui/control.h"
 #include "scene/gui/dialogs.h"
 #include "scene/gui/item_list.h"
-#include "scene/gui/rich_text_label.h"
+#include "drivers/cmark_gfm/rich_text_label.h"
 #include "scene/gui/scroll_container.h"
 #include "scene/gui/separator.h"
 #include "scene/gui/split_container.h"

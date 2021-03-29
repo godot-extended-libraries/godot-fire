@@ -42,7 +42,7 @@
 #include "scene/gui/option_button.h"
 #include "scene/gui/panel_container.h"
 #include "scene/gui/progress_bar.h"
-#include "scene/gui/rich_text_label.h"
+#include "drivers/cmark_gfm/rich_text_label.h"
 #include "scene/gui/scroll_container.h"
 #include "scene/gui/separator.h"
 #include "scene/gui/tab_container.h"

@@ -37,7 +37,7 @@
 #include "scene/gui/control.h"
 #include "scene/gui/label.h"
 #include "scene/gui/panel_container.h"
-#include "scene/gui/rich_text_label.h"
+#include "drivers/cmark_gfm/rich_text_label.h"
 #include "scene/gui/texture_button.h"
 #include "scene/gui/texture_rect.h"
 

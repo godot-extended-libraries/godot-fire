@@ -47,7 +47,7 @@
 #include "scene/gui/link_button.h"
 #include "scene/gui/menu_button.h"
 #include "scene/gui/option_button.h"
-#include "scene/gui/rich_text_label.h"
+#include "drivers/cmark_gfm/rich_text_label.h"
 #include "scene/gui/slider.h"
 #include "scene/gui/tab_container.h"
 #include "scene/gui/tree.h"

@@ -45,7 +45,9 @@
 #include "editor/editor_scale.h"
 #endif
 
-#include "modules/cmark_gfm/cmark_gfm.h"
+#include "drivers/cmark_gfm/config.h"
+#include "drivers/cmark_gfm/cmark-gfm_export.h"
+#include "thirdparty/cmark-gfm/src/cmark-gfm.h"
 
 RichTextLabel::Item *RichTextLabel::_get_next_item(Item *p_item, bool p_free) const {
 	if (p_free) {
@@ -4180,7 +4182,7 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 	while ((ev_type = cmark_iter_next(iter)) != CMARK_EVENT_DONE) {
 		cmark_node *cur = cmark_iter_get_node(iter);
 		cmark_node_type node_type = cmark_node_get_type(cur);
-		switch (cmark_node_type) {
+		switch (node_type) {
 			case CMARK_NODE_DOCUMENT: {
 				break;
 			}

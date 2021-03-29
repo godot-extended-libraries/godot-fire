@@ -36,7 +36,7 @@
 #include "editor_inspector.h"
 #include "scene/gui/dialogs.h"
 #include "scene/gui/panel_container.h"
-#include "scene/gui/rich_text_label.h"
+#include "drivers/cmark_gfm/rich_text_label.h"
 #include "scene/gui/tab_container.h"
 #include "scene/gui/texture_rect.h"
 

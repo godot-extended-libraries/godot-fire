@@ -45,7 +45,7 @@
 #include "scene/gui/panel.h"
 #include "scene/gui/popup_menu.h"
 #include "scene/gui/progress_bar.h"
-#include "scene/gui/rich_text_label.h"
+#include "drivers/cmark_gfm/rich_text_label.h"
 #include "scene/gui/scroll_bar.h"
 #include "scene/gui/spin_box.h"
 #include "scene/gui/tab_container.h"
