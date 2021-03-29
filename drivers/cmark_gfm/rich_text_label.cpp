@@ -4223,120 +4223,76 @@ Error RichTextLabel::append_commonmark(const String &p_commonmark) {
 		const char *literal = cmark_node_get_literal(cur);
 		String item;
 		item.parse_utf8(literal);
-		switch (node_type) {
-			case CMARK_NODE_DOCUMENT: {
-				break;
-			}
-			case CMARK_NODE_BLOCK_QUOTE: {
-				push_indent(indent_level);
-				break;
-			}
-			case CMARK_NODE_LIST: {
-				indent_level++;
-				push_list(indent_level, LIST_DOTS, false);
-				break;
-			}
-			case CMARK_NODE_ITEM: {
-				push_indent(indent_level);
-				break;
-			}
-			case CMARK_NODE_CODE_BLOCK: {
-				push_indent(indent_level);
-				push_font(mono_font);
-				break;
-			}
-			case CMARK_NODE_HTML_BLOCK: {
-				push_indent(indent_level);
-				break;
-			}
-			case CMARK_NODE_CUSTOM_BLOCK: {
-				push_indent(indent_level);
-				break;
-			}
-			case CMARK_NODE_PARAGRAPH: {
-				push_paragraph(ALIGN_LEFT);
-				break;
-			}
-			case CMARK_NODE_HEADING: {
-				push_indent(indent_level);
-				break;
-			}
-			case CMARK_NODE_THEMATIC_BREAK: {
-				push_indent(indent_level);
-				add_newline();
-				break;
-			}
-			case CMARK_NODE_FOOTNOTE_DEFINITION: {
-				push_indent(indent_level);
-				break;
-			}
-			// ---- Inline
-			case CMARK_NODE_TEXT: {
-				add_text(item);
-				break;
-			}
-			case CMARK_NODE_SOFTBREAK: {
-				add_text(" ");
-				break;
-			}
-			case CMARK_NODE_LINEBREAK: {
-				add_newline();
-				break;
-			}
-			case CMARK_NODE_CODE: {
-				push_font(mono_font);
-				add_text(item);
-				pop();
-				break;
-			}
-			case CMARK_NODE_HTML_INLINE: {
-				push_font(mono_font);
-				add_text(item);
-				pop();
-				break;
-			}
-			case CMARK_NODE_CUSTOM_INLINE: {
-				add_text(item);
-				break;
-			}
-			case CMARK_NODE_EMPH: {
-				push_font(italics_font);
-				add_text(item);
-				pop();
-				break;
-			}
-			case CMARK_NODE_STRONG: {
-				push_font(bold_font);
-				add_text(item);
-				pop();
-				break;
-			}
-			case CMARK_NODE_LINK: {
-				add_text(item);
-				break;
-			}
-			case CMARK_NODE_IMAGE: {
-				add_text(item);
-				break;
-			}
-			case CMARK_NODE_FOOTNOTE_REFERENCE: {
-				add_text(item);
-				break;
-			}
-			case CMARK_NODE_NONE: {
-				break;
-			}
-			default: {
-				break;
-			}
+
+		if (node_type == CMARK_NODE_STRONG) {
+			push_font(bold_font);
+			add_text(item);
+			pop();
+			continue;
 		}
-		if (!(node_type == CMARK_NODE_HTML_BLOCK ||
-					node_type == CMARK_NODE_THEMATIC_BREAK ||
-					node_type == CMARK_NODE_CODE_BLOCK ||
-					node_type == CMARK_NODE_TEXT ||
-					node_type == CMARK_NODE_SOFTBREAK ||
-					node_type == CMARK_NODE_LINEBREAK ||
-					node_type == CMARK_NODE_HTML_INLINE)) {
+
+		if (node_type == CMARK_NODE_EMPH) {
+			push_font(italics_font);
+			add_text(item);
+			pop();
+			continue;
+		}
+		if (node_type == CMARK_NODE_SOFTBREAK) {
+			add_text(" ");
+			continue;
+		}
+		if (node_type == CMARK_NODE_LINEBREAK) {
+			add_newline();
+			continue;
+		}
+		if (node_type == CMARK_NODE_CODE) {
+			push_font(mono_font);
+			add_text(item);
+			pop();
+			continue;
+		}
+		if (node_type == CMARK_NODE_HTML_INLINE) {
+			push_font(mono_font);
+			add_text(item);
+			pop();
+			continue;
+		}
+
+		bool text_node = node_type == CMARK_NODE_TEXT ||
+						 node_type == CMARK_NODE_CUSTOM_INLINE ||
+						 node_type == CMARK_NODE_LINK ||
+						 node_type == CMARK_NODE_IMAGE ||
+						 node_type == CMARK_NODE_FOOTNOTE_REFERENCE;
+		if (text_node) {
+			add_text(item);
+			continue;
+		}
+		if (node_type == CMARK_NODE_LIST) {
+			indent_level++;
+			push_list(indent_level, LIST_DOTS, false);
+			tag_stack.push_front(node_type);
+		} else if (node_type == CMARK_NODE_ITEM) {
+			push_indent(indent_level);
+			tag_stack.push_front(node_type);
+		} else if (node_type == CMARK_NODE_CODE_BLOCK) {
+			push_indent(indent_level);
+			push_font(mono_font);
+			tag_stack.push_front(node_type);
+		} else if (node_type == CMARK_NODE_HTML_BLOCK) {
+			push_indent(indent_level);
+			tag_stack.push_front(node_type);
+		} else if (node_type == CMARK_NODE_CUSTOM_BLOCK) {
+			push_indent(indent_level);
+			tag_stack.push_front(node_type);
+		} else if (node_type == CMARK_NODE_PARAGRAPH) {
+			push_paragraph(ALIGN_LEFT);
+			tag_stack.push_front(node_type);
+		} else if (node_type == CMARK_NODE_HEADING) {
+			push_indent(indent_level);
+			tag_stack.push_front(node_type);
+		} else if (node_type == CMARK_NODE_THEMATIC_BREAK) {			
+		} else if (node_type == CMARK_NODE_FOOTNOTE_DEFINITION) {
+			push_indent(indent_level);
 			tag_stack.push_front(node_type);
 		}
 	}
