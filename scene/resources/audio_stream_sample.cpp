@@ -221,8 +221,11 @@ void AudioStreamPlaybackSample::do_resample(const Depth *p_src, AudioFrame *p_ds
 	}
 }
 
-void AudioStreamPlaybackSample::mix(AudioFrame *p_buffer, float p_rate_scale, int p_frames) {
-	if (!base->data || !active) {
+void AudioStreamPlaybackSample::mix(AudioFrame *p_buffer, float p_rate_scale, int p_frames) {	
+	if (!base->data || 
+	!active || 
+	AudioDriver::get_singleton()->get_audio_time_usec() < get_scheduled_time_usec() ||
+	get_scheduled_stop_time_usec() > AudioDriver::get_singleton()->get_audio_time_usec()) {
 		for (int i = 0; i < p_frames; i++) {
 			p_buffer[i] = AudioFrame(0, 0);
 		}

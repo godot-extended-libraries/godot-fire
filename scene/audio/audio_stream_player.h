@@ -94,6 +94,10 @@ public:
 
 	void play(float p_from_pos = 0.0);
 	void seek(float p_seconds);
+	void set_scheduled_time_usec(double p_usec);
+	double get_scheduled_time_usec() const;
+	void set_scheduled_stop_time_usec(double p_usec);
+	double get_scheduled_stop_time_usec() const;
 	void stop();
 	bool is_playing() const;
 	float get_playback_position();
