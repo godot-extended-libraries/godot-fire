@@ -790,7 +790,6 @@ Node *ResourceImporterScene::_post_fix_node(Node *p_node, Node *p_root, Map<Ref<
 			_skeleton_point_to_children(ap);
 		}
 	}
-
 	return p_node;
 }
 
@@ -1060,6 +1059,7 @@ void ResourceImporterScene::get_import_options(List<ImportOption> *r_options, in
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "nodes/root_scale", PROPERTY_HINT_RANGE, "0.001,1000,0.001"), 1.0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/ensure_tangents"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/generate_lods"), true));
+	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/process_mesh"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/create_shadow_meshes"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "meshes/light_baking", PROPERTY_HINT_ENUM, "Disabled,Dynamic,Static,Static Lightmaps", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), 2));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "meshes/lightmap_texel_size", PROPERTY_HINT_RANGE, "0.001,100,0.001"), 0.1));
@@ -1139,7 +1139,7 @@ Ref<Animation> ResourceImporterScene::import_animation_from_other_importer(Edito
 	return importer->import_animation(p_path, p_flags, p_bake_fps);
 }
 
-void ResourceImporterScene::_generate_meshes(Node *p_node, const Dictionary &p_mesh_data, bool p_generate_lods, bool p_create_shadow_meshes, LightBakeMode p_light_bake_mode, float p_lightmap_texel_size, const Vector<uint8_t> &p_src_lightmap_cache, Vector<uint8_t> &r_dst_lightmap_cache) {
+void ResourceImporterScene::_generate_meshes(Node *p_node, const Dictionary &p_mesh_data, bool p_generate_lods, bool p_create_shadow_meshes, bool p_process_mesh, LightBakeMode p_light_bake_mode, float p_lightmap_texel_size, const Vector<uint8_t> &p_src_lightmap_cache, Vector<uint8_t> &r_dst_lightmap_cache) {
 	EditorSceneImporterMeshNode3D *src_mesh_node = Object::cast_to<EditorSceneImporterMeshNode3D>(p_node);
 	if (src_mesh_node) {
 		//is mesh
@@ -1152,6 +1152,7 @@ void ResourceImporterScene::_generate_meshes(Node *p_node, const Dictionary &p_m
 			Ref<ArrayMesh> mesh;
 			if (!src_mesh_node->get_mesh()->has_mesh()) {
 				//do mesh processing
+				bool process_mesh = p_process_mesh;
 				bool generate_lods = p_generate_lods;
 				bool create_shadow_meshes = p_create_shadow_meshes;
 				bool bake_lightmaps = p_light_bake_mode == LIGHT_BAKE_STATIC_LIGHTMAPS;
@@ -1203,6 +1204,9 @@ void ResourceImporterScene::_generate_meshes(Node *p_node, const Dictionary &p_m
 					}
 				}
 
+				if (process_mesh) {
+					src_mesh_node->get_mesh()->process_mesh();
+				}
 				if (generate_lods) {
 					src_mesh_node->get_mesh()->generate_lods();
 				}
@@ -1267,7 +1271,7 @@ void ResourceImporterScene::_generate_meshes(Node *p_node, const Dictionary &p_m
 	}
 
 	for (int i = 0; i < p_node->get_child_count(); i++) {
-		_generate_meshes(p_node->get_child(i), p_mesh_data, p_generate_lods, p_create_shadow_meshes, p_light_bake_mode, p_lightmap_texel_size, p_src_lightmap_cache, r_dst_lightmap_cache);
+		_generate_meshes(p_node->get_child(i), p_mesh_data, p_generate_lods, p_create_shadow_meshes, p_process_mesh, p_light_bake_mode, p_lightmap_texel_size, p_src_lightmap_cache, r_dst_lightmap_cache);
 	}
 }
 
@@ -1430,6 +1434,7 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 
 	bool gen_lods = bool(p_options["meshes/generate_lods"]);
 	bool create_shadow_meshes = bool(p_options["meshes/create_shadow_meshes"]);
+	bool process_mesh = bool(p_options["meshes/process_mesh"]);
 
 	int light_bake_mode = p_options["meshes/light_baking"];
 	float texel_size = p_options["meshes/lightmap_texel_size"];
@@ -1449,7 +1454,7 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 	if (subresources.has("meshes")) {
 		mesh_data = subresources["meshes"];
 	}
-	_generate_meshes(scene, mesh_data, gen_lods, create_shadow_meshes, LightBakeMode(light_bake_mode), lightmap_texel_size, src_lightmap_cache, dst_lightmap_cache);
+	_generate_meshes(scene, mesh_data, gen_lods, create_shadow_meshes, process_mesh, LightBakeMode(light_bake_mode), lightmap_texel_size, src_lightmap_cache, dst_lightmap_cache);
 
 	if (dst_lightmap_cache.size()) {
 		FileAccessRef f = FileAccess::open(p_source_file + ".unwrap_cache", FileAccess::WRITE);
