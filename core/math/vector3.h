@@ -68,6 +68,44 @@ struct Vector3 {
 	int min_axis() const;
 	int max_axis() const;
 
+	
+	_FORCE_INLINE_ Vector3 fract() {
+		x = Math::fract(x);
+		y = Math::fract(y);
+		z = Math::fract(z);
+		return *this;
+    }
+
+	
+	// Trilinear interpolation between corner values of a cube.
+	//
+	//      6---------------7
+	//     /|              /|
+	//    / |             / |
+	//   5---------------4  |
+	//   |  |            |  |
+	//   |  |            |  |
+	//   |  |            |  |
+	//   |  2------------|--3        Y
+	//   | /             | /         | Z
+	//   |/              |/          |/
+	//   1---------------0      X----o
+	//
+	template <typename T>
+	_ALWAYS_INLINE_ T interpolate(const T v0, const T v1, const T v2, const T v3, const T v4, const T v5, const T v6, const T v7) const {
+		const float one_min_x = 1.f - x;
+		const float one_min_y = 1.f - y;
+		const float one_min_z = 1.f - z;
+		const float one_min_x_one_min_y = one_min_x * one_min_y;
+		const float x_one_min_y = x * one_min_y;
+
+		T res = one_min_z * (v0 * one_min_x_one_min_y + v1 * x_one_min_y + v4 * one_min_x * y);
+		res += z * (v3 * one_min_x_one_min_y + v2 * x_one_min_y + v7 * one_min_x * y);
+		res += x * y * (v5 * one_min_z + v6 * z);
+
+		return res;
+	}
+
 	_FORCE_INLINE_ real_t length() const;
 	_FORCE_INLINE_ real_t length_squared() const;
 

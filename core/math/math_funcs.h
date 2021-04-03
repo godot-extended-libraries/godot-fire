@@ -275,10 +275,23 @@ public:
 	static _ALWAYS_INLINE_ double round(double p_val) { return (p_val >= 0) ? Math::floor(p_val + 0.5) : -Math::floor(-p_val + 0.5); }
 	static _ALWAYS_INLINE_ float round(float p_val) { return (p_val >= 0) ? Math::floor(p_val + 0.5) : -Math::floor(-p_val + 0.5); }
 
+    static _ALWAYS_INLINE_ float fract(float x) {
+	    return x - Math::floor(x);
+    }
+
 	static _ALWAYS_INLINE_ int64_t wrapi(int64_t value, int64_t min, int64_t max) {
 		int64_t range = max - min;
 		return range == 0 ? min : min + ((((value - min) % range) + range) % range);
 	}
+
+    static _ALWAYS_INLINE_ int64_t wrapi_zero(int64_t x, int64_t d) {
+	    return (x - (x < 0)) % d;
+    }
+
+	static _ALWAYS_INLINE_ int32_t wrapi_zero(int32_t x, int32_t d) {
+	    return (x - (x < 0)) % d;
+    }
+
 	static _ALWAYS_INLINE_ double wrapf(double value, double min, double max) {
 		double range = max - min;
 		return is_zero_approx(range) ? min : value - (range * Math::floor((value - min) / range));
@@ -287,6 +300,11 @@ public:
 		float range = max - min;
 		return is_zero_approx(range) ? min : value - (range * Math::floor((value - min) / range));
 	}
+	
+    template <typename T>
+    static inline T squared(const T x) {
+	    return x * x;
+    }
 
 	// double only, as these functions are mainly used by the editor and not performance-critical,
 	static double ease(double p_x, double p_c);
