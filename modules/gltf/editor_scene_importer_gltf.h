@@ -89,6 +89,7 @@ public:
 			List<String> *r_missing_deps,
 			Error *r_err,
 			Ref<GLTFState> r_state);
+	virtual Node *import_gltf_scene_buffer(const PackedByteArray &p_bytes, uint32_t p_flags, float p_bake_fps, Ref<GLTFState> r_state = Ref<GLTFState>());
 	virtual Node *import_gltf_scene(const String &p_path, uint32_t p_flags, float p_bake_fps, Ref<GLTFState> r_state = Ref<GLTFState>());
 	virtual void pack_gltf(String p_path, int32_t p_flags = 0,
 			real_t p_bake_fps = 1000.0f, Ref<GLTFState> r_state = Ref<GLTFState>());
