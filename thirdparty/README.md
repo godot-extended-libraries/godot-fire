@@ -102,6 +102,15 @@ They are marked with `// -- GODOT start --` and `// -- GODOT end --`
 comments.
 
 
+## etcpak
+
+- Upstream: https://github.com/wolfpld/etcpak
+- Version: git (403d38b3f1cb347c196d845d0a05e44a00d17169, 2021)
+- License: BSD-3 license
+
+Important: Some Godot-made changes.
+
+
 ## fonts
 
 - `NotoSans*.ttf`, `NotoNaskhArabicUI_Regular.ttf`:
