@@ -4979,7 +4979,30 @@ GLTFMeshIndex GLTFDocument::_convert_mesh_instance(Ref<GLTFState> state, MeshIns
 	return mesh_i;
 }
 
-EditorSceneImporterMeshNode3D *GLTFDocument::_generate_mesh_instance(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index) {
+MeshInstance3D *GLTFDocument::_generate_mesh_instance_3d(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index) {
+	Ref<GLTFNode> gltf_node = state->nodes[node_index];
+
+	ERR_FAIL_INDEX_V(gltf_node->mesh, state->meshes.size(), nullptr);
+
+	MeshInstance3D *mi = memnew(MeshInstance3D);
+	print_verbose("glTF: Creating mesh for: " + gltf_node->get_name());
+
+	Ref<GLTFMesh> mesh = state->meshes.write[gltf_node->mesh];
+	if (mesh.is_null()) {
+		return mi;
+	}
+	Ref<EditorSceneImporterMesh> import_mesh = mesh->get_mesh();
+	if (import_mesh.is_null()) {
+		return mi;
+	}
+	mi->set_mesh(import_mesh->get_mesh());
+	for (int i = 0; i < mesh->get_blend_weights().size(); i++) {
+		mi->set("blend_shapes/" + mesh->get_mesh()->get_blend_shape_name(i), mesh->get_blend_weights()[i]);
+	}
+	return mi;
+}
+
+EditorSceneImporterMeshNode3D *GLTFDocument::_generate_importer_mesh_3d(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index) {
 	Ref<GLTFNode> gltf_node = state->nodes[node_index];
 
 	ERR_FAIL_INDEX_V(gltf_node->mesh, state->meshes.size(), nullptr);
@@ -5420,7 +5443,7 @@ void GLTFDocument::_convert_mesh_to_gltf(Node *p_scene_parent, Ref<GLTFState> st
 	}
 }
 
-void GLTFDocument::_generate_scene_node(Ref<GLTFState> state, Node *scene_parent, Node3D *scene_root, const GLTFNodeIndex node_index) {
+void GLTFDocument::_generate_scene_node(Ref<GLTFState> state, Node *scene_parent, Node3D *scene_root, const GLTFNodeIndex node_index, bool p_importer_mesh) {
 	Ref<GLTFNode> gltf_node = state->nodes[node_index];
 
 	Node3D *current_node = nullptr;
@@ -5463,7 +5486,11 @@ void GLTFDocument::_generate_scene_node(Ref<GLTFState> state, Node *scene_parent
 	// We still have not managed to make a node
 	if (current_node == nullptr) {
 		if (gltf_node->mesh >= 0) {
-			current_node = _generate_mesh_instance(state, scene_parent, node_index);
+			if (p_importer_mesh) {
+				current_node = _generate_importer_mesh_3d(state, scene_parent, node_index);
+			} else {
+				current_node = _generate_mesh_instance_3d(state, scene_parent, node_index);
+			}
 		} else if (gltf_node->camera >= 0) {
 			current_node = _generate_camera(state, scene_parent, node_index);
 		} else if (gltf_node->light >= 0) {
@@ -5485,7 +5512,7 @@ void GLTFDocument::_generate_scene_node(Ref<GLTFState> state, Node *scene_parent
 	state->scene_nodes.insert(node_index, current_node);
 
 	for (int i = 0; i < gltf_node->children.size(); ++i) {
-		_generate_scene_node(state, current_node, scene_root, gltf_node->children[i]);
+		_generate_scene_node(state, current_node, scene_root, gltf_node->children[i], p_importer_mesh);
 	}
 }
 
@@ -6507,6 +6534,158 @@ Error GLTFDocument::parse(Ref<GLTFState> state, String p_path, bool p_read_binar
 	if (err != OK) {
 		return Error::FAILED;
 	}
+
+	/* STEP 17 ASSIGN SCENE NAMES */
+	_assign_scene_names(state);
+
+	return OK;
+}
+
+Error GLTFDocument::parse_buffers(Ref<GLTFState> state, const PackedByteArray &p_bytes) {
+	ERR_FAIL_COND_V(p_bytes.size() < 4, FAILED);
+	Error err;
+	Ref<StreamPeerBuffer> stream;
+	stream.instance();
+	stream->set_data_array(p_bytes);
+	uint32_t magic = stream->get_32();
+	if (magic != 0x46546C67) {
+		return FAILED;
+	}
+	stream->get_32(); // version
+	stream->get_32(); // length
+
+	uint32_t chunk_length = stream->get_32();
+	uint32_t chunk_type = stream->get_32();
+
+	ERR_FAIL_COND_V(chunk_type != 0x4E4F534A, ERR_PARSE_ERROR); //JSON
+	Vector<uint8_t> json_data;
+	json_data.resize(chunk_length);
+
+	int32_t len = 0;
+	err = stream->get_partial_data(json_data.ptrw(), chunk_length, len);
+	ERR_FAIL_COND_V(int64_t(len) != int64_t(chunk_length), ERR_FILE_CORRUPT);
+
+	String text;
+	text.parse_utf8((const char *)json_data.ptr(), json_data.size());
+
+	String err_txt;
+	int err_line;
+	Variant v;
+	err = JSON::parse(text, v, err_txt, err_line);
+	if (err != OK) {
+		_err_print_error("", "", err_line, err_txt.utf8().get_data(), ERR_HANDLER_SCRIPT);
+		return err;
+	}
+
+	state->json = v;
+
+	chunk_length = stream->get_32();
+	chunk_type = stream->get_32();
+
+	if (stream->get_available_bytes()) {
+		ERR_FAIL_COND_V(chunk_type != 0x004E4942, ERR_PARSE_ERROR); //BIN
+		state->glb_data.resize(chunk_length);
+		len = 0;
+		err = stream->get_partial_data(state->glb_data.ptrw(), chunk_length, len);
+		ERR_FAIL_COND_V(int64_t(len) != int64_t(chunk_length), ERR_FILE_CORRUPT);
+
+		err = OK;
+		if (err) {
+			return FAILED;
+		}
+	}
+
+	ERR_FAIL_COND_V(!state->json.has("asset"), Error::FAILED);
+
+	Dictionary asset = state->json["asset"];
+
+	ERR_FAIL_COND_V(!asset.has("version"), Error::FAILED);
+
+	String version = asset["version"];
+
+	state->major_version = version.get_slice(".", 0).to_int();
+	state->minor_version = version.get_slice(".", 1).to_int();
+
+	/* STEP 0 PARSE SCENE */
+	err = _parse_scenes(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 1 PARSE NODES */
+	err = _parse_nodes(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 2 PARSE BUFFERS */
+	err = _parse_buffers(state, "");
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 3 PARSE BUFFER VIEWS */
+	err = _parse_buffer_views(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 4 PARSE ACCESSORS */
+	err = _parse_accessors(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 5 PARSE IMAGES */
+	err = _parse_images(state, "");
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 6 PARSE TEXTURES */
+	err = _parse_textures(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 7 PARSE TEXTURES */
+	err = _parse_materials(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 9 PARSE SKINS */
+	err = _parse_skins(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 10 DETERMINE SKELETONS */
+	err = _determine_skeletons(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 11 CREATE SKELETONS */
+	err = _create_skeletons(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 12 CREATE SKINS */
+	err = _create_skins(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 13 PARSE MESHES (we have enough info now) */
+	err = _parse_meshes(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 14 PARSE LIGHTS */
+	err = _parse_lights(state);
+	if (err != OK) {
+		return Error::FAILED;
+	}
+
+	/* STEP 15 PARSE CAMERAS */
+	err = _parse_cameras(state);
+	if (err != OK)
+		return Error::FAILED;
+
+	/* STEP 16 PARSE ANIMATIONS */
+	err = _parse_animations(state);
+	if (err != OK)
+		return Error::FAILED;
 
 	/* STEP 17 ASSIGN SCENE NAMES */
 	_assign_scene_names(state);

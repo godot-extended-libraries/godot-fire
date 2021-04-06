@@ -32,7 +32,6 @@
 #define GLTF_DOCUMENT_H
 
 #include "editor/import/resource_importer_scene.h"
-#include "editor/import/scene_importer_mesh_node_3d.h"
 #include "gltf_animation.h"
 #include "modules/modules_enabled.gen.h"
 #include "scene/2d/node_2d.h"
@@ -40,6 +39,7 @@
 #include "scene/3d/light_3d.h"
 #include "scene/3d/mesh_instance_3d.h"
 #include "scene/3d/node_3d.h"
+#include "scene/3d/scene_importer_mesh_node_3d.h"
 #include "scene/3d/skeleton_3d.h"
 #include "scene/animation/animation_player.h"
 #include "scene/resources/material.h"
@@ -261,7 +261,8 @@ private:
 	BoneAttachment3D *_generate_bone_attachment(Ref<GLTFState> state,
 			Skeleton3D *skeleton,
 			const GLTFNodeIndex node_index);
-	EditorSceneImporterMeshNode3D *_generate_mesh_instance(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index);
+	EditorSceneImporterMeshNode3D *_generate_importer_mesh_3d(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index);
+	MeshInstance3D *_generate_mesh_instance_3d(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index);
 	Camera3D *_generate_camera(Ref<GLTFState> state, Node *scene_parent,
 			const GLTFNodeIndex node_index);
 	Light3D *_generate_light(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index);
@@ -364,7 +365,8 @@ public:
 	void _process_mesh_instances(Ref<GLTFState> state, Node *scene_root);
 	void _generate_scene_node(Ref<GLTFState> state, Node *scene_parent,
 			Node3D *scene_root,
-			const GLTFNodeIndex node_index);
+			const GLTFNodeIndex node_index,
+			bool p_importer_mesh = true);
 	void _import_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 			const GLTFAnimationIndex index, const int bake_fps);
 	GLTFMeshIndex _convert_mesh_instance(Ref<GLTFState> state,
@@ -429,6 +431,7 @@ public:
 			String p_animation_track_name);
 	Error serialize(Ref<GLTFState> state, Node *p_root, const String &p_path);
 	Error parse(Ref<GLTFState> state, String p_paths, bool p_read_binary = false);
+	Error parse_buffers(Ref<GLTFState> state, const PackedByteArray &p_bytes);
 };
 
 #endif // GLTF_DOCUMENT_H
