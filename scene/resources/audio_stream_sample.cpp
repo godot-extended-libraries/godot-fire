@@ -32,6 +32,7 @@
 
 #include "core/io/marshalls.h"
 #include "core/os/file_access.h"
+#include <stdint.h>
 
 void AudioStreamPlaybackSample::start(float p_from_pos) {
 	if (base->format == AudioStreamSample::FORMAT_IMA_ADPCM) {
@@ -222,7 +223,18 @@ void AudioStreamPlaybackSample::do_resample(const Depth *p_src, AudioFrame *p_ds
 }
 
 void AudioStreamPlaybackSample::mix(AudioFrame *p_buffer, float p_rate_scale, int p_frames) {
-	if (!base->data || !active) {
+	uint64_t mix_time = AudioDriver::get_singleton()->get_mix_time_usec();
+	uint64_t scheduled_time = get_scheduled_time_usec();
+	uint64_t scheduled_stop_time = get_scheduled_stop_time_usec();
+	bool is_scheduled_stop = mix_time >= scheduled_stop_time;
+	if (is_scheduled_stop) {
+		set_scheduled_stop_time_usec(0);
+		stop();
+	}
+	bool is_scheduled = mix_time < scheduled_time;
+	if (!base->data ||
+			!active ||
+			is_scheduled) {
 		for (int i = 0; i < p_frames; i++) {
 			p_buffer[i] = AudioFrame(0, 0);
 		}
