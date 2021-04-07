@@ -39,6 +39,10 @@
 class AudioStreamPlayback : public Reference {
 	GDCLASS(AudioStreamPlayback, Reference);
 
+protected:
+	uint64_t scheduled_time_usec = 0;
+	uint64_t scheduled_stop_time_usec = 0;
+
 public:
 	virtual void start(float p_from_pos = 0.0) = 0;
 	virtual void stop() = 0;
@@ -48,7 +52,18 @@ public:
 
 	virtual float get_playback_position() const = 0;
 	virtual void seek(float p_time) = 0;
-
+	virtual void set_scheduled_time_usec(uint64_t p_time) {
+		scheduled_time_usec = p_time;
+	}
+	virtual uint64_t get_scheduled_time_usec() const {
+		return scheduled_time_usec;
+	}
+	virtual void set_scheduled_stop_time_usec(uint64_t p_time) {
+		scheduled_stop_time_usec = p_time;
+	}
+	virtual uint64_t get_scheduled_stop_time_usec() const {
+		return scheduled_stop_time_usec;
+	}
 	virtual void mix(AudioFrame *p_buffer, float p_rate_scale, int p_frames) = 0;
 };
 
