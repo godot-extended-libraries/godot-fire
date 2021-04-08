@@ -2287,10 +2287,10 @@ Error GLTFDocument::_serialize_meshes(Ref<GLTFState> state) {
 				const Array &a = array[Mesh::ARRAY_WEIGHTS];
 				const Vector<Vector3> &vertex_array = array[Mesh::ARRAY_VERTEX];
 				if ((a.size() / JOINT_GROUP_SIZE) == vertex_array.size()) {
-					const int ret_size = a.size() / JOINT_GROUP_SIZE;
+					int32_t vertex_count = vertex_array.size();
 					Vector<Color> attribs;
-					attribs.resize(ret_size);
-					for (int i = 0; i < ret_size; i++) {
+					attribs.resize(vertex_count);
+					for (int i = 0; i < vertex_count; i++) {
 						attribs.write[i] = Color(a[(i * JOINT_GROUP_SIZE) + 0], a[(i * JOINT_GROUP_SIZE) + 1], a[(i * JOINT_GROUP_SIZE) + 2], a[(i * JOINT_GROUP_SIZE) + 3]);
 					}
 					attributes["WEIGHTS_0"] = _encode_accessor_as_weights(state, attribs, true);
@@ -6271,11 +6271,11 @@ void GLTFDocument::_convert_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 					ERR_CONTINUE(mesh_index == -1);
 					Ref<Mesh> mesh = mi->get_mesh();
 					ERR_CONTINUE(mesh.is_null());
+					GLTFAnimation::Track track;						
 					for (int32_t shape_i = 0; shape_i < mesh->get_blend_shape_count(); shape_i++) {
 						if (mesh->get_blend_shape_name(shape_i) != suffix) {
 							continue;
 						}
-						GLTFAnimation::Track track;
 						Map<int, GLTFAnimation::Track>::Element *blend_shape_track_i = gltf_animation->get_tracks().find(mesh_index);
 						if (blend_shape_track_i) {
 							track = blend_shape_track_i->get();
@@ -6305,8 +6305,8 @@ void GLTFDocument::_convert_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 							}
 							track.weight_tracks.push_back(weight);
 						}
-						gltf_animation->get_tracks()[mesh_index] = track;
 					}
+					gltf_animation->get_tracks()[mesh_index] = track;
 				}
 			}
 
