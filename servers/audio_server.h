@@ -104,6 +104,10 @@ public:
 
 	virtual float get_latency() { return 0; }
 
+	virtual uint64_t get_mix_time_usec() const {
+		return _last_mix_time;
+	}
+
 	SpeakerMode get_speaker_mode_by_total_channels(int p_channels) const;
 	int get_total_channels_by_speaker_mode(SpeakerMode) const;
 
