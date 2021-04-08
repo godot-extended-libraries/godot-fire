@@ -5907,10 +5907,10 @@ void GLTFDocument::_convert_mesh_instances(Ref<GLTFState> state) {
 		for (int32_t skin_i = 0; skin_i < state->skins.size(); skin_i++) {
 			GLTFSkeletonIndex skeleton_gltf_i = state->skins[skin_i]->skeleton;
 			Ref<GLTFSkin> gltf_skin = state->skins[skin_i];
-			// if (gltf_skin.is_valid()) {
-			// 	ERR_FAIL_COND(_expand_skin(state, gltf_skin));
-			// 	ERR_FAIL_COND(_verify_skin(state, gltf_skin));
-			// }
+			if (gltf_skin.is_valid()) {
+				ERR_FAIL_COND(_expand_skin(state, gltf_skin));
+				ERR_FAIL_COND(_verify_skin(state, gltf_skin));
+			}
 			Ref<GLTFSkeleton> gltf_skeleton = state->skeletons.write[skeleton_gltf_i];
 			Dictionary json_skin;
 			json_skin["inverseBindMatrices"] = _encode_accessor_as_xform(state, gltf_skin->inverse_binds, false);
