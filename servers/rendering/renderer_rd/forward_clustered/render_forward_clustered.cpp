@@ -1004,7 +1004,7 @@ void RenderForwardClustered::_fill_render_list(RenderListType p_render_list, con
 					distance = -distance_max;
 				}
 
-				surf->sort.lod_index = storage->mesh_surface_get_lod(surf->surface, inst->lod_model_scale * inst->lod_bias, distance * p_lod_distance_multiplier, p_screen_lod_threshold);
+				surf->sort.lod_index = storage->mesh_surface_get_lod(surf->surface, inst->lod_model_scale * inst->lod_bias, distance * p_lod_distance_multiplier, p_screen_lod_threshold / inst->lod_model_scale);
 			} else {
 				surf->sort.lod_index = 0;
 			}
