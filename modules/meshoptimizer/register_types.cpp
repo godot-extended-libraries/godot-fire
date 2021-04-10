@@ -35,7 +35,6 @@
 void register_meshoptimizer_types() {
 	SurfaceTool::optimize_vertex_cache_func = meshopt_optimizeVertexCache;
 	SurfaceTool::simplify_func = meshopt_simplify;
-	SurfaceTool::simplify_with_attrib_func = meshopt_simplifyWithAttributes;
 	SurfaceTool::simplify_scale_func = meshopt_simplifyScale;
 	SurfaceTool::simplify_sloppy_func = meshopt_simplifySloppy;
 }

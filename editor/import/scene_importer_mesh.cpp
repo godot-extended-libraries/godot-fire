@@ -141,18 +141,6 @@ void EditorSceneImporterMesh::set_surface_material(int p_surface, const Ref<Mate
 	surfaces.write[p_surface].material = p_material;
 }
 
-Basis EditorSceneImporterMesh::compute_rotation_matrix_from_ortho_6d(Vector3 x_raw, Vector3 y_raw) {
-	Vector3 x = x_raw.normalized();
-	Vector3 z = x.cross(y_raw);
-	z = z.normalized();
-	Vector3 y = z.cross(x);
-	Basis basis;
-	basis.set_axis(Vector3::AXIS_X, x);
-	basis.set_axis(Vector3::AXIS_Y, y);
-	basis.set_axis(Vector3::AXIS_Z, z);
-	return basis;
-}
-
 void EditorSceneImporterMesh::generate_lods() {
 	if (!SurfaceTool::simplify_func) {
 		return;
@@ -161,9 +149,6 @@ void EditorSceneImporterMesh::generate_lods() {
 		return;
 	}
 	if (!SurfaceTool::simplify_sloppy_func) {
-		return;
-	}
-	if (!SurfaceTool::simplify_with_attrib_func) {
 		return;
 	}
 
@@ -181,30 +166,8 @@ void EditorSceneImporterMesh::generate_lods() {
 		Vector<Vector3> normals = surfaces[i].arrays[RS::ARRAY_NORMAL];
 		uint32_t vertex_count = vertices.size();
 		const Vector3 *vertices_ptr = vertices.ptr();
-		Vector<float> basis_normals;
-		int32_t attribute_count = 6;
-		for (int32_t normal_i = 0; normal_i < normals.size(); normal_i++) {
-			Basis basis;
-			basis.set_euler(normals[normal_i]);
-			Vector3 basis_x = basis.get_axis(0);
-			Vector3 basis_y = basis.get_axis(1);
-			basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
-			basis_x = basis.get_axis(0);
-			basis_y = basis.get_axis(1);
-			basis_normals.push_back(basis_x.x);
-			basis_normals.push_back(basis_x.y);
-			basis_normals.push_back(basis_x.z);
-			basis_normals.push_back(basis_y.x);
-			basis_normals.push_back(basis_y.y);
-			basis_normals.push_back(basis_y.z);
-		}
-		Vector<float> normal_weights;
-		normal_weights.resize(vertex_count);
-		for (int32_t weight_i = 0; weight_i < normal_weights.size(); weight_i++) {
-			normal_weights.write[weight_i] = 1.0;
-		}
 		int min_indices = 10;
-		const float threshold = 95.0 / 100.0;
+		const float threshold = 80.0 / 100.0;
 		int index_target = indices.size() * threshold;
 		print_verbose(vformat("Total %s triangles", indices.size() / 3));
 		float mesh_scale = SurfaceTool::simplify_scale_func((const float *)vertices_ptr, vertex_count, sizeof(Vector3));
@@ -214,8 +177,8 @@ void EditorSceneImporterMesh::generate_lods() {
 			float error;
 			Vector<int> new_indices;
 			new_indices.resize(indices.size());
-			size_t new_len = SurfaceTool::simplify_with_attrib_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, target_error, &error, (float *)basis_normals.ptrw(), normal_weights.ptrw(), attribute_count);
-			if ((int)new_len > (index_target * 102.5 / 100.0)) {
+			size_t new_len = SurfaceTool::simplify_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, target_error, &error);
+			if ((int)new_len > (index_target * 120 / 100.0)) {
 				break;
 			}
 			Surface::LOD lod;
