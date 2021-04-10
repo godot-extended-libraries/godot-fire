@@ -141,6 +141,18 @@ void EditorSceneImporterMesh::set_surface_material(int p_surface, const Ref<Mate
 	surfaces.write[p_surface].material = p_material;
 }
 
+Basis EditorSceneImporterMesh::compute_rotation_matrix_from_ortho_6d(Vector3 x_raw, Vector3 y_raw) {
+	Vector3 x = x_raw.normalized();
+	Vector3 z = x.cross(y_raw);
+	z = z.normalized();
+	Vector3 y = z.cross(x);
+	Basis basis;
+	basis.set_axis(Vector3::AXIS_X, x);
+	basis.set_axis(Vector3::AXIS_Y, y);
+	basis.set_axis(Vector3::AXIS_Z, z);
+	return basis;
+}
+
 void EditorSceneImporterMesh::generate_lods() {
 	if (!SurfaceTool::simplify_func) {
 		return;
@@ -149,6 +161,9 @@ void EditorSceneImporterMesh::generate_lods() {
 		return;
 	}
 	if (!SurfaceTool::simplify_sloppy_func) {
+		return;
+	}
+	if (!SurfaceTool::simplify_with_attrib_func) {
 		return;
 	}
 
@@ -166,32 +181,59 @@ void EditorSceneImporterMesh::generate_lods() {
 		Vector<Vector3> normals = surfaces[i].arrays[RS::ARRAY_NORMAL];
 		uint32_t vertex_count = vertices.size();
 		const Vector3 *vertices_ptr = vertices.ptr();
+		Vector<float> basis_normals;
+		int32_t attribute_count = 6;
+		for (int32_t normal_i = 0; normal_i < normals.size(); normal_i++) {
+			Basis basis;
+			basis.set_euler(normals[normal_i]);
+			Vector3 basis_x = basis.get_axis(0);
+			Vector3 basis_y = basis.get_axis(1);
+			basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
+			basis_x = basis.get_axis(0);
+			basis_y = basis.get_axis(1);
+			basis_normals.push_back(basis_x.x);
+			basis_normals.push_back(basis_x.y);
+			basis_normals.push_back(basis_x.z);
+			basis_normals.push_back(basis_y.x);
+			basis_normals.push_back(basis_y.y);
+			basis_normals.push_back(basis_y.z);
+		}
+		Vector<float> normal_weights;
+		normal_weights.resize(vertex_count);
+		for (int32_t weight_i = 0; weight_i < normal_weights.size(); weight_i++) {
+			normal_weights.write[weight_i] = 1.0;
+		}
 		int min_indices = 10;
 		const float threshold = 80.0 / 100.0;
 		int index_target = indices.size() * threshold;
 		print_verbose(vformat("Total %s triangles", indices.size() / 3));
 		const float mesh_scale = SurfaceTool::simplify_scale_func((const float *)vertices_ptr, vertex_count, sizeof(Vector3));
-		const float abs_target_error = 1e20;
-		float target_error = abs_target_error / mesh_scale;
-		while (index_target > min_indices) {
-			float error = 0.0;
+		const float thickness_of_clipping_clothing = 0.05;
+		const float abs_target_meter_error = thickness_of_clipping_clothing / 4.0 * 1000.0;
+		float rel_mesh_error = abs_target_meter_error / mesh_scale;
+		do {
 			Vector<int> new_indices;
 			new_indices.resize(indices.size());
-			size_t new_len = SurfaceTool::simplify_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, target_error, &error);
+			size_t new_len = SurfaceTool::simplify_with_attrib_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, rel_mesh_error, &rel_mesh_error, (float *)basis_normals.ptrw(), normal_weights.ptrw(), attribute_count);
 			if ((int)new_len > (index_target * 120 / 100.0)) {
 				break;
 			}
 			Surface::LOD lod;
-			lod.distance = error * mesh_scale;
-			if (Math::is_equal_approx(error, 0.0f)) {
+			lod.distance = rel_mesh_error;
+			if (Math::is_equal_approx(rel_mesh_error, 0.0f)) {
 				break;
 			}
 			index_target *= threshold;
+			rel_mesh_error = lod.distance;
+			int32_t lod_size = surfaces.write[i].lods.size();
+			if (lod_size && surfaces.write[i].lods[lod_size - 1].indices.size() == new_len) {
+				continue;
+			}
 			new_indices.resize(new_len);
 			lod.indices = new_indices;
-			print_line("Lod " + itos(surfaces.write[i].lods.size()) + " begin with " + itos(indices.size() / 3) + " triangles and shoot for " + itos(index_target / 3) + " triangles. Got " + itos(new_len / 3) + " triangles. Distance " + rtos(lod.distance));
+			print_line("Lod " + itos(surfaces.write[i].lods.size()) + " begin with " + itos(indices.size() / 3) + " triangles and shoot for " + itos(index_target / 3) + " triangles. Got " + itos(new_len / 3) + " triangles. Lod screen ratio " + rtos(lod.distance));
 			surfaces.write[i].lods.push_back(lod);
-		}
+		} while (index_target > min_indices);
 	}
 }
 
