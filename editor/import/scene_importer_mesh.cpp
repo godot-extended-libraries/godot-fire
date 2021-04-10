@@ -163,59 +163,34 @@ void EditorSceneImporterMesh::generate_lods() {
 		if (indices.size() == 0) {
 			continue; //no lods if no indices
 		}
+		Vector<Vector3> normals = surfaces[i].arrays[RS::ARRAY_NORMAL];
 		uint32_t vertex_count = vertices.size();
 		const Vector3 *vertices_ptr = vertices.ptr();
-
 		int min_indices = 10;
-		int index_target = indices.size() / 2;
-		print_line("Total indices: " + itos(indices.size()));
-		float mesh_scale = SurfaceTool::simplify_scale_func((const float *)vertices_ptr, vertex_count, sizeof(Vector3));
-		const float target_error = 1e-3f;
-		float abs_target_error = target_error / mesh_scale;
+		const float threshold = 80.0 / 100.0;
+		int index_target = indices.size() * threshold;
+		print_verbose(vformat("Total %s triangles", indices.size() / 3));
+		const float mesh_scale = SurfaceTool::simplify_scale_func((const float *)vertices_ptr, vertex_count, sizeof(Vector3));
+		const float abs_target_error = 1e20;
+		float target_error = abs_target_error / mesh_scale;
 		while (index_target > min_indices) {
-			float error;
+			float error = 0.0;
 			Vector<int> new_indices;
 			new_indices.resize(indices.size());
-			size_t new_len = SurfaceTool::simplify_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, abs_target_error, &error);
-			if ((int)new_len > (index_target * 120 / 100)) {
-				// Attribute discontinuities break normals.
-				bool is_sloppy = false;
-				if (is_sloppy) {
-					abs_target_error = target_error / mesh_scale;
-					index_target = new_len;
-					while (index_target > min_indices) {
-						Vector<int> sloppy_new_indices;
-						sloppy_new_indices.resize(indices.size());
-						new_len = SurfaceTool::simplify_sloppy_func((unsigned int *)sloppy_new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, abs_target_error, &error);
-						if ((int)new_len > (index_target * 120 / 100)) {
-							break; // 20 percent tolerance
-						}
-						sloppy_new_indices.resize(new_len);
-						Surface::LOD lod;
-						lod.distance = error * mesh_scale;
-						abs_target_error = lod.distance;
-						if (Math::is_equal_approx(abs_target_error, 0.0f)) {
-							return;
-						}
-						lod.indices = sloppy_new_indices;
-						print_line("Lod " + itos(surfaces.write[i].lods.size()) + " shoot for " + itos(index_target / 3) + " triangles, got " + itos(new_len / 3) + " triangles. Distance " + rtos(lod.distance) + ". Use simplify sloppy.");
-						surfaces.write[i].lods.push_back(lod);
-						index_target /= 2;
-					}
-				}
-				break; // 20 percent tolerance
+			size_t new_len = SurfaceTool::simplify_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, target_error, &error);
+			if ((int)new_len > (index_target * 120 / 100.0)) {
+				break;
 			}
-			new_indices.resize(new_len);
 			Surface::LOD lod;
 			lod.distance = error * mesh_scale;
-			abs_target_error = lod.distance;
-			if (Math::is_equal_approx(abs_target_error, 0.0f)) {
-				return;
+			if (Math::is_equal_approx(error, 0.0f)) {
+				break;
 			}
+			index_target *= threshold;
+			new_indices.resize(new_len);
 			lod.indices = new_indices;
-			print_line("Lod " + itos(surfaces.write[i].lods.size()) + " shoot for " + itos(index_target / 3) + " triangles, got " + itos(new_len / 3) + " triangles. Distance " + rtos(lod.distance));
+			print_line("Lod " + itos(surfaces.write[i].lods.size()) + " begin with " + itos(indices.size() / 3) + " triangles and shoot for " + itos(index_target / 3) + " triangles. Got " + itos(new_len / 3) + " triangles. Distance " + rtos(lod.distance));
 			surfaces.write[i].lods.push_back(lod);
-			index_target /= 2;
 		}
 	}
 }
