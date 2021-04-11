@@ -908,11 +908,9 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 	int subdiv_bone_count = 0;
 	int subdiv_weight_count = 0;
 	ERR_FAIL_COND_V(p_level <= 0, p_mesh_arrays);
-	bool has_bones = false;
 
 	ERR_FAIL_COND_V(p_level <= 0, p_mesh_arrays);
 
-	has_bones = Array(p_mesh_arrays[Mesh::ARRAY_BONES]).size();
 	int surface_count = 1;
 	surface_data.resize(surface_count);
 
@@ -933,8 +931,11 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 	Vector<Vector3> vertex_array = p_mesh_arrays[Mesh::ARRAY_VERTEX];
 	Vector<int> index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
 	Vector<Vector2> uv_array = p_mesh_arrays[Mesh::ARRAY_TEX_UV];
+	subdiv_uv_count = uv_array.size();
 	Vector<int> bones_array = p_mesh_arrays[Mesh::ARRAY_BONES];
+	subdiv_bone_count = bones_array.size() % 8 ? bones_array.size() / 8 : bones_array.size() / 4;
 	Vector<float> weights_array = p_mesh_arrays[Mesh::ARRAY_WEIGHTS];
+	subdiv_weight_count = weights_array.size() % 8 ? weights_array.size() / 8 : weights_array.size() / 4;
 
 	int index_count = index_array.size();
 
@@ -1043,22 +1044,22 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 		desc.numFaces = subdiv_face_count;
 		desc.numVertsPerFace = subdiv_face_vertex_count.ptr();
 		desc.vertIndicesPerFace = subdiv_index_array.ptr();
-		const int num_channels = 3;
-		const int channel_uv = 0;
-		const int channel_bones = 1;
-		const int channel_weights = 2;
-		Descriptor::FVarChannel channels[num_channels];
-		channels[channel_uv].numValues = subdiv_uv_count;
-		channels[channel_uv].valueIndices = subdiv_uv_vertex_count.ptr();
-		channels[channel_bones].numValues = subdiv_bone_count;
-		channels[channel_bones].valueIndices = subdiv_bone_vertex_count.ptr();
-		channels[channel_weights].numValues = subdiv_weight_count;
-		channels[channel_weights].valueIndices = subdiv_weights_vertex_count.ptr();
+		// const int num_channels = 3;
+		// const int channel_uv = 0;
+		// const int channel_bones = 1;
+		// const int channel_weights = 2;
+		// Descriptor::FVarChannel channels[num_channels];
+		// channels[channel_uv].numValues = subdiv_uv_count;
+		// channels[channel_uv].valueIndices = subdiv_uv_vertex_count.ptr();
+		// channels[channel_bones].numValues = subdiv_bone_count;
+		// channels[channel_bones].valueIndices = subdiv_bone_vertex_count.ptr();
+		// channels[channel_weights].numValues = subdiv_weight_count;
+		// channels[channel_weights].valueIndices = subdiv_weights_vertex_count.ptr();
 
-		desc.numFVarChannels = num_channels;
-		desc.fvarChannels = channels;
+		// desc.numFVarChannels = num_channels;
+		// desc.fvarChannels = channels;
 
-		OpenSubdiv::Sdc::SchemeType type = OpenSubdiv::Sdc::SCHEME_LOOP;
+		OpenSubdiv::Sdc::SchemeType type = OpenSubdiv::Sdc::SCHEME_CATMARK;
 
 		OpenSubdiv::Sdc::Options options;
 		options.SetVtxBoundaryInterpolation(OpenSubdiv::Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
@@ -1076,9 +1077,9 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 		refiner->RefineUniform(refine_options);
 
 		subdiv_vertex_count = refiner->GetNumVerticesTotal();
-		subdiv_uv_count = refiner->GetNumFVarValuesTotal(channel_uv);
-		subdiv_bone_count = refiner->GetNumFVarValuesTotal(channel_bones);
-		subdiv_weight_count = refiner->GetNumFVarValuesTotal(channel_weights);
+		// subdiv_uv_count = refiner->GetNumFVarValuesTotal(channel_uv);
+		// subdiv_bone_count = refiner->GetNumFVarValuesTotal(channel_bones);
+		// subdiv_weight_count = refiner->GetNumFVarValuesTotal(channel_weights);
 		// Create subdivision vertices
 		{
 			subdiv_vertex_array.resize(subdiv_vertex_count);
@@ -1094,18 +1095,18 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 				Vertex *dst = src + refiner->GetLevel(level).GetNumVertices();
 				primvar_refiner.Interpolate(level + 1, src, dst);
 				src = dst;
-				VertexUV *dst_uv = src_uv + refiner->GetLevel(level).GetNumFVarValues(channel_uv);
-				primvar_refiner.InterpolateFaceVarying(level + 1, src_uv, dst_uv, channel_uv);
-				src_uv = dst_uv;
-				if (!bones_array.size()) {
-					continue;
-				}
-				VertexBones *dst_bones = src_bones + refiner->GetLevel(level).GetNumFVarValues(channel_bones);
-				primvar_refiner.InterpolateFaceVarying(level + 1, src_bones, dst_bones, channel_bones);
-				src_bones = dst_bones;
-				VertexWeights *dst_weights = src_weights + refiner->GetLevel(level).GetNumFVarValues(channel_weights);
-				primvar_refiner.InterpolateFaceVarying(level + 1, src_weights, dst_weights, channel_weights);
-				src_weights = dst_weights;
+				// VertexUV *dst_uv = src_uv + refiner->GetLevel(level).GetNumFVarValues(channel_uv);
+				// primvar_refiner.InterpolateFaceVarying(level + 1, src_uv, dst_uv, channel_uv);
+				// src_uv = dst_uv;
+				// if (!bones_array.size()) {
+				// 	continue;
+				// }
+				// VertexBones *dst_bones = src_bones + refiner->GetLevel(level).GetNumFVarValues(channel_bones);
+				// primvar_refiner.InterpolateFaceVarying(level + 1, src_bones, dst_bones, channel_bones);
+				// src_bones = dst_bones;
+				// VertexWeights *dst_weights = src_weights + refiner->GetLevel(level).GetNumFVarValues(channel_weights);
+				// primvar_refiner.InterpolateFaceVarying(level + 1, src_weights, dst_weights, channel_weights);
+				// src_weights = dst_weights;
 			}
 		}
 
@@ -1136,6 +1137,7 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 				index_array_surface_out.push_back(vertex_index_offset + face_vertices[3]);
 			}
 		}
+		delete refiner;
 	}
 	const Vector<int> &index_array_out = index_arrays_out;
 	Array subdiv_mesh_arrays;
@@ -1143,26 +1145,26 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 	subdiv_mesh_arrays[Mesh::ARRAY_VERTEX] = subdiv_vertex_array;
 	subdiv_mesh_arrays[Mesh::ARRAY_INDEX] = index_array_out;
 
-	if (bones_array.size()) {
-		Vector<int> bone_out;
-		int bone_influences = 4;
-		if ((subdiv_bones_array.size() / subdiv_vertex_count) % 8 == 0) {
-			bone_influences = 8;
-		}
-		bone_out.resize(subdiv_vertex_count * bone_influences);
-		memcpy(bone_out.ptrw(), subdiv_bones_array.ptrw(), subdiv_bone_count * bone_influences * sizeof(int));
-		subdiv_mesh_arrays[Mesh::ARRAY_BONES] = bone_out;
-		Vector<float> weight_out;
-		weight_out.resize(subdiv_vertex_count * bone_influences);
-		memcpy(weight_out.ptrw(), subdiv_weights_array.ptrw(), subdiv_weight_count * bone_influences * sizeof(float));
-		subdiv_mesh_arrays[Mesh::ARRAY_WEIGHTS] = weight_out;
-	}
-	subdiv_mesh_arrays[Mesh::ARRAY_TEX_UV] = subdiv_uv_array;
+	// if (bones_array.size()) {
+	// 	Vector<int> bone_out;
+	// 	int bone_influences = 4;
+	// 	if ((subdiv_bones_array.size() / subdiv_vertex_count) % 8 == 0) {
+	// 		bone_influences = 8;
+	// 	}
+	// 	bone_out.resize(subdiv_vertex_count * bone_influences);
+	// 	memcpy(bone_out.ptrw(), subdiv_bones_array.ptrw(), subdiv_bone_count * bone_influences * sizeof(int));
+	// 	subdiv_mesh_arrays[Mesh::ARRAY_BONES] = bone_out;
+	// 	Vector<float> weight_out;
+	// 	weight_out.resize(subdiv_vertex_count * bone_influences);
+	// 	memcpy(weight_out.ptrw(), subdiv_weights_array.ptrw(), subdiv_weight_count * bone_influences * sizeof(float));
+	// 	subdiv_mesh_arrays[Mesh::ARRAY_WEIGHTS] = weight_out;
+	// }
+	// subdiv_mesh_arrays[Mesh::ARRAY_TEX_UV] = subdiv_uv_array;
 
 	Ref<SurfaceTool> st;
 	st.instance();
 	st->create_from_triangle_arrays(subdiv_mesh_arrays);
-	st->generate_normals();
-	st->generate_tangents();
+	// st->generate_normals();
+	// st->generate_tangents();
 	return st->commit_to_arrays();
 }
