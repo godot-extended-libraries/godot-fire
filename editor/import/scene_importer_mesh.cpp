@@ -215,23 +215,22 @@ void EditorSceneImporterMesh::generate_lods() {
 			Vector<int> new_indices;
 			new_indices.resize(indices.size());
 			size_t new_len = SurfaceTool::simplify_with_attrib_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, rel_mesh_error, &rel_mesh_error, (float *)basis_normals.ptrw(), normal_weights.ptrw(), attribute_count);
-			if ((int)new_len > (index_target * 120 / 100.0)) {
-				break;
-			}
 			Surface::LOD lod;
 			lod.distance = rel_mesh_error;
 			if (Math::is_equal_approx(rel_mesh_error, 0.0f)) {
 				break;
 			}
 			index_target *= threshold;
-			int32_t lod_size = surfaces.write[i].lods.size();
-			if (lod_size && surfaces.write[i].lods[lod_size - 1].indices.size() == new_len) {
+			if (!new_len) {
 				continue;
 			}
 			new_indices.resize(new_len);
 			lod.indices = new_indices;
 			print_line("Lod " + itos(surfaces.write[i].lods.size()) + " begin with " + itos(indices.size() / 3) + " triangles and shoot for " + itos(index_target / 3) + " triangles. Got " + itos(new_len / 3) + " triangles. Lod screen ratio " + rtos(lod.distance));
 			surfaces.write[i].lods.push_back(lod);
+			if ((int)new_len > (index_target * 120 / 100.0)) {
+				break;
+			}
 		} while (index_target > min_indices);
 	}
 }
