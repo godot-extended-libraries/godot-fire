@@ -196,20 +196,24 @@ void EditorSceneImporterMesh::generate_lods() {
 		const Vector3 *vertices_ptr = vertices.ptr();
 		Vector<float> basis_normals;
 		int32_t attribute_count = 6;
-		for (int32_t normal_i = 0; normal_i < normals.size(); normal_i++) {
-			Basis basis;
-			basis.set_euler(normals[normal_i]);
-			Vector3 basis_x = basis.get_axis(0);
-			Vector3 basis_y = basis.get_axis(1);
-			basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
-			basis_x = basis.get_axis(0);
-			basis_y = basis.get_axis(1);
-			basis_normals.push_back(basis_x.x);
-			basis_normals.push_back(basis_x.y);
-			basis_normals.push_back(basis_x.z);
-			basis_normals.push_back(basis_y.x);
-			basis_normals.push_back(basis_y.y);
-			basis_normals.push_back(basis_y.z);
+		if (normals.size()) {
+			for (int32_t normal_i = 0; normal_i < normals.size(); normal_i++) {
+				Basis basis;
+				basis.set_euler(normals[normal_i]);
+				Vector3 basis_x = basis.get_axis(0);
+				Vector3 basis_y = basis.get_axis(1);
+				basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
+				basis_x = basis.get_axis(0);
+				basis_y = basis.get_axis(1);
+				basis_normals.push_back(basis_x.x);
+				basis_normals.push_back(basis_x.y);
+				basis_normals.push_back(basis_x.z);
+				basis_normals.push_back(basis_y.x);
+				basis_normals.push_back(basis_y.y);
+				basis_normals.push_back(basis_y.z);
+			}
+		} else {
+			attribute_count = 0;
 		}
 		Vector<float> normal_weights;
 		normal_weights.resize(vertex_count);
@@ -227,7 +231,10 @@ void EditorSceneImporterMesh::generate_lods() {
 		do {
 			Vector<int> new_indices;
 			new_indices.resize(indices.size());
-			size_t new_len = SurfaceTool::simplify_with_attrib_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, rel_mesh_error, &rel_mesh_error, (float *)basis_normals.ptrw(), normal_weights.ptrw(), attribute_count);
+			size_t new_len = SurfaceTool::simplify_with_attrib_func((unsigned int *)new_indices.ptrw(), (const unsigned int *)indices.ptr(), indices.size(), (const float *)vertices_ptr, vertex_count, sizeof(Vector3), index_target, rel_mesh_error, &rel_mesh_error, (float *)basis_normals.ptrw(), normal_weights.ptrw(), attribute_count);			
+			if ((int)new_len > (index_target * 120 / 100.0)) {
+				break;
+			}
 			Surface::LOD lod;
 			lod.distance = rel_mesh_error;
 			if (Math::is_equal_approx(rel_mesh_error, 0.0f)) {
@@ -241,9 +248,6 @@ void EditorSceneImporterMesh::generate_lods() {
 			lod.indices = new_indices;
 			print_line("Lod " + itos(surfaces.write[i].lods.size()) + " begin with " + itos(indices.size() / 3) + " triangles and shoot for " + itos(index_target / 3) + " triangles. Got " + itos(new_len / 3) + " triangles. Lod screen ratio " + rtos(lod.distance));
 			surfaces.write[i].lods.push_back(lod);
-			if ((int)new_len > (index_target * 120 / 100.0)) {
-				break;
-			}
 		} while (index_target > min_indices);
 	}
 }
@@ -855,87 +859,21 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 		float x, y, z;
 	};
 
-	struct VertexUV {
-		void Clear() {
-			u = v = 0.0f;
-		}
-
-		void AddWithWeight(VertexUV const &src, float weight) {
-			u += weight * src.u;
-			v += weight * src.v;
-		}
-
-		// Basic 'uv' layout channel
-		float u, v;
-	};
-
-	struct VertexBones {
-		void Clear() {
-			b0 = b1 = b2 = b3 = 0;
-		}
-
-		void AddWithWeight(VertexBones const &src, float weight) {
-			b0 = src.b0;
-			b1 = src.b1;
-			b2 = src.b2;
-			b3 = src.b3;
-		}
-
-		int b0 = 0, b1 = 0, b2 = 0, b3 = 0;
-	};
-	struct VertexWeights {
-		void Clear() {
-			w0 = w1 = w2 = w3 = 0.0f;
-		}
-
-		void AddWithWeight(VertexWeights const &src, float weight) {
-			w0 += weight * src.w0;
-			w1 += weight * src.w1;
-			w2 += weight * src.w2;
-			w3 += weight * src.w3;
-		}
-
-		float w0 = 0.0f, w1 = 0.0f, w2 = 0.0f, w3 = 0.f;
-	};
-	struct SurfaceData {
-		Vector<int> mesh_to_subdiv_index_map;
-	};
-	Vector<SurfaceData> surface_data;
-	Vector<int> mesh_to_subdiv_index_map;
 	int subdiv_vertex_count = 0;
 	int subdiv_index_count = 0;
-	int subdiv_uv_count = 0;
-	int subdiv_bone_count = 0;
-	int subdiv_weight_count = 0;
-	ERR_FAIL_COND_V(p_level <= 0, p_mesh_arrays);
-
-	ERR_FAIL_COND_V(p_level <= 0, p_mesh_arrays);
-
-	int surface_count = 1;
-	surface_data.resize(surface_count);
 
 	Vector<Vector3> subdiv_vertex_array;
-	Vector<Vector2> subdiv_uv_array;
-
-	Vector<VertexBones> subdiv_bones_array;
-	Vector<VertexWeights> subdiv_weights_array;
 	Vector<int> subdiv_index_array;
 
 	int subdiv_face_count = 0;
-	Vector<int> face_to_surface_index_map;
 
 	Map<Vector3, int> vertex_map;
 
+	Vector<int> mesh_to_subdiv_index_map;
+
 	// Gather all vertices and faces from surfaces
-	SurfaceData &surface = surface_data.write[0];
 	Vector<Vector3> vertex_array = p_mesh_arrays[Mesh::ARRAY_VERTEX];
 	Vector<int> index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
-	Vector<Vector2> uv_array = p_mesh_arrays[Mesh::ARRAY_TEX_UV];
-	subdiv_uv_count = uv_array.size();
-	Vector<int> bones_array = p_mesh_arrays[Mesh::ARRAY_BONES];
-	subdiv_bone_count = bones_array.size() % 8 ? bones_array.size() / 8 : bones_array.size() / 4;
-	Vector<float> weights_array = p_mesh_arrays[Mesh::ARRAY_WEIGHTS];
-	subdiv_weight_count = weights_array.size() % 8 ? weights_array.size() / 8 : weights_array.size() / 4;
 
 	int index_count = index_array.size();
 
@@ -943,45 +881,24 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 	{
 		int vertex_source_count = vertex_array.size();
 
-		surface.mesh_to_subdiv_index_map.resize(vertex_source_count);
+		mesh_to_subdiv_index_map.resize(vertex_source_count);
 		subdiv_vertex_array.resize(subdiv_vertex_count + vertex_source_count);
-		subdiv_uv_array.resize(subdiv_vertex_count + vertex_source_count);
-		subdiv_bones_array.resize(subdiv_vertex_count + vertex_source_count);
-		subdiv_weights_array.resize(subdiv_vertex_count + vertex_source_count);
 
 		int vertex_index_out = 0;
 		for (int vertex_index = 0; vertex_index < vertex_source_count; ++vertex_index) {
 			const Vector3 &vertex = vertex_array[vertex_index];
 			Map<Vector3, int>::Element *found_vertex = vertex_map.find(vertex);
 			if (found_vertex) {
-				surface.mesh_to_subdiv_index_map.write[vertex_index] = found_vertex->value();
+				mesh_to_subdiv_index_map.write[vertex_index] = found_vertex->value();
 			} else {
 				int subdiv_vertex_index = subdiv_vertex_count + vertex_index_out;
 				vertex_map[vertex] = subdiv_vertex_index;
-				if (uv_array.size()) {
-					Vector2 uv = uv_array.write[vertex_index];
-					surface.mesh_to_subdiv_index_map.write[vertex_index] = subdiv_vertex_index;
-					subdiv_uv_array.write[subdiv_vertex_index] = uv;
-				}
-				if (bones_array.size()) {
-					surface.mesh_to_subdiv_index_map.write[vertex_index] = subdiv_vertex_index;
-					VertexBones bones;
-					bones.b0 = bones_array.write[vertex_index * 4 + 0];
-					bones.b1 = bones_array.write[vertex_index * 4 + 1];
-					bones.b2 = bones_array.write[vertex_index * 4 + 2];
-					bones.b3 = bones_array.write[vertex_index * 4 + 3];
-					subdiv_bones_array.write[subdiv_vertex_index] = bones;
-					VertexWeights weights;
-					weights.w0 = weights_array.write[vertex_index * 4 + 0];
-					weights.w1 = weights_array.write[vertex_index * 4 + 1];
-					weights.w2 = weights_array.write[vertex_index * 4 + 2];
-					weights.w3 = weights_array.write[vertex_index * 4 + 3];
-					subdiv_weights_array.write[subdiv_vertex_index] = weights;
-				}
+				mesh_to_subdiv_index_map.write[vertex_index] = subdiv_vertex_index;
 				subdiv_vertex_array.write[subdiv_vertex_index] = vertex;
 				++vertex_index_out;
 			}
 		}
+
 		subdiv_vertex_count += vertex_index_out;
 	}
 	subdiv_vertex_array.resize(subdiv_vertex_count);
@@ -989,182 +906,91 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 	// Add vertex indices
 	{
 		subdiv_index_array.resize(subdiv_index_count + index_count);
+
 		for (int index = 0; index < index_count; ++index) {
 			int subdiv_index = subdiv_index_count + index;
-			subdiv_index_array.write[subdiv_index] = surface.mesh_to_subdiv_index_map[index_array[index]];
+			subdiv_index_array.write[subdiv_index] = mesh_to_subdiv_index_map[index_array[index]];
 		}
 
 		subdiv_index_count += index_count;
 
 		int face_count = index_count / 3;
-
-		face_to_surface_index_map.resize(subdiv_face_count + face_count);
-		for (int face_index = 0; face_index < face_count; ++face_index) {
-			face_to_surface_index_map.write[subdiv_face_count + face_index] = 0;
-		}
-
 		subdiv_face_count += face_count;
 	}
 
-	// Generate subdivision data
-	Vector<int> index_arrays_out;
-	Vector<Vector3> normal_arrays_out;
-	{
-		// Create per-face vertex count
-		Vector<int> subdiv_face_vertex_count;
-		{
-			subdiv_face_vertex_count.resize(subdiv_face_count);
-			for (int face_index = 0; face_index < subdiv_face_count; ++face_index) {
-				subdiv_face_vertex_count.write[face_index] = 3;
-			}
-		}
-		Vector<int> subdiv_uv_vertex_count;
-		{
-			subdiv_uv_vertex_count.resize(subdiv_uv_count);
-			for (int uv_index = 0; uv_index < subdiv_uv_count; ++uv_index) {
-				subdiv_uv_vertex_count.write[uv_index] = 3;
-			}
-		}
-		Vector<int> subdiv_bone_vertex_count;
-		{
-			subdiv_bone_vertex_count.resize(subdiv_bone_count);
-			for (int bone_index = 0; bone_index < subdiv_bone_count; ++bone_index) {
-				subdiv_bone_vertex_count.write[bone_index] = 3;
-			}
-		}
-		Vector<int> subdiv_weights_vertex_count;
-		{
-			subdiv_weights_vertex_count.resize(subdiv_weight_count);
-			for (int weight_index = 0; weight_index < subdiv_weight_count; ++weight_index) {
-				subdiv_weights_vertex_count.write[weight_index] = 3;
-			}
-		}
-		OpenSubdiv::Far::TopologyDescriptor desc;
-		desc.numVertices = subdiv_vertex_count;
-		desc.numFaces = subdiv_face_count;
-		desc.numVertsPerFace = subdiv_face_vertex_count.ptr();
-		desc.vertIndicesPerFace = subdiv_index_array.ptr();
-		// const int num_channels = 3;
-		// const int channel_uv = 0;
-		// const int channel_bones = 1;
-		// const int channel_weights = 2;
-		// Descriptor::FVarChannel channels[num_channels];
-		// channels[channel_uv].numValues = subdiv_uv_count;
-		// channels[channel_uv].valueIndices = subdiv_uv_vertex_count.ptr();
-		// channels[channel_bones].numValues = subdiv_bone_count;
-		// channels[channel_bones].valueIndices = subdiv_bone_vertex_count.ptr();
-		// channels[channel_weights].numValues = subdiv_weight_count;
-		// channels[channel_weights].valueIndices = subdiv_weights_vertex_count.ptr();
-
-		// desc.numFVarChannels = num_channels;
-		// desc.fvarChannels = channels;
-
-		OpenSubdiv::Sdc::SchemeType type = OpenSubdiv::Sdc::SCHEME_CATMARK;
-
-		OpenSubdiv::Sdc::Options options;
-		options.SetVtxBoundaryInterpolation(OpenSubdiv::Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
-		options.SetFVarLinearInterpolation(OpenSubdiv::Sdc::Options::FVAR_LINEAR_NONE);
-		options.SetCreasingMethod(OpenSubdiv::Sdc::Options::CREASE_UNIFORM);
-		options.SetTriangleSubdivision(OpenSubdiv::Sdc::Options::TRI_SUB_SMOOTH);
-
-		OpenSubdiv::Far::TopologyRefinerFactory<Descriptor>::Options create_options(type, options);
-
-		OpenSubdiv::Far::TopologyRefiner *refiner = OpenSubdiv::Far::TopologyRefinerFactory<Descriptor>::Create(desc, create_options);
-		ERR_FAIL_COND_V(!refiner, p_mesh_arrays);
-
-		OpenSubdiv::Far::TopologyRefiner::UniformOptions refine_options(p_level);
-		refine_options.fullTopologyInLastLevel = true;
-		refiner->RefineUniform(refine_options);
-
-		subdiv_vertex_count = refiner->GetNumVerticesTotal();
-		// subdiv_uv_count = refiner->GetNumFVarValuesTotal(channel_uv);
-		// subdiv_bone_count = refiner->GetNumFVarValuesTotal(channel_bones);
-		// subdiv_weight_count = refiner->GetNumFVarValuesTotal(channel_weights);
-		// Create subdivision vertices
-		{
-			subdiv_vertex_array.resize(subdiv_vertex_count);
-			subdiv_uv_array.resize(subdiv_uv_count);
-			// Interpolate vertex primvar data
-			OpenSubdiv::Far::PrimvarRefiner primvar_refiner(*refiner);
-
-			Vertex *src = (Vertex *)subdiv_vertex_array.ptrw();
-			VertexUV *src_uv = (VertexUV *)subdiv_uv_array.ptrw();
-			VertexBones *src_bones = (VertexBones *)subdiv_bones_array.ptrw();
-			VertexWeights *src_weights = (VertexWeights *)subdiv_weights_array.ptrw();
-			for (int level = 0; level < p_level; ++level) {
-				Vertex *dst = src + refiner->GetLevel(level).GetNumVertices();
-				primvar_refiner.Interpolate(level + 1, src, dst);
-				src = dst;
-				// VertexUV *dst_uv = src_uv + refiner->GetLevel(level).GetNumFVarValues(channel_uv);
-				// primvar_refiner.InterpolateFaceVarying(level + 1, src_uv, dst_uv, channel_uv);
-				// src_uv = dst_uv;
-				// if (!bones_array.size()) {
-				// 	continue;
-				// }
-				// VertexBones *dst_bones = src_bones + refiner->GetLevel(level).GetNumFVarValues(channel_bones);
-				// primvar_refiner.InterpolateFaceVarying(level + 1, src_bones, dst_bones, channel_bones);
-				// src_bones = dst_bones;
-				// VertexWeights *dst_weights = src_weights + refiner->GetLevel(level).GetNumFVarValues(channel_weights);
-				// primvar_refiner.InterpolateFaceVarying(level + 1, src_weights, dst_weights, channel_weights);
-				// src_weights = dst_weights;
-			}
-		}
-
-		// Create subdivision faces
-		{
-			OpenSubdiv::Far::TopologyLevel const &last_level = refiner->GetLevel(p_level);
-			int face_count_out = last_level.GetNumFaces();
-
-			int vertex_index_offset = subdiv_vertex_count - last_level.GetNumVertices();
-
-			for (int face_index = 0; face_index < face_count_out; ++face_index) {
-				int parent_face_index = last_level.GetFaceParentFace(face_index);
-				for (int level_index = p_level - 1; level_index > 0; --level_index) {
-					OpenSubdiv::Far::TopologyLevel const &prev_level = refiner->GetLevel(level_index);
-					parent_face_index = prev_level.GetFaceParentFace(parent_face_index);
-				}
-
-				Vector<int> &index_array_surface_out = index_arrays_out;
-				OpenSubdiv::Far::ConstIndexArray face_vertices = last_level.GetFaceVertices(face_index);
-				ERR_FAIL_COND_V(face_vertices.size() != 4, p_mesh_arrays);
-
-				index_array_surface_out.push_back(vertex_index_offset + face_vertices[0]);
-				index_array_surface_out.push_back(vertex_index_offset + face_vertices[1]);
-				index_array_surface_out.push_back(vertex_index_offset + face_vertices[2]);
-
-				index_array_surface_out.push_back(vertex_index_offset + face_vertices[0]);
-				index_array_surface_out.push_back(vertex_index_offset + face_vertices[2]);
-				index_array_surface_out.push_back(vertex_index_offset + face_vertices[3]);
-			}
-		}
-		delete refiner;
-	}
-	const Vector<int> &index_array_out = index_arrays_out;
 	Array subdiv_mesh_arrays;
+	// Generate subdivision data
+	Vector<int> index_array_out;
+	// Create per-face vertex count
+	Vector<int> subdiv_face_vertex_count;
+	{
+		subdiv_face_vertex_count.resize(subdiv_face_count);
+		for (int face_index = 0; face_index < subdiv_face_count; ++face_index) {
+			subdiv_face_vertex_count.write[face_index] = 3;
+		}
+	}
+
+	OpenSubdiv::v3_4_3::Far::TopologyDescriptor desc;
+	desc.numVertices = subdiv_vertex_count;
+	desc.numFaces = subdiv_face_count;
+	desc.numVertsPerFace = subdiv_face_vertex_count.ptr();
+	desc.vertIndicesPerFace = subdiv_index_array.ptr();
+
+	// Create topology refiner
+	OpenSubdiv::Sdc::SchemeType type = OpenSubdiv::Sdc::SCHEME_LOOP;
+
+	OpenSubdiv::Sdc::Options options;
+	options.SetVtxBoundaryInterpolation(OpenSubdiv::Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
+	options.SetFVarLinearInterpolation(OpenSubdiv::Sdc::Options::FVAR_LINEAR_CORNERS_ONLY);
+	options.SetCreasingMethod(OpenSubdiv::Sdc::Options::CREASE_UNIFORM);
+
+	OpenSubdiv::v3_4_3::Far::TopologyRefinerFactory<Descriptor>::Options create_options(type, options);
+
+	OpenSubdiv::v3_4_3::Far::TopologyRefiner *refiner = OpenSubdiv::v3_4_3::Far::TopologyRefinerFactory<Descriptor>::Create(desc, create_options);
+
+	OpenSubdiv::Far::TopologyRefiner::UniformOptions refine_options(p_level);
+	refiner->RefineUniform(refine_options);
+
+	subdiv_vertex_count = refiner->GetNumVerticesTotal();
+
+	// Create subdivision vertices
+	{
+		subdiv_vertex_array.resize(subdiv_vertex_count);
+
+		// Interpolate vertex primvar data
+		OpenSubdiv::Far::PrimvarRefiner primvar_refiner(*refiner);
+
+		Vertex *src = (Vertex *)subdiv_vertex_array.ptrw();
+		int level = 0;
+		Vertex *dst = src + refiner->GetLevel(level).GetNumVertices();
+		primvar_refiner.Interpolate(level + 1, src, dst);
+		src = dst;
+	}
+
 	subdiv_mesh_arrays.resize(Mesh::ARRAY_MAX);
 	subdiv_mesh_arrays[Mesh::ARRAY_VERTEX] = subdiv_vertex_array;
-	subdiv_mesh_arrays[Mesh::ARRAY_INDEX] = index_array_out;
+	// Create subdivision faces
+	{
+		OpenSubdiv::v3_4_3::Far::TopologyLevel const &last_level = refiner->GetLevel(p_level);
+		int face_count_out = last_level.GetNumFaces();
 
-	// if (bones_array.size()) {
-	// 	Vector<int> bone_out;
-	// 	int bone_influences = 4;
-	// 	if ((subdiv_bones_array.size() / subdiv_vertex_count) % 8 == 0) {
-	// 		bone_influences = 8;
-	// 	}
-	// 	bone_out.resize(subdiv_vertex_count * bone_influences);
-	// 	memcpy(bone_out.ptrw(), subdiv_bones_array.ptrw(), subdiv_bone_count * bone_influences * sizeof(int));
-	// 	subdiv_mesh_arrays[Mesh::ARRAY_BONES] = bone_out;
-	// 	Vector<float> weight_out;
-	// 	weight_out.resize(subdiv_vertex_count * bone_influences);
-	// 	memcpy(weight_out.ptrw(), subdiv_weights_array.ptrw(), subdiv_weight_count * bone_influences * sizeof(float));
-	// 	subdiv_mesh_arrays[Mesh::ARRAY_WEIGHTS] = weight_out;
-	// }
-	// subdiv_mesh_arrays[Mesh::ARRAY_TEX_UV] = subdiv_uv_array;
+		int vertex_index_offset = subdiv_vertex_count - last_level.GetNumVertices();
 
-	Ref<SurfaceTool> st;
-	st.instance();
-	st->create_from_triangle_arrays(subdiv_mesh_arrays);
-	// st->generate_normals();
-	// st->generate_tangents();
-	return st->commit_to_arrays();
+		for (int face_index = 0; face_index < face_count_out; ++face_index) {
+			int parent_face_index = last_level.GetFaceParentFace(face_index);
+			for (int level_index = p_level - 1; level_index > 0; --level_index) {
+				OpenSubdiv::v3_4_3::Far::TopologyLevel const &prev_level = refiner->GetLevel(level_index);
+				parent_face_index = prev_level.GetFaceParentFace(parent_face_index);
+			}
+			OpenSubdiv::Far::ConstIndexArray face_vertices = last_level.GetFaceVertices(face_index);
+			ERR_FAIL_COND_V(face_vertices.size() != 3, p_mesh_arrays);
+
+			index_array_out.push_back(vertex_index_offset + face_vertices[0]);
+			index_array_out.push_back(vertex_index_offset + face_vertices[1]);
+			index_array_out.push_back(vertex_index_offset + face_vertices[2]);
+		}
+		subdiv_mesh_arrays[Mesh::ARRAY_INDEX] = index_array_out;
+	}
+	delete refiner;
+	return subdiv_mesh_arrays;
 }
