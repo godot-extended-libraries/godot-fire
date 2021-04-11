@@ -1971,9 +1971,12 @@ void EditorFileSystem::reimport_files(const Vector<String> &p_files) {
 
 	files.sort();
 
-	for (int i = 0; i < files.size(); i++) {
+	for (int i = 0; i < files.size(); i++) {	
+		uint64_t t = OS::get_singleton()->get_ticks_msec();
 		pr.step(files[i].path.get_file(), i);
 		_reimport_file(files[i].path);
+		uint64_t final = OS::get_singleton()->get_ticks_msec() - t;
+		print_line(vformat("%s import took %s seconds", files[i].path, rtos(final / 1000.0)));
 	}
 
 	//reimport groups
