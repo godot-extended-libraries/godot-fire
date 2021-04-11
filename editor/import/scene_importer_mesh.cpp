@@ -940,8 +940,8 @@ Array EditorSceneImporterMesh::subdivide(Array p_mesh_arrays, int p_level) {
 	OpenSubdiv::Sdc::SchemeType type = OpenSubdiv::Sdc::SCHEME_LOOP;
 
 	OpenSubdiv::Sdc::Options options;
-	options.SetVtxBoundaryInterpolation(OpenSubdiv::Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
-	options.SetFVarLinearInterpolation(OpenSubdiv::Sdc::Options::FVAR_LINEAR_CORNERS_ONLY);
+	options.SetVtxBoundaryInterpolation(OpenSubdiv::Sdc::Options::VTX_BOUNDARY_EDGE_AND_CORNER);
+	options.SetFVarLinearInterpolation(OpenSubdiv::Sdc::Options::FVAR_LINEAR_ALL);
 	options.SetCreasingMethod(OpenSubdiv::Sdc::Options::CREASE_UNIFORM);
 
 	OpenSubdiv::v3_4_3::Far::TopologyRefinerFactory<Descriptor>::Options create_options(type, options);
