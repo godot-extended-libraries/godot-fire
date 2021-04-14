@@ -52,7 +52,7 @@ private:
 	// Set of unique bone names for the skeleton
 	Set<String> unique_names;
 
-	Map<int32_t, GLTFNodeIndex> godot_bone_node;
+	Map<StringName, GLTFNodeIndex> godot_bone_node;
 
 	Vector<BoneAttachment3D *> bone_attachments;
 
