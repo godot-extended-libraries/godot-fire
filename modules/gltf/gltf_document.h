@@ -249,7 +249,6 @@ private:
 			const GLTFSkeletonIndex skel_i);
 	Error _create_skeletons(Ref<GLTFState> state);
 	Error _map_skin_joints_indices_to_skeleton_bone_indices(Ref<GLTFState> state);
-	Error _serialize_skins(Ref<GLTFState> state);
 	Error _create_skins(Ref<GLTFState> state);
 	bool _skins_are_same(const Ref<Skin> skin_a, const Ref<Skin> skin_b);
 	void _remove_duplicate_skins(Ref<GLTFState> state);
@@ -370,6 +369,7 @@ public:
 	GLTFMeshIndex _convert_mesh_instance(Ref<GLTFState> state,
 			MeshInstance3D *p_mesh_instance);
 	void _convert_mesh_instances(Ref<GLTFState> state);
+	void _convert_skins(Ref<GLTFState> state);
 	GLTFCameraIndex _convert_camera(Ref<GLTFState> state, Camera3D *p_camera);
 	void _convert_light_to_gltf(Light3D *light, Ref<GLTFState> state, Node3D *spatial, Ref<GLTFNode> gltf_node);
 	GLTFLightIndex _convert_light(Ref<GLTFState> state, Light3D *p_light);
