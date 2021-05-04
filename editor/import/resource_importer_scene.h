@@ -142,7 +142,6 @@ private:
 	Transform get_bone_global_transform(int p_id, Skeleton3D *p_skeleton, Vector<Vector<Transform>> p_local_transform_array);
 	Vector3 _get_perpendicular_vector(Vector3 v);
 	Quat _align_vectors(Vector3 a, Vector3 b);
-	void _skeleton_point_to_children(AnimationPlayer *p_ap);
 
 public:
 	static ResourceImporterScene *get_singleton() { return singleton; }

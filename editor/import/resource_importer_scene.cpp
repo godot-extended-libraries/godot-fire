@@ -30,6 +30,7 @@
 
 #include "resource_importer_scene.h"
 
+#include "core/error/error_macros.h"
 #include "core/io/resource_saver.h"
 #include "editor/editor_node.h"
 #include "editor/import/scene_import_settings.h"
@@ -703,9 +704,40 @@ Node *ResourceImporterScene::_post_fix_node(Node *p_node, Node *p_root, Map<Ref<
 		}
 	}
 
+	bool use_point_parent_bone_to_children = node_settings["point_parent_bone_to_children"];
+	Map<int, RestBone> r_rest_bones;
+	Vector<EditorSceneImporterMeshNode3D *> r_meshes;
+	if (use_point_parent_bone_to_children) {
+		List<Node *> queue;
+		queue.push_back(p_root);
+		while (!queue.is_empty()) {
+			List<Node *>::Element *E = queue.front();
+			Node *node = E->get();
+			if (cast_to<Skeleton3D>(node)) {
+				Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(node);
+				_fix_skeleton(skeleton, r_rest_bones);
+			}
+			if (cast_to<EditorSceneImporterMeshNode3D>(node)) {
+				EditorSceneImporterMeshNode3D *mi = Object::cast_to<EditorSceneImporterMeshNode3D>(node);
+				if (mi) {
+					NodePath path = mi->get_skeleton_path();
+					if (!path.is_empty() && mi->get_node_or_null(path) && Object::cast_to<Skeleton3D>(mi->get_node_or_null(path))) {
+						r_meshes.push_back(mi);
+					}
+				}
+			}
+
+			int child_count = node->get_child_count();
+			for (int i = 0; i < child_count; i++) {
+				queue.push_back(node->get_child(i));
+			}
+			queue.pop_front();
+		}
+		_fix_meshes(r_rest_bones, r_meshes);
+	}
+
 	if (Object::cast_to<AnimationPlayer>(p_node)) {
 		AnimationPlayer *ap = Object::cast_to<AnimationPlayer>(p_node);
-
 		{
 			//make sure this is unique
 			node_settings = node_settings.duplicate(true);
@@ -727,7 +759,7 @@ Node *ResourceImporterScene::_post_fix_node(Node *p_node, Node *p_root, Map<Ref<
 		if (use_optimizer) {
 			_optimize_animations(ap, anim_optimizer_linerr, anim_optimizer_angerr, anim_optimizer_maxang);
 		}
-		
+
 		Array animation_clips;
 		{
 			int clip_count = node_settings["clips/amount"];
@@ -785,9 +817,8 @@ Node *ResourceImporterScene::_post_fix_node(Node *p_node, Node *p_root, Map<Ref<
 				}
 			}
 		}
-		bool use_point_parent_bone_to_children = node_settings["point_parent_bone_to_children"];
 		if (use_point_parent_bone_to_children) {
-			_skeleton_point_to_children(ap);
+			_align_animations(ap, r_rest_bones);
 		}
 	}
 
@@ -949,6 +980,7 @@ void ResourceImporterScene::get_internal_import_options(InternalImportCategory p
 	switch (p_category) {
 		case INTERNAL_IMPORT_CATEGORY_NODE: {
 			r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "import/skip_import", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), false));
+			r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "point_parent_bone_to_children"), true));
 		} break;
 		case INTERNAL_IMPORT_CATEGORY_MESH_3D_NODE: {
 			r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "import/skip_import", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), false));
@@ -975,7 +1007,6 @@ void ResourceImporterScene::get_internal_import_options(InternalImportCategory p
 		} break;
 		case INTERNAL_IMPORT_CATEGORY_ANIMATION_NODE: {
 			r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "import/skip_import", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), false));
-			r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "point_parent_bone_to_children"), true));
 			r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "optimizer/enabled", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), true));
 			r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "optimizer/max_linear_error"), 0.05));
 			r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "optimizer/max_angular_error"), 0.01));
@@ -1664,40 +1695,6 @@ Transform ResourceImporterScene::get_bone_global_transform(int p_id, Skeleton3D 
 		return_transform *= p_local_transform_array[i][p_id];
 	}
 	return return_transform;
-}
-
-void ResourceImporterScene::_skeleton_point_to_children(AnimationPlayer *p_ap) {
-	Map<int, RestBone> rest_bones;
-	Vector<EditorSceneImporterMeshNode3D *> meshes;
-	List<Node *> queue;
-	queue.push_back(p_ap->get_owner());
-
-	while (!queue.is_empty()) {
-		List<Node *>::Element *E = queue.front();
-		ERR_FAIL_COND(!E);
-		Node *node = E->get();
-		if (cast_to<Skeleton3D>(node)) {
-			Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(node);
-			_fix_skeleton(skeleton, rest_bones);
-		}
-		if (cast_to<EditorSceneImporterMeshNode3D>(node)) {
-			EditorSceneImporterMeshNode3D *mi = Object::cast_to<EditorSceneImporterMeshNode3D>(node);
-			if (mi) {
-				NodePath path = mi->get_skeleton_path();
-				if (!path.is_empty() && mi->get_node_or_null(path) && Object::cast_to<Skeleton3D>(mi->get_node_or_null(path))) {
-					meshes.push_back(mi);
-				}
-			}
-		}
-
-		int child_count = node->get_child_count();
-		for (int i = 0; i < child_count; i++) {
-			queue.push_back(node->get_child(i));
-		}
-		queue.pop_front();
-	}
-	_fix_meshes(rest_bones, meshes);
-	_align_animations(p_ap, rest_bones);
 }
 
 void ResourceImporterScene::_align_animations(AnimationPlayer *p_ap, const Map<int, RestBone> &p_rest_bones) {
