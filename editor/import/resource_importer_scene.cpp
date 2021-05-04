@@ -704,7 +704,7 @@ Node *ResourceImporterScene::_post_fix_node(Node *p_node, Node *p_root, Map<Ref<
 		}
 	}
 
-	bool use_point_parent_bone_to_children = node_settings["point_parent_bone_to_children"];
+	bool use_point_parent_bone_to_children = node_settings["animation/point_parent_bone_to_children"];
 	Map<int, RestBone> r_rest_bones;
 	Vector<EditorSceneImporterMeshNode3D *> r_meshes;
 	if (use_point_parent_bone_to_children) {
