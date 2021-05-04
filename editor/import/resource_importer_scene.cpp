@@ -704,38 +704,6 @@ Node *ResourceImporterScene::_post_fix_node(Node *p_node, Node *p_root, Map<Ref<
 		}
 	}
 
-	bool use_point_parent_bone_to_children = node_settings["animation/point_parent_bone_to_children"];
-	Map<int, RestBone> r_rest_bones;
-	Vector<EditorSceneImporterMeshNode3D *> r_meshes;
-	if (use_point_parent_bone_to_children) {
-		List<Node *> queue;
-		queue.push_back(p_root);
-		while (!queue.is_empty()) {
-			List<Node *>::Element *E = queue.front();
-			Node *node = E->get();
-			if (cast_to<Skeleton3D>(node)) {
-				Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(node);
-				_fix_skeleton(skeleton, r_rest_bones);
-			}
-			if (cast_to<EditorSceneImporterMeshNode3D>(node)) {
-				EditorSceneImporterMeshNode3D *mi = Object::cast_to<EditorSceneImporterMeshNode3D>(node);
-				if (mi) {
-					NodePath path = mi->get_skeleton_path();
-					if (!path.is_empty() && mi->get_node_or_null(path) && Object::cast_to<Skeleton3D>(mi->get_node_or_null(path))) {
-						r_meshes.push_back(mi);
-					}
-				}
-			}
-
-			int child_count = node->get_child_count();
-			for (int i = 0; i < child_count; i++) {
-				queue.push_back(node->get_child(i));
-			}
-			queue.pop_front();
-		}
-		_fix_meshes(r_rest_bones, r_meshes);
-	}
-
 	if (Object::cast_to<AnimationPlayer>(p_node)) {
 		AnimationPlayer *ap = Object::cast_to<AnimationPlayer>(p_node);
 		{
@@ -816,9 +784,6 @@ Node *ResourceImporterScene::_post_fix_node(Node *p_node, Node *p_root, Map<Ref<
 					}
 				}
 			}
-		}
-		if (use_point_parent_bone_to_children) {
-			_align_animations(ap, r_rest_bones);
 		}
 	}
 
@@ -1087,7 +1052,7 @@ void ResourceImporterScene::get_import_options(List<ImportOption> *r_options, in
 		script_ext_hint += "*." + E->get();
 	}
 
-	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "nodes/root_scale", PROPERTY_HINT_RANGE, "0.001,1000,0.001"), 1.0));	
+	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "nodes/root_scale", PROPERTY_HINT_RANGE, "0.001,1000,0.001"), 1.0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/ensure_tangents"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/generate_lods"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "meshes/create_shadow_meshes"), true));
@@ -1444,6 +1409,54 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 
 	_pre_fix_node(scene, scene, collision_map);
 	_post_fix_node(scene, scene, collision_map, scanned_meshes, node_data, material_data, animation_data, fps);
+
+	bool use_point_parent_bone_to_children = p_options["animation/point_parent_bone_to_children"];
+	Map<int, RestBone> r_rest_bones;
+	Vector<EditorSceneImporterMeshNode3D *> r_meshes;
+	if (use_point_parent_bone_to_children) {
+		List<Node *> queue;
+		queue.push_back(scene);
+		while (!queue.is_empty()) {
+			List<Node *>::Element *E = queue.front();
+			Node *node = E->get();
+			if (cast_to<Skeleton3D>(node)) {
+				Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(node);
+				_fix_skeleton(skeleton, r_rest_bones);
+			}
+			if (cast_to<EditorSceneImporterMeshNode3D>(node)) {
+				EditorSceneImporterMeshNode3D *mi = Object::cast_to<EditorSceneImporterMeshNode3D>(node);
+				if (mi) {
+					NodePath path = mi->get_skeleton_path();
+					if (!path.is_empty() && mi->get_node_or_null(path) && Object::cast_to<Skeleton3D>(mi->get_node_or_null(path))) {
+						r_meshes.push_back(mi);
+					}
+				}
+			}
+
+			int child_count = node->get_child_count();
+			for (int i = 0; i < child_count; i++) {
+				queue.push_back(node->get_child(i));
+			}
+			queue.pop_front();
+		}
+		_fix_meshes(r_rest_bones, r_meshes);
+
+		////////////////////////////////////////
+		queue.clear();
+		queue.push_back(scene);
+		while (!queue.is_empty()) {
+			List<Node *>::Element *E = queue.front();
+			Node *node = E->get();
+			AnimationPlayer *ap = Object::cast_to<AnimationPlayer>(node);
+			_align_animations(ap, r_rest_bones);
+
+			int child_count = node->get_child_count();
+			for (int i = 0; i < child_count; i++) {
+				queue.push_back(node->get_child(i));
+			}
+			queue.pop_front();
+		}
+	}
 
 	String root_type = p_options["nodes/root_type"];
 	root_type = root_type.split(" ")[0]; // full root_type is "ClassName (filename.gd)" for a script global class.
