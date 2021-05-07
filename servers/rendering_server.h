@@ -278,6 +278,12 @@ public:
 		ARRAY_FLAG_USE_8_BONE_WEIGHTS = 1 << (ARRAY_COMPRESS_FLAGS_BASE + 2),
 	};
 
+	enum ViewMode {
+		VIEW_SINGLE,
+		VIEW_MULTI,
+		VIEW_MAX,
+	};
+
 	enum PrimitiveType {
 		PRIMITIVE_POINTS,
 		PRIMITIVE_LINES,

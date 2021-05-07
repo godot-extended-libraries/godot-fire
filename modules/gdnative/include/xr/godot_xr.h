@@ -41,8 +41,8 @@ extern "C" {
 // version info to detect whether a call is available
 
 // Use these to populate version in your plugin
-#define GODOTVR_API_MAJOR 1
-#define GODOTVR_API_MINOR 1
+#define GODOTVR_API_MAJOR 4
+#define GODOTVR_API_MINOR 0
 
 typedef struct {
 	godot_gdnative_api_version version; /* version of our API */
@@ -52,13 +52,14 @@ typedef struct {
 	godot_int (*get_capabilities)(const void *);
 	godot_bool (*get_anchor_detection_is_enabled)(const void *);
 	void (*set_anchor_detection_is_enabled)(void *, godot_bool);
-	godot_bool (*is_stereo)(const void *);
+	godot_int (*get_view_count)(const void *);
 	godot_bool (*is_initialized)(const void *);
 	godot_bool (*initialize)(void *);
 	void (*uninitialize)(void *);
 	godot_vector2 (*get_render_targetsize)(const void *);
-	godot_transform (*get_transform_for_eye)(void *, godot_int, godot_transform *);
-	void (*fill_projection_for_eye)(void *, godot_float *, godot_int, godot_float, godot_float, godot_float);
+	godot_transform (*get_camera_transform)(void *);
+	godot_transform (*get_transform_for_view)(void *, godot_int, godot_transform *);
+	void (*fill_projection_for_view)(void *, godot_float *, godot_int, godot_float, godot_float, godot_float);
 	void (*commit_for_eye)(void *, godot_int, godot_rid *, godot_rect2 *);
 	void (*process)(void *);
 	godot_int (*get_external_texture_for_eye)(void *, godot_int);

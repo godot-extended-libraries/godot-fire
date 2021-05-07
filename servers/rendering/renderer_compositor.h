@@ -40,6 +40,27 @@
 #include "servers/rendering/renderer_storage.h"
 #include "servers/rendering_server.h"
 
+struct BlitToScreen {
+	RID render_target;
+	Rect2i rect;
+
+	struct {
+		bool use_layer = false;
+		uint32_t layer = 0;
+	} multi_view;
+
+	struct {
+		//lens distorted parameters for VR
+		bool apply = false;
+		Vector2 eye_center;
+		float k1 = 0.0;
+		float k2 = 0.0;
+
+		float upscale = 1.0;
+		float aspect_ratio = 1.0;
+	} lens_distortion;
+};
+
 class RendererCompositor {
 protected:
 	static RendererCompositor *(*_create_func)();
@@ -55,27 +76,6 @@ public:
 
 	virtual void initialize() = 0;
 	virtual void begin_frame(double frame_step) = 0;
-
-	struct BlitToScreen {
-		RID render_target;
-		Rect2i rect;
-
-		struct {
-			bool use_layer = false;
-			uint32_t layer = 0;
-		} multi_view;
-
-		struct {
-			//lens distorted parameters for VR
-			bool apply = false;
-			Vector2 eye_center;
-			float k1 = 0.0;
-			float k2 = 0.0;
-
-			float upscale = 1.0;
-			float aspect_ratio = 1.0;
-		} lens_distortion;
-	};
 
 	virtual void prepare_for_blitting_render_targets() = 0;
 	virtual void blit_render_targets_to_screen(DisplayServer::WindowID p_screen, const BlitToScreen *p_render_targets, int p_amount) = 0;
