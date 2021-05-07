@@ -70,7 +70,12 @@ void XRInterfaceGDNative::set_interface(const godot_xr_interface_gdnative *p_int
 	// this should only be called once, just being paranoid..
 	if (interface) {
 		cleanup();
+		interface = NULL;
 	}
+
+	// validate
+	ERR_FAIL_NULL(p_interface);
+	ERR_FAIL_COND_MSG(p_interface->version.major < 4, "This is an incompatible GDNative XR plugin.");
 
 	// bind to our interface
 	interface = p_interface;
@@ -119,14 +124,14 @@ int XRInterfaceGDNative::get_camera_feed_id() {
 	return (unsigned int)interface->get_camera_feed_id(data);
 }
 
-bool XRInterfaceGDNative::is_stereo() {
-	bool stereo;
+uint32_t XRInterfaceGDNative::get_view_count() {
+	uint32_t view_count;
 
 	ERR_FAIL_COND_V(interface == nullptr, false);
 
-	stereo = interface->is_stereo(data);
+	view_count = interface->get_view_count(data);
 
-	return stereo;
+	return view_count;
 }
 
 bool XRInterfaceGDNative::is_initialized() const {
@@ -173,24 +178,36 @@ Size2 XRInterfaceGDNative::get_render_targetsize() {
 	return *vec;
 }
 
-Transform XRInterfaceGDNative::get_transform_for_eye(XRInterface::Eyes p_eye, const Transform &p_cam_transform) {
+Transform XRInterfaceGDNative::get_camera_transform() {
 	Transform *ret;
 
 	ERR_FAIL_COND_V(interface == nullptr, Transform());
 
-	godot_transform t = interface->get_transform_for_eye(data, (int)p_eye, (godot_transform *)&p_cam_transform);
+	godot_transform t = interface->get_camera_transform(data);
 
 	ret = (Transform *)&t;
 
 	return *ret;
 }
 
-CameraMatrix XRInterfaceGDNative::get_projection_for_eye(XRInterface::Eyes p_eye, real_t p_aspect, real_t p_z_near, real_t p_z_far) {
+Transform XRInterfaceGDNative::get_transform_for_view(uint32_t p_view, const Transform &p_cam_transform) {
+	Transform *ret;
+
+	ERR_FAIL_COND_V(interface == nullptr, Transform());
+
+	godot_transform t = interface->get_transform_for_view(data, (int)p_view, (godot_transform *)&p_cam_transform);
+
+	ret = (Transform *)&t;
+
+	return *ret;
+}
+
+CameraMatrix XRInterfaceGDNative::get_projection_for_view(uint32_t p_view, real_t p_aspect, real_t p_z_near, real_t p_z_far) {
 	CameraMatrix cm;
 
 	ERR_FAIL_COND_V(interface == nullptr, CameraMatrix());
 
-	interface->fill_projection_for_eye(data, (godot_float *)cm.matrix, (godot_int)p_eye, p_aspect, p_z_near, p_z_far);
+	interface->fill_projection_for_view(data, (godot_float *)cm.matrix, (godot_int)p_view, p_aspect, p_z_near, p_z_far);
 
 	return cm;
 }
@@ -205,6 +222,14 @@ void XRInterfaceGDNative::commit_for_eye(XRInterface::Eyes p_eye, RID p_render_t
 	ERR_FAIL_COND(interface == nullptr);
 
 	interface->commit_for_eye(data, (godot_int)p_eye, (godot_rid *)&p_render_target, (godot_rect2 *)&p_screen_rect);
+}
+
+Vector<BlitToScreen> XRInterfaceGDNative::commit_views(RID p_render_target, const Rect2 &p_screen_rect) {
+	Vector<BlitToScreen> blit_to_screen;
+
+	// must implement
+
+	return blit_to_screen;
 }
 
 void XRInterfaceGDNative::process() {

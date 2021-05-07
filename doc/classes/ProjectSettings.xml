@@ -1591,6 +1591,9 @@
 		<member name="rendering/textures/vram_compression/import_s3tc" type="bool" setter="" getter="" default="true">
 			If [code]true[/code], the texture importer will import VRAM-compressed textures using the S3 Texture Compression algorithm. This algorithm is only supported on desktop platforms and consoles.
 		</member>
+		<member name="rendering/vr/enabled" type="bool" setter="" getter="" default="false">
+			If [code]true[/code], VR support is enabled in Godot, this ensures required shaders are compiled.
+		</member>
 		<member name="rendering/vulkan/descriptor_pools/max_descriptors_per_pool" type="int" setter="" getter="" default="64">
 		</member>
 		<member name="rendering/vulkan/rendering/back_end" type="int" setter="" getter="" default="0">
