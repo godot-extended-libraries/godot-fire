@@ -416,10 +416,6 @@ PhysicalBone *SkeletonEditor::create_physical_bone(int bone_id, int bone_child_i
 	return physical_bone;
 }
 
-void SkeletonEditor::edit(Skeleton *p_node) {
-	skeleton = p_node;
-}
-
 Variant SkeletonEditor::get_drag_data_fw(const Point2 &p_point, Control *p_from) {
 	TreeItem *selected = joint_tree->get_selected();
 
@@ -504,14 +500,6 @@ void SkeletonEditor::move_skeleton_bone(NodePath p_skeleton_path, int32_t p_sele
 
 	update_joint_tree();
 	ur->commit_action();
-}
-
-void SkeletonEditor::_node_removed(Node *p_node) {
-
-	if (p_node == skeleton) {
-		skeleton = nullptr;
-		options->hide();
-	}
 }
 
 void SkeletonEditor::_joint_tree_rmb_select(const Vector2 &p_pos) {
@@ -636,7 +624,6 @@ void SkeletonEditor::_notification(int p_what) {
 			update_editors();
 
 			get_tree()->connect("node_removed", this, "_node_removed", Vector<Variant>(), Object::CONNECT_ONESHOT);
-			joint_tree->connect("item_selected", this, "_joint_tree_selection_changed");
 			joint_tree->connect("item_rmb_selected", this, "_joint_tree_rmb_select");
 #ifdef TOOLS_ENABLED
 			skeleton->connect("pose_updated", this, "_update_properties");
@@ -656,19 +643,8 @@ void SkeletonEditor::_node_removed(Node *p_node) {
 	_update_properties();
 }
 
-void SkeletonEditorPlugin::make_visible(bool p_visible) {
-	if (p_visible) {
-		skeleton_editor->options->show();
-	} else {
-		skeleton_editor->options->hide();
-		skeleton_editor->edit(nullptr);
-	}
-}
-
-
 void SkeletonEditor::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_node_removed"), &SkeletonEditor::_node_removed);
-	ClassDB::bind_method(D_METHOD("_joint_tree_selection_changed"), &SkeletonEditor::_joint_tree_selection_changed);
 	ClassDB::bind_method(D_METHOD("_joint_tree_rmb_select"), &SkeletonEditor::_joint_tree_rmb_select);
 	ClassDB::bind_method(D_METHOD("_update_properties"), &SkeletonEditor::_update_properties);
 	ClassDB::bind_method(D_METHOD("_on_click_option"), &SkeletonEditor::_on_click_option);

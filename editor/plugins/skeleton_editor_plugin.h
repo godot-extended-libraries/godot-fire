@@ -175,7 +175,6 @@ public:
 
 	Skeleton *get_skeleton() const { return skeleton; };
 
-	void _joint_tree_selection_changed();
 	void _joint_tree_rmb_select(const Vector2 &p_pos);
 
 	void _update_properties();

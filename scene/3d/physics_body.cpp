@@ -2409,18 +2409,6 @@ const Transform &PhysicalBone::get_joint_offset() const {
 	return joint_offset;
 }
 
-void PhysicalBone::set_static_body(bool p_static) {
-	static_body = p_static;
-
-	set_as_toplevel(!static_body);
-
-	_reset_physics_simulation_state();
-}
-
-bool PhysicalBone::is_static_body() {
-	return static_body;
-}
-
 void PhysicalBone::set_simulate_physics(bool p_simulate) {
 	if (simulate_physics == p_simulate) {
 		return;
@@ -2504,8 +2492,6 @@ PhysicalBone::PhysicalBone() :
 #ifdef TOOLS_ENABLED
 		gizmo_move_joint(false),
 #endif
-		static_body(false),
-		_internal_static_body(false),
 		joint_data(NULL),
 		parent_skeleton(NULL),
 		simulate_physics(false),
@@ -2564,47 +2550,6 @@ void PhysicalBone::update_offset() {
 		}
 	}
 #endif
-}
-
-void PhysicalBone::reset_to_rest_position() {
-	if (parent_skeleton) {
-		if (-1 == bone_id) {
-			set_global_transform(parent_skeleton->get_global_transform() * body_offset);
-		} else {
-			set_global_transform(parent_skeleton->get_global_transform() * parent_skeleton->get_bone_global_pose(bone_id) * body_offset);
-		}
-	}
-}
-
-void PhysicalBone::_reset_physics_simulation_state() {
-	if (simulate_physics && !static_body) {
-		_start_physics_simulation();
-	} else {
-		_stop_physics_simulation();
-	}
-
-	_reset_staticness_state();
-}
-
-void PhysicalBone::_reset_staticness_state() {
-	if (parent_skeleton && -1 != bone_id) {
-		if (static_body && simulate_physics) { // With this check I'm sure the position of this body is updated only when it's necessary
-
-			if (_internal_static_body) {
-				return;
-			}
-
-			parent_skeleton->bind_child_node_to_bone(bone_id, this);
-			_internal_static_body = true;
-		} else {
-			if (!_internal_static_body) {
-				return;
-			}
-
-			parent_skeleton->unbind_child_node_from_bone(bone_id, this);
-			_internal_static_body = false;
-		}
-	}
 }
 
 void PhysicalBone::_start_physics_simulation() {

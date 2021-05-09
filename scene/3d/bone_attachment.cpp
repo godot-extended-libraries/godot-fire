@@ -108,7 +108,7 @@ String BoneAttachment::get_configuration_warning() const {
 			if (warning != String()) {
 				warning += "\n\n";
 			}
-			warning += TTR("External Skeleton3D node not set! Please set a path to an external Skeleton3D node.");
+			warning += TTR("External Skeleton node not set! Please set a path to an external Skeleton node.");
 		}
 	} else {
 		Skeleton *parent = Object::cast_to<Skeleton>(get_parent());
@@ -116,7 +116,7 @@ String BoneAttachment::get_configuration_warning() const {
 			if (warning != String()) {
 				warning += "\n\n";
 			}
-			warning += TTR("Parent node is not a Skeleton3D node! Please use an extenral Skeleton3D if you intend to use the BoneAttachment3D without it being a child of a Skeleton3D node.");
+			warning += TTR("Parent node is not a Skeleton node! Please use an extenral Skeleton if you intend to use the BoneAttachment3D without it being a child of a Skeleton node.");
 		}
 	}
 
