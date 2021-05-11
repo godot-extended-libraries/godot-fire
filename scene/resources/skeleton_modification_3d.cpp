@@ -146,6 +146,7 @@ void SkeletonModificationStack3D::set_modification(int p_mod_idx, Ref<SkeletonMo
 
 void SkeletonModificationStack3D::set_modification_count(int p_count) {
 	modifications.resize(p_count);
+	notify_property_list_changed();
 }
 
 int SkeletonModificationStack3D::get_modification_count() const {

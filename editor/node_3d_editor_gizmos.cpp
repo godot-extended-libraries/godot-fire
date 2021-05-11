@@ -1674,8 +1674,6 @@ void Skeleton3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 			bone_color = skeleton_color;
 		}
 
-		int i = current_bone_idx;
-
 		Vector<int> child_bones_vector = skel->get_bone_children(current_bone_idx);
 		int child_bones_size = child_bones_vector.size();
 
