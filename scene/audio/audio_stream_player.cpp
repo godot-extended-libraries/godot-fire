@@ -369,6 +369,11 @@ void AudioStreamPlayer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("seek", "to_position"), &AudioStreamPlayer::seek);
 	ClassDB::bind_method(D_METHOD("stop"), &AudioStreamPlayer::stop);
 
+	ClassDB::bind_method(D_METHOD("set_scheduled_time_usec", "usec"), &AudioStreamPlayer::set_scheduled_time_usec);
+	ClassDB::bind_method(D_METHOD("get_scheduled_time_usec"), &AudioStreamPlayer::get_scheduled_time_usec);
+	ClassDB::bind_method(D_METHOD("set_scheduled_stop_time_usec", "usec"), &AudioStreamPlayer::set_scheduled_stop_time_usec);
+	ClassDB::bind_method(D_METHOD("get_scheduled_stop_time_usec"), &AudioStreamPlayer::get_scheduled_stop_time_usec);
+
 	ClassDB::bind_method(D_METHOD("is_playing"), &AudioStreamPlayer::is_playing);
 	ClassDB::bind_method(D_METHOD("get_playback_position"), &AudioStreamPlayer::get_playback_position);
 
@@ -398,6 +403,9 @@ void AudioStreamPlayer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mix_target", PROPERTY_HINT_ENUM, "Stereo,Surround,Center"), "set_mix_target", "get_mix_target");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "bus", PROPERTY_HINT_ENUM, ""), "set_bus", "get_bus");
 
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scheduled_time_usec"), "set_scheduled_time_usec", "get_scheduled_time_usec");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scheduled_stop_time_usec"), "set_scheduled_stop_time_usec", "get_scheduled_stop_time_usec");
+
 	ADD_SIGNAL(MethodInfo("finished"));
 
 	BIND_ENUM_CONSTANT(MIX_TARGET_STEREO);
@@ -412,4 +420,26 @@ AudioStreamPlayer::AudioStreamPlayer() {
 }
 
 AudioStreamPlayer::~AudioStreamPlayer() {
+}
+void AudioStreamPlayer::set_scheduled_time_usec(double p_usec) {
+	if (stream_playback.is_valid()) {
+		stream_playback->set_scheduled_time_usec(p_usec);
+	}
+}
+double AudioStreamPlayer::get_scheduled_time_usec() const {
+	if (stream_playback.is_valid()) {
+		return stream_playback->get_scheduled_time_usec();
+	}
+	return 0.0;
+}
+void AudioStreamPlayer::set_scheduled_stop_time_usec(double p_usec) {
+	if (stream_playback.is_valid()) {
+		stream_playback->set_scheduled_stop_time_usec(p_usec);
+	}
+}
+double AudioStreamPlayer::get_scheduled_stop_time_usec() const {
+	if (stream_playback.is_valid()) {
+		return stream_playback->get_scheduled_stop_time_usec();
+	}
+	return 0.0;
 }
