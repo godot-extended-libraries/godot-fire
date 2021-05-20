@@ -191,10 +191,10 @@ void Skeleton3D::_update_process_order() {
 				bonesptr[parent_bone_idx].child_bones.push_back(i);
 			} else {
 				ERR_PRINT("Skeleton3D parenthood graph is cyclic");
-		}
+			}
 		} else {
 			parentless_bones.push_back(i);
-	}
+		}
 	}
 
 	process_order_dirty = false;
@@ -278,15 +278,15 @@ void Skeleton3D::_notification(int p_what) {
 			// This is active only if the skeleton animates the physical bones
 			// and the state of the bone is not active.
 			if (Engine::get_singleton()->is_editor_hint()) {
-			if (animate_physical_bones) {
-				for (int i = 0; i < bones.size(); i += 1) {
-					if (bones[i].physical_bone) {
-						if (bones[i].physical_bone->is_simulating_physics() == false) {
-							bones[i].physical_bone->reset_to_rest_position();
+				if (animate_physical_bones) {
+					for (int i = 0; i < bones.size(); i += 1) {
+						if (bones[i].physical_bone) {
+							if (bones[i].physical_bone->is_simulating_physics() == false) {
+								bones[i].physical_bone->reset_to_rest_position();
+							}
 						}
 					}
 				}
-			}
 			}
 
 			if (modification_stack.is_valid()) {
@@ -298,7 +298,7 @@ void Skeleton3D::_notification(int p_what) {
 
 #ifndef _3D_DISABLED
 		case NOTIFICATION_READY: {
-				set_physics_process_internal(true);
+			set_physics_process_internal(true);
 			set_process_internal(true);
 
 			if (modification_stack.is_valid()) {
