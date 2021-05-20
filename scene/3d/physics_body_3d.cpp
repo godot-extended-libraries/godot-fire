@@ -1958,7 +1958,6 @@ void PhysicalBone3D::_notification(int p_what) {
 			if (parent_skeleton) {
 				if (-1 != bone_id) {
 					parent_skeleton->unbind_physical_bone_from_bone(bone_id);
-					parent_skeleton->unbind_child_node_from_bone(bone_id, this);
 					bone_id = -1;
 				}
 			}
@@ -2448,7 +2447,6 @@ void PhysicalBone3D::update_bone_id() {
 		if (-1 != bone_id) {
 			// Assert the unbind from old node
 			parent_skeleton->unbind_physical_bone_from_bone(bone_id);
-			parent_skeleton->unbind_child_node_from_bone(bone_id, this);
 		}
 
 		bone_id = new_bone_id;
