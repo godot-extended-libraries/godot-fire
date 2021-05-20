@@ -551,22 +551,30 @@ void Skeleton3DEditor::update_joint_tree() {
 
 	items.insert(-1, root);
 
-	const Vector<int> &joint_porder = skeleton->get_bone_process_orders();
 	Ref<Texture> bone_icon = get_theme_icon("BoneAttachment3D", "EditorIcons");
 
-	for (int i = 0; i < joint_porder.size(); ++i) {
-		const int b_idx = joint_porder[i];
+	Vector<int> bones_to_process = skeleton->get_parentless_bones();
+	while (bones_to_process.size() > 0) {
+		int current_bone_idx = bones_to_process[0];
+		bones_to_process.erase(current_bone_idx);
 
-		const int p_idx = skeleton->get_bone_parent(b_idx);
-		TreeItem *p_item = items.find(p_idx)->get();
+		const int parent_idx = skeleton->get_bone_parent(current_bone_idx);
+		TreeItem *parent_item = items.find(parent_idx)->get();
 
-		TreeItem *joint_item = joint_tree->create_item(p_item);
-		items.insert(b_idx, joint_item);
+		TreeItem *joint_item = joint_tree->create_item(parent_item);
+		items.insert(current_bone_idx, joint_item);
 
-		joint_item->set_text(0, skeleton->get_bone_name(b_idx));
+		joint_item->set_text(0, skeleton->get_bone_name(current_bone_idx));
 		joint_item->set_icon(0, bone_icon);
 		joint_item->set_selectable(0, true);
-		joint_item->set_metadata(0, "bones/" + itos(b_idx));
+		joint_item->set_metadata(0, "bones/" + itos(current_bone_idx));
+
+		// Add the bone's children to the list of bones to be processed
+		Vector<int> current_bone_child_bones = skeleton->get_bone_children(current_bone_idx);
+		int child_bone_size = current_bone_child_bones.size();
+		for (int i = 0; i < child_bone_size; i++) {
+			bones_to_process.push_back(current_bone_child_bones[i]);
+		}
 	}
 }
 
@@ -671,13 +679,11 @@ void Skeleton3DEditor::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("drop_data_fw"), &Skeleton3DEditor::drop_data_fw);
 	ClassDB::bind_method(D_METHOD("move_skeleton_bone"), &Skeleton3DEditor::move_skeleton_bone);
 }
-
 Skeleton3DEditor::Skeleton3DEditor(EditorInspectorPluginSkeleton *e_plugin, EditorNode *p_editor, Skeleton3D *p_skeleton) :
 		editor(p_editor),
 		editor_plugin(e_plugin),
 		skeleton(p_skeleton) {
 }
-
 Skeleton3DEditor::~Skeleton3DEditor() {
 	if (options) {
 		Node3DEditor::get_singleton()->remove_control_from_menu_panel(options);

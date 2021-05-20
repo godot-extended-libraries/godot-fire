@@ -807,6 +807,8 @@ private:
 	void _add_sun_to_scene();
 	void _add_environment_to_scene();
 
+	Vector<Transform> externals;
+
 protected:
 	void _notification(int p_what);
 	//void _gui_input(InputEvent p_event);
