@@ -69,18 +69,12 @@ public:
 		BEZIER_TRACK_SCALE_X,
 		BEZIER_TRACK_SCALE_Y,
 		BEZIER_TRACK_SCALE_Z,
-		BEZIER_TRACK_ROT_X0,
-		BEZIER_TRACK_ROT_X1,
-		BEZIER_TRACK_ROT_X2,
-		BEZIER_TRACK_ROT_Y0,
-		BEZIER_TRACK_ROT_Y1,
-		BEZIER_TRACK_ROT_Y2,
+		BEZIER_TRACK_ROT_X,
+		BEZIER_TRACK_ROT_Y,
+		BEZIER_TRACK_ROT_Z,
 	};
 
 private:
-	// On the Continuity of Rotation Representations in Neural Networks
-	// arXiv:1812.07035
-	Basis compute_rotation_matrix_from_ortho_6d(Vector3 x_raw, Vector3 y_raw);
 	struct Track {
 
 		TrackType type;

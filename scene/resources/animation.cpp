@@ -30,6 +30,7 @@
 
 #include "animation.h"
 #include "core/math/math_defs.h"
+#include "core/math/vector3.h"
 #include "scene/scene_string_names.h"
 
 #include "core/math/geometry.h"
@@ -3275,12 +3276,9 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	types.push_back(BEZIER_TRACK_SCALE_X);
 	types.push_back(BEZIER_TRACK_SCALE_Y);
 	types.push_back(BEZIER_TRACK_SCALE_Z);
-	types.push_back(BEZIER_TRACK_ROT_X0);
-	types.push_back(BEZIER_TRACK_ROT_X1);
-	types.push_back(BEZIER_TRACK_ROT_X2);
-	types.push_back(BEZIER_TRACK_ROT_Y0);
-	types.push_back(BEZIER_TRACK_ROT_Y1);
-	types.push_back(BEZIER_TRACK_ROT_Y2);
+	types.push_back(BEZIER_TRACK_ROT_X);
+	types.push_back(BEZIER_TRACK_ROT_Y);
+	types.push_back(BEZIER_TRACK_ROT_Z);
 	Ref<BezierKeyframeReduce> reduce;
 	reduce.instance();
 	Map<String, int32_t> rot_tracks;
@@ -3288,8 +3286,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		Vector<BezierKeyframeReduce::Bezier> curves;
 		NodePath new_path;
 		BezierKeyframeReduce::KeyframeReductionSetting settings;
-		settings.tangent_split_angle_threshold = true;
-		settings.tangent_split_angle_thresholdValue = settings.tangent_split_angle_thresholdValue;
 		// Magic number from https://bitsquid.blogspot.com/2009/11/bitsquid-low-level-animation-system.html
 		settings.max_error = 0.0014;
 		for (int transform_i = 0; transform_i < tt->transforms.size(); transform_i++) {
@@ -3297,13 +3293,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			real_t time = key.time;
 			Variant value = 0.0f;
 			Quat rot = key.value.rot;
-			if (rot.w < 0.0f) {
-				rot = rot.inverse();
-			}
-			Basis basis = rot;
-			basis.orthonormalize();
-			Vector3 basis_x = basis.get_axis(Vector3::AXIS_X);
-			Vector3 basis_y = basis.get_axis(Vector3::AXIS_Y);
+			rot.normalize();
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
 				value = loc.x;
@@ -3328,30 +3318,18 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				Vector3 scale = key.value.scale;
 				value = scale.z;
 				new_path = path + "scale:z";
-			} else if (types[type_i] == BEZIER_TRACK_ROT_X0) {
-				value = basis_x.x;
-				new_path = path + "rotation_basis:x0";
-				rot_tracks.insert("x0", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_X1) {
-				value = basis_x.y;
-				new_path = path + "rotation_basis:x1";
-				rot_tracks.insert("x1", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_X2) {
-				value = basis_x.z;
-				new_path = path + "rotation_basis:x2";
-				rot_tracks.insert("x2", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Y0) {
-				value = basis_y.x;
-				new_path = path + "rotation_basis:y0";
-				rot_tracks.insert("y0", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Y1) {
-				value = basis_y.y;
-				new_path = path + "rotation_basis:y1";
-				rot_tracks.insert("y1", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Y2) {
-				value = basis_y.z;
-				new_path = path + "rotation_basis:y2";
-				rot_tracks.insert("y2", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X) {
+				value = rot.x;
+				new_path = path + "rotation_quat:x";
+				rot_tracks.insert("log_x", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
+				value = rot.y;
+				new_path = path + "rotation_quat:z";
+				rot_tracks.insert("log_y", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
+				value = rot.z;
+				new_path = path + "rotation_quat:y";
+				rot_tracks.insert("log_z", get_track_count());
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
@@ -3374,78 +3352,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			BezierKeyframeReduce::Bezier curve = out_curves[curve_i];
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
-	}
-	int32_t track_rot_basis = add_track(TrackType::TYPE_VALUE);
-	track_set_path(track_rot_basis, path + "rotation_quat");
-	track_set_interpolation_type(track_rot_basis, InterpolationType::INTERPOLATION_CUBIC);
-	track_set_interpolation_loop_wrap(track_rot_basis, true);
-	List<float> times;
-	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
-		int32_t current_track = E->get();
-		if (current_track == -1) {
-			continue;
-		}
-		int32_t count = track_get_key_count(current_track);
-		for (int32_t key_i = 0; key_i < count; key_i++) {
-			float time = track_get_key_time(current_track, key_i);
-			times.push_back(time);
-		}
-	}
-	times.sort();
-	for (int32_t time_i = 1; time_i < times.size(); time_i++) {
-		float time_0 = times[time_i - 1];
-		float time_1 = times[time_i];
-		if (Math::is_equal_approx(Math::stepify(time_0, 1.0f / 30.0f), Math::stepify(time_1, 1.0f / 15.0f))) {
-			times.erase(time_1);
-		}
-	}
-	for (int32_t time_i = 0; time_i < times.size(); time_i++) {
-		Vector3 basis_x;
-		Vector3 basis_y;
-		if (rot_tracks.has("x0")) {
-			float value = bezier_track_interpolate(rot_tracks["x0"], times[time_i]);
-			basis_x.x = value;
-		}
-		if (rot_tracks.has("x1")) {
-			float value = bezier_track_interpolate(rot_tracks["x1"], times[time_i]);
-			basis_x.y = value;
-		}
-		if (rot_tracks.has("x2")) {
-			float value = bezier_track_interpolate(rot_tracks["x2"], times[time_i]);
-			basis_x.z = value;
-		}
-		if (rot_tracks.has("y0")) {
-			float value = bezier_track_interpolate(rot_tracks["y0"], times[time_i]);
-			basis_y.x = value;
-		}
-		if (rot_tracks.has("y1")) {
-			float value = bezier_track_interpolate(rot_tracks["y1"], times[time_i]);
-			basis_y.y = value;
-		}
-		if (rot_tracks.has("y2")) {
-			float value = bezier_track_interpolate(rot_tracks["y2"], times[time_i]);
-			basis_y.z = value;
-		}
-		Basis rot_basis = compute_rotation_matrix_from_ortho_6d(basis_x, basis_y);
-		track_insert_key(track_rot_basis, times[time_i], rot_basis.get_rotation_quat());
-	}
-	if (rot_tracks.has("y2")) {
-		remove_track(rot_tracks["y2"]);
-	}
-	if (rot_tracks.has("y1")) {
-		remove_track(rot_tracks["y1"]);
-	}
-	if (rot_tracks.has("y0")) {
-		remove_track(rot_tracks["y0"]);
-	}
-	if (rot_tracks.has("x2")) {
-		remove_track(rot_tracks["x2"]);
-	}
-	if (rot_tracks.has("x1")) {
-		remove_track(rot_tracks["x1"]);
-	}
-	if (rot_tracks.has("x0")) {
-		remove_track(rot_tracks["x0"]);
 	}
 }
 
@@ -3577,15 +3483,4 @@ Animation::~Animation() {
 
 	for (int i = 0; i < tracks.size(); i++)
 		memdelete(tracks[i]);
-}
-Basis Animation::compute_rotation_matrix_from_ortho_6d(Vector3 x_raw, Vector3 y_raw) {
-	Vector3 x = x_raw.normalized();
-	Vector3 z = x.cross(y_raw);
-	z = z.normalized();
-	Vector3 y = z.cross(x);
-	Basis basis;
-	basis.set_axis(Vector3::AXIS_X, x);
-	basis.set_axis(Vector3::AXIS_Y, y);
-	basis.set_axis(Vector3::AXIS_Z, z);
-	return basis;
 }

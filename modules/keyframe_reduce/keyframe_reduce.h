@@ -129,15 +129,15 @@ public:
 public:
 	struct KeyframeReductionSetting {
 		// Maximum allowed error when reducing the animation curves.
-		real_t max_error = 0.01f; // range(0, 1000) step(0.1)
+		real_t max_error = 0.1f; // range(0, 1000) step(0.1)
 
 		// Step size at which to sample the animation curves."
-		real_t step_size = 0.25f; // range(0.1, 100) step(1)
+		real_t step_size = 1.0; // range(0.1, 100) step(1)
 
 		// Created keyframes have weighted or non-weighted tangents.
 		// Split tangents automatically, works on estimation.
 		bool split_tangents_auto = true;
-		bool weighted_tangents = true;
+		bool weighted_tangents = false;
 		bool tangent_split_existing = true;
 		bool tangent_split_angle_threshold = true;
 		// The threshold to split tangents.
@@ -149,13 +149,10 @@ private:
 	// @param int/float p_end
 	// @param int/float p_step
 	// @return Vector<String> range
-	Vector<String> floatRange(double p_start, double p_end, double p_step) {
-		Vector<String> values;
-
-		// convert step to decimal to ensure float precision
-		String step = rtos(p_step);
+	Vector<double> floatRange(double p_start, double p_end, double p_step) {
+		Vector<double> values;
 		while (p_start < p_end) {
-			values.push_back(rtos(p_start));
+			values.push_back(p_start);
 			p_start += p_step;
 		}
 
@@ -683,10 +680,10 @@ private:
 		Vector<real_t> angles;
 	};
 
-	Vector<real_t> get_values(Vector<Bezier> p_curves, Vector<String> p_frames) {
+	Vector<real_t> get_values(Vector<Bezier> p_curves, Vector<double> p_frames) {
 		Vector<real_t> values;
 		for (int32_t frame_i = 0; frame_i < p_frames.size(); frame_i++) {
-			int32_t frame = p_frames[frame_i].to_int();
+			int32_t frame = p_frames[frame_i];
 			Vector2Bezier vec2 = p_curves[frame].time_value;
 			real_t value = vec2.y;
 			values.push_back(value);
@@ -703,14 +700,14 @@ private:
 	KeyframeTime sample(const Vector<Bezier> p_curves, int32_t p_start, int32_t p_end, real_t p_step) {
 		KeyframeTime frame_values;
 		// get frames and values
-		Vector<String> frames = floatRange(p_start, p_end, p_step);
+		Vector<double> frames = floatRange(p_start, p_end, p_step);
 		Vector<real_t> values = get_values(p_curves, frames);
 
 		// get points and angles
 		Vector<real_t> angles;
 		Vector<Vector2Bezier> points;
 		for (int32_t frame_i = 0; frame_i < frames.size(); frame_i++) {
-			real_t time = frames[frame_i].to_float();
+			double time = frames[frame_i];
 			real_t value = values[frame_i];
 			Vector2Bezier point = Vector2Bezier(time, value);
 			points.push_back(point);
