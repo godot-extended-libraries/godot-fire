@@ -72,6 +72,7 @@ public:
 		BEZIER_TRACK_ROT_X,
 		BEZIER_TRACK_ROT_Y,
 		BEZIER_TRACK_ROT_Z,
+		BEZIER_TRACK_ROT_W,
 	};
 
 private:

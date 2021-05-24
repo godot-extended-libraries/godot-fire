@@ -3279,6 +3279,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	types.push_back(BEZIER_TRACK_ROT_X);
 	types.push_back(BEZIER_TRACK_ROT_Y);
 	types.push_back(BEZIER_TRACK_ROT_Z);
+	types.push_back(BEZIER_TRACK_ROT_W);
 	Ref<BezierKeyframeReduce> reduce;
 	reduce.instance();
 	Map<String, int32_t> rot_tracks;
@@ -3293,6 +3294,8 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			real_t time = key.time;
 			Variant value = 0.0f;
 			Quat rot = key.value.rot;
+			rot.normalize();
+			rot = rot.log();
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
 				value = loc.x;
@@ -3327,6 +3330,10 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				rot_tracks.insert("log_y", get_track_count());
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
 				value = rot.z;
+				new_path = path + "rotation_quat:y";
+				rot_tracks.insert("log_z", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
+				value = 0.0f;
 				new_path = path + "rotation_quat:y";
 				rot_tracks.insert("log_z", get_track_count());
 			} else {
