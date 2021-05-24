@@ -34,6 +34,10 @@
 using Vector2Bezier = BezierKeyframeReduce::Vector2Bezier;
 using Bezier = BezierKeyframeReduce::Bezier;
 
+#include <vector>
+
+using namespace std;
+
 // Based on https://github.com/robertjoosten/maya-keyframe-reduction
 
 // MIT License
@@ -631,7 +635,23 @@ real_t BezierKeyframeReduce::reduce(const Vector<Bezier> &p_points, Vector<Bezie
 		return 0.0f;
 	}
 	Vector<Bezier> points = p_points;
+	std::vector<double> x;
+	x.resize(points.size());
+	std::vector<double> y;
+	y.resize(points.size());
+	for (int32_t x_i = 0; x_i < points.size(); x_i++) {
+		Bezier bezier = points[x_i];
+		x[x_i] = bezier.time_value.x;
+		y[x_i] = bezier.time_value.y;
+	}
+	boost::math::interpolators::makima<std::vector<double> > spline = boost::math::interpolators::makima<std::vector<double> >(std::move(x), std::move(y));
 
+	for (int32_t x_i = 0; x_i < points.size(); x_i++) {
+		Bezier bezier;
+        bezier.time_value.x = points[x_i].time_value.x;
+		bezier.time_value.y = spline(bezier.time_value.x);
+		points.write[x_i] = bezier;
+	}
 	// get start and end frames
 	int32_t start = 0;
 	int32_t end = points.size() - 1;
