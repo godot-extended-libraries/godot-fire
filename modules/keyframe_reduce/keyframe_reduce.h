@@ -129,7 +129,7 @@ public:
 public:
 	struct KeyframeReductionSetting {
 		// Maximum allowed error when reducing the animation curves.
-		real_t max_error = 0.1f; // range(0, 1000) step(0.1)
+		real_t max_error = 0.001f; // range(0, 1000) step(0.1)
 
 		// Step size at which to sample the animation curves."
 		real_t step_size = 0.5; // range(0.1, 100) step(1)
