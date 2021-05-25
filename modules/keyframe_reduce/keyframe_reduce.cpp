@@ -605,7 +605,8 @@ BezierKeyframeReduce::KeyframeTime BezierKeyframeReduce::sample(const Vector<Bez
 		Vector2Bezier v2 = points[i + 1] - points[i];
 		real_t angle_to = v1.angle_to(v2);
 		real_t rad = Math_PI - angle_to;
-		angles.push_back(rad);
+		real_t deg = Math::rad2deg(rad);
+		angles.push_back(deg);
 	}
 
 	frame_values.points = points;
