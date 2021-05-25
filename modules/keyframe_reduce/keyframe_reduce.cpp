@@ -87,7 +87,7 @@ void BezierKeyframeReduce::fit_cubic(const Vector<Bezier> &p_curves, Vector<Bezi
 	}
 
 	// parameterize points, and attempt to fit curve
-	Map<int, Vector2Bezier> uPrime = chordLengthParameterize(p_curves, p_first, p_last);
+	Map<int, Vector2Bezier> uPrime = chord_length_parameterize(p_curves, p_first, p_last);
 	real_t errorThreshold = MAX(p_error, p_error * 4);
 
 	// get iterations, when weighted tangents is turned off the bezier
@@ -97,7 +97,7 @@ void BezierKeyframeReduce::fit_cubic(const Vector<Bezier> &p_curves, Vector<Bezi
 	int32_t maxIndex = 0;
 	for (int32_t i = 0; i < iterations; i++) {
 		// generate curve
-		Vector<Vector2Bezier> curve = generateBezier(p_curves, p_first, p_last, uPrime, p_tan_1, p_tan_2);
+		Vector<Vector2Bezier> curve = generate_bezier(p_curves, p_first, p_last, uPrime, p_tan_1, p_tan_2);
 
 		// find max deviation of points to fitted curve
 		Vector2Bezier max_error_vec = find_max_error(p_curves, p_first, p_last, curve, uPrime);
@@ -147,7 +147,7 @@ void BezierKeyframeReduce::add_curve(Vector<Bezier> &r_curves, Vector2Bezier p_p
 // @param dict uPrime:
 // @param Vector2Bezier tan1:
 // @param Vector2Bezier tan2:
-Vector<Vector2Bezier> BezierKeyframeReduce::generateBezier(const Vector<Bezier> &p_curves, int32_t p_first, int32_t p_last, Map<int, Vector2Bezier> p_u_prime, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2) {
+Vector<Vector2Bezier> BezierKeyframeReduce::generate_bezier(const Vector<Bezier> &p_curves, int32_t p_first, int32_t p_last, Map<int, Vector2Bezier> p_u_prime, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2) {
 	real_t epsilon = EPSILON;
 	Vector2Bezier pt1 = p_curves[p_first].time_value;
 	Vector2Bezier pt2 = p_curves[p_last].time_value;
@@ -321,7 +321,7 @@ Vector2Bezier BezierKeyframeReduce::evaluate(int32_t p_degree, Vector<Vector2Bez
 // @param int first:
 // @param int last:
 // @return dictionary of chord length parameterization
-Map<int, Vector2Bezier> BezierKeyframeReduce::chordLengthParameterize(Vector<Bezier> p_curves, int32_t p_first, int32_t p_last) {
+Map<int, Vector2Bezier> BezierKeyframeReduce::chord_length_parameterize(Vector<Bezier> p_curves, int32_t p_first, int32_t p_last) {
 	Map<int, Vector2Bezier> u;
 	u.insert(0, Vector2Bezier());
 	int32_t range_i = p_last + 1;
