@@ -31,6 +31,7 @@
 #ifndef KEYFRAME_REDUCE_H
 #define KEYFRAME_REDUCE_H
 #include "core/engine.h"
+#include "core/math/math_funcs.h"
 
 // Based on https://github.com/robertjoosten/maya-keyframe-reduction
 
@@ -131,7 +132,7 @@ public:
 		real_t max_error = 0.001f; // range(0, 1000) step(0.1)
 
 		// Step size at which to sample the animation curves."
-		real_t step_size = 1.0; // range(0.1, 100) step(1)
+		real_t step_size = 0.5; // range(0.1, 100) step(1)
 
 		// Created keyframes have weighted or non-weighted tangents.
 		// Split tangents automatically, works on estimation.
@@ -140,7 +141,7 @@ public:
 		bool tangent_split_existing = true;
 		bool tangent_split_angle_threshold = true;
 		// The threshold to split tangents.
-		real_t tangent_split_angle_thresholdValue = 15.0f;
+		real_t tangent_split_angle_thresholdValue = Math::rad2deg(15.0f);
 	};
 
 private:
