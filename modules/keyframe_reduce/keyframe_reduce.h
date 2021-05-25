@@ -136,7 +136,7 @@ public:
 		// Created keyframes have weighted or non-weighted tangents.
 		// Split tangents automatically, works on estimation.
 		bool split_tangents_auto = true;
-		bool weighted_tangents = false;
+		bool weighted_tangents = true;
 		bool tangent_split_existing = true;
 		bool tangent_split_angle_threshold = true;
 		// The threshold to split tangents.
