@@ -120,7 +120,6 @@ public:
 	struct FitState {
 		Vector<Bezier> points;
 		real_t max_error;
-		bool weighted_tangents;
 	};
 
 	const double EPSILON = 12e-11;
@@ -137,7 +136,6 @@ public:
 		// Created keyframes have weighted or non-weighted tangents.
 		// Split tangents automatically, works on estimation.
 		bool split_tangents_auto = true;
-		bool weighted_tangents = false;
 		bool tangent_split_existing = false;
 		bool tangent_split_angle_threshold = false;
 		// The threshold to split tangents.
@@ -161,7 +159,7 @@ private:
 	// 	@param int last
 	// 	@param Vector2Bezier tan1
 	// 	@param Vector2Bezier tan2
-	void fitCubic(const Vector<Bezier> &p_curves, Vector<Bezier> &r_keyframes, bool p_weighted_tangents, int32_t p_first, int32_t p_last, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2, real_t p_error);
+	void fitCubic(const Vector<Bezier> &p_curves, Vector<Bezier> &r_keyframes, int32_t p_first, int32_t p_last, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2, real_t p_error);
 
 	// 	@param Vector2Bezier pt1:
 	// 	@param Vector2Bezier tan1:
@@ -177,7 +175,7 @@ private:
 	// @param dict uPrime:
 	// @param Vector2Bezier tan1:
 	// @param Vector2Bezier tan2:
-	Vector<Vector2Bezier> generateBezier(const Vector<Bezier> &p_curves, bool p_weighted_tangents, int32_t p_first, int32_t p_last, Map<int, Vector2Bezier> p_u_prime, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2);
+	Vector<Vector2Bezier> generateBezier(const Vector<Bezier> &p_curves, int32_t p_first, int32_t p_last, Map<int, Vector2Bezier> p_u_prime, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2);
 
 	// Given set of points and their parameterization, try to find a better
 	// parameterization.

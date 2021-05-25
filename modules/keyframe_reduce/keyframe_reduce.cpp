@@ -71,7 +71,7 @@ Vector<double> BezierKeyframeReduce::floatRange(double p_start, double p_end, do
 	return values;
 };
 
-void BezierKeyframeReduce::fitCubic(const Vector<Bezier> &p_curves, Vector<Bezier> &r_keyframes, bool p_weighted_tangents, int32_t p_first, int32_t p_last, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2, real_t p_error) {
+void BezierKeyframeReduce::fitCubic(const Vector<Bezier> &p_curves, Vector<Bezier> &r_keyframes, int32_t p_first, int32_t p_last, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2, real_t p_error) {
 	//use heuristic if region only has two points in it
 	if (p_last - p_first == 1) {
 		// get points
@@ -92,15 +92,12 @@ void BezierKeyframeReduce::fitCubic(const Vector<Bezier> &p_curves, Vector<Bezie
 
 	// get iterations, when weighted tangents is turned off the bezier
 	// generator cannot be improved using multiple iterations.
-	int32_t iterations = 1;
-	if (p_weighted_tangents) {
-		iterations = 4;
-	}
+	int32_t iterations = 4;
 	real_t maxError = 0;
 	int32_t maxIndex = 0;
 	for (int32_t i = 0; i < iterations; i++) {
 		// generate curve
-		Vector<Vector2Bezier> curve = generateBezier(p_curves, p_weighted_tangents, p_first, p_last, uPrime, p_tan_1, p_tan_2);
+		Vector<Vector2Bezier> curve = generateBezier(p_curves, p_first, p_last, uPrime, p_tan_1, p_tan_2);
 
 		// find max deviation of points to fitted curve
 		Vector2Bezier max_error_vec = find_max_error(p_curves, p_first, p_last, curve, uPrime);
@@ -124,8 +121,8 @@ void BezierKeyframeReduce::fitCubic(const Vector<Bezier> &p_curves, Vector<Bezie
 	// fitting failed -- split at max error point and fit recursively
 	Bezier tanCenter = (p_curves[maxIndex - 1] - p_curves[maxIndex + 1]).normalized();
 
-	fitCubic(p_curves, r_keyframes, p_weighted_tangents, p_first, maxIndex, p_tan_1, tanCenter.time_value, p_error);
-	fitCubic(p_curves, r_keyframes, p_weighted_tangents, maxIndex, p_last, tanCenter.time_value * -1, p_tan_2, p_error);
+	fitCubic(p_curves, r_keyframes, p_first, maxIndex, p_tan_1, tanCenter.time_value, p_error);
+	fitCubic(p_curves, r_keyframes, maxIndex, p_last, tanCenter.time_value * -1, p_tan_2, p_error);
 }
 
 // 	@param Vector2Bezier pt1:
@@ -150,7 +147,7 @@ void BezierKeyframeReduce::addCurve(Vector<Bezier> &r_curves, Vector2Bezier p_pt
 // @param dict uPrime:
 // @param Vector2Bezier tan1:
 // @param Vector2Bezier tan2:
-Vector<Vector2Bezier> BezierKeyframeReduce::generateBezier(const Vector<Bezier> &p_curves, bool p_weighted_tangents, int32_t p_first, int32_t p_last, Map<int, Vector2Bezier> p_u_prime, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2) {
+Vector<Vector2Bezier> BezierKeyframeReduce::generateBezier(const Vector<Bezier> &p_curves, int32_t p_first, int32_t p_last, Map<int, Vector2Bezier> p_u_prime, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2) {
 	real_t epsilon = EPSILON;
 	Vector2Bezier pt1 = p_curves[p_first].time_value;
 	Vector2Bezier pt2 = p_curves[p_last].time_value;
@@ -160,53 +157,48 @@ Vector<Vector2Bezier> BezierKeyframeReduce::generateBezier(const Vector<Bezier> 
 	Vector2Bezier handle1;
 	Vector2Bezier handle2;
 	// use least-squares method to find Bezier control points for region.
-	// Only if weighted tangents are allowed. If this is not the case we
-	// will fall back on Wu/Barsky heuristic.
-	if (p_weighted_tangents) {
-		// create the C and X matrices
-		Vector<Vector2Bezier> C;
-		C.resize(4);
-		Vector<Vector2Bezier> X;
-		X.resize(2);
-		int32_t range_i = p_last - p_first + 1;
-		for (int32_t i = 0; i < range_i; i++) {
-			Vector2Bezier u = p_u_prime[i];
-			Vector2Bezier t = Vector2Bezier(1, 1) - u;
-			Vector2Bezier b = Vector2Bezier(3, 3) * u * t;
-			Vector2Bezier b0 = t * t * t;
-			Vector2Bezier b1 = b * t;
-			Vector2Bezier b2 = b * u;
-			Vector2Bezier b3 = u * u * u;
-			Vector2Bezier a1 = p_tan_1 * b1;
-			Vector2Bezier a2 = p_tan_2 * b2;
-			Vector2Bezier tmp = (p_curves[p_first + i].time_value - pt1 * (b0 + b1) - pt2 * (b2 + b3));
-			C.write[0] += a1 * a1;
-			C.write[1] += a1 * a2;
-			C.write[2] = C[1];
-			C.write[3] += a2 * a2;
-			X.write[0] += a1 * tmp;
-			X.write[1] += a2 * tmp;
-		}
+	Vector<Vector2Bezier> C;
+	C.resize(4);
+	Vector<Vector2Bezier> X;
+	X.resize(2);
+	int32_t range_i = p_last - p_first + 1;
+	for (int32_t i = 0; i < range_i; i++) {
+		Vector2Bezier u = p_u_prime[i];
+		Vector2Bezier t = Vector2Bezier(1, 1) - u;
+		Vector2Bezier b = Vector2Bezier(3, 3) * u * t;
+		Vector2Bezier b0 = t * t * t;
+		Vector2Bezier b1 = b * t;
+		Vector2Bezier b2 = b * u;
+		Vector2Bezier b3 = u * u * u;
+		Vector2Bezier a1 = p_tan_1 * b1;
+		Vector2Bezier a2 = p_tan_2 * b2;
+		Vector2Bezier tmp = (p_curves[p_first + i].time_value - pt1 * (b0 + b1) - pt2 * (b2 + b3));
+		C.write[0] += a1 * a1;
+		C.write[1] += a1 * a2;
+		C.write[2] = C[1];
+		C.write[3] += a2 * a2;
+		X.write[0] += a1 * tmp;
+		X.write[1] += a2 * tmp;
+	}
 
-		//compute the determinants of C and X
-		Vector2Bezier detC0C1 = C[0] * C[3] - C[2] * C[1];
-		if (detC0C1.abs().x > Vector2(epsilon, epsilon).x && detC0C1.abs().y > Vector2(epsilon, epsilon).y) {
-			//kramer's rule
-			Vector2Bezier detC0X = C[0] * X[1] - C[2] * X[0];
-			Vector2Bezier detXC1 = X[0] * C[3] - X[1] * C[1];
+	//compute the determinants of C and X
+	Vector2Bezier detC0C1 = C[0] * C[3] - C[2] * C[1];
+	if (detC0C1.abs().x > Vector2(epsilon, epsilon).x && detC0C1.abs().y > Vector2(epsilon, epsilon).y) {
+		//kramer's rule
+		Vector2Bezier detC0X = C[0] * X[1] - C[2] * X[0];
+		Vector2Bezier detXC1 = X[0] * C[3] - X[1] * C[1];
 
-			//derive alpha values
-			alpha1 = detXC1 / detC0C1;
-			alpha2 = detC0X / detC0C1;
-		} else {
-			//matrix is under-determined, try assuming alpha1 == alpha2
-			Vector2Bezier c0 = C[0] + C[1];
-			Vector2Bezier c1 = C[2] + C[3];
-			if (c0.abs().x > Vector2(epsilon, epsilon).x && c0.abs().y > Vector2(epsilon, epsilon).y) {
-				alpha1 = alpha2 = X[0] / c0;
-			} else if (c1.abs().x > Vector2(epsilon, epsilon).x && c1.abs().y > Vector2(epsilon, epsilon).y) {
-				alpha1 = alpha2 = X[1] / c1;
-			}
+		//derive alpha values
+		alpha1 = detXC1 / detC0C1;
+		alpha2 = detC0X / detC0C1;
+	} else {
+		//matrix is under-determined, try assuming alpha1 == alpha2
+		Vector2Bezier c0 = C[0] + C[1];
+		Vector2Bezier c1 = C[2] + C[3];
+		if (c0.abs().x > Vector2(epsilon, epsilon).x && c0.abs().y > Vector2(epsilon, epsilon).y) {
+			alpha1 = alpha2 = X[0] / c0;
+		} else if (c1.abs().x > Vector2(epsilon, epsilon).x && c1.abs().y > Vector2(epsilon, epsilon).y) {
+			alpha1 = alpha2 = X[1] / c1;
 		}
 	}
 
@@ -553,7 +545,6 @@ Vector<Bezier> BezierKeyframeReduce::_split_points(const Vector<Bezier> &p_curve
 // @return list of bezier segments
 Vector<Bezier> BezierKeyframeReduce::fit(FitState p_state) {
 	real_t error = p_state.max_error;
-	bool weightedTangent = p_state.weighted_tangents;
 	int32_t length = p_state.points.size();
 	if (length == 0) {
 		return Vector<Bezier>();
@@ -572,7 +563,7 @@ Vector<Bezier> BezierKeyframeReduce::fit(FitState p_state) {
 	Vector2Bezier tan2 = (p_state.points[length - 2].time_value - p_state.points[length - 1].time_value).normalized();
 
 	// fit cubic
-	fitCubic(p_state.points, segments, weightedTangent, 0, length - 1, tan1, tan2, error);
+	fitCubic(p_state.points, segments, 0, length - 1, tan1, tan2, error);
 
 	return segments;
 }
@@ -662,7 +653,6 @@ real_t BezierKeyframeReduce::reduce(const Vector<Bezier> &p_points, Vector<Bezie
 		// fit points and get keyframes
 		FitState state;
 		state.max_error = p_settings.max_error;
-		state.weighted_tangents = p_settings.weighted_tangents;
 		state.points = split_points;
 		r_keyframes = fit(state);
 	}
