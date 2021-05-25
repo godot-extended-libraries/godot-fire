@@ -134,8 +134,6 @@ public:
 		real_t step_size = 1.0;
 
 		// Created keyframes have weighted or non-weighted tangents.
-		// Split tangents automatically, works on estimation.
-		bool split_tangents_auto = true;
 		bool tangent_split_existing = false;
 		bool tangent_split_angle_threshold = false;
 		// The threshold to split tangents.
