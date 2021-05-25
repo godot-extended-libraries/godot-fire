@@ -243,6 +243,7 @@ Quat Quat::squad(const Quat p_a, const Quat p_b, const Quat p_post, const float 
 }
 
 Quat Quat::log() const {
+	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
 	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
 	Vector3 vec = Vector3(x, y, z);
 	float angle = Math::acos(w);
