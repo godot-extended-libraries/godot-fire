@@ -86,9 +86,8 @@ bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
 			ERR_FAIL_INDEX_V(bone, bones.size(), false);
 			Transform pose = bones[bone].pose;
 			Vector3 scale = pose.basis.get_scale();
-			Quat rot = p_value;	
-			rot.normalize();
-			rot = rot.exp();		
+			Quat rot = p_value;
+			rot = rot.exp();	
 			pose.basis.set_quat_scale(rot, scale);
 			bones.write[bone].pose = pose;
 		} else if (property == "scale") {

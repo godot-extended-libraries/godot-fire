@@ -3294,6 +3294,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			real_t time = key.time;
 			Variant value = 0.0f;
 			Quat rot = key.value.rot;
+			rot.normalize();
 			rot = rot.log();
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
@@ -3324,10 +3325,10 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				new_path = path + "rotation_quat_log:x";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
 				value = rot.y;
-				new_path = path + "rotation_quat_log:z";
+				new_path = path + "rotation_quat_log:y";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
 				value = rot.z;
-				new_path = path + "rotation_quat_log:y";
+				new_path = path + "rotation_quat_log:z";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
 				value = rot.w;
 				new_path = path + "rotation_quat_log:w";
