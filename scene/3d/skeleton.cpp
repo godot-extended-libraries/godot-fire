@@ -89,7 +89,15 @@ bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
 			Quat rot = p_value;	
 			pose.basis.set_quat_scale(rot, scale);
 			bones.write[bone].pose = pose;
-		} else if (property == "scale") {
+		} else if (property == "rotation_quat_log") {
+			ERR_FAIL_INDEX_V(bone, bones.size(), false);
+			Transform pose = bones[bone].pose;
+			Vector3 scale = pose.basis.get_scale();
+			Quat rot = p_value;
+			rot = rot.exp();	
+			pose.basis.set_quat_scale(rot, scale);
+			bones.write[bone].pose = pose;
+		}else if (property == "scale") {
 			ERR_FAIL_INDEX_V(bone, bones.size(), false);
 			Transform pose = bones[bone].pose;
 			Quat quat = pose.basis.get_rotation_quat();
@@ -160,6 +168,12 @@ bool Skeleton::_get(const StringName &p_path, Variant &r_ret) const {
 		} else if (property == "rotation_quat") {
 			Basis rot_basis = bones[bone].pose.basis;
 			Quat rot = rot_basis.get_rotation_quat();
+			r_ret = rot;
+			return true;
+		} else if (property == "rotation_quat_log") {
+			Basis rot_basis = bones[bone].pose.basis;
+			Quat rot = rot_basis.get_rotation_quat();
+			rot = rot.log();
 			r_ret = rot;
 			return true;
 		} else if (property == "scale") {
