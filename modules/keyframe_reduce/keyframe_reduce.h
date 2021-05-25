@@ -169,7 +169,7 @@ private:
 	// @param dict uPrime:
 	// @param Vector2Bezier tan1:
 	// @param Vector2Bezier tan2:
-	Vector<Vector2Bezier> generate_bezier(const Vector<Bezier> &p_curves, int32_t p_first, int32_t p_last, Map<int, Vector2Bezier> p_u_prime, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2);
+	Vector<Vector2Bezier> generateBezier(const Vector<Bezier> &p_curves, int32_t p_first, int32_t p_last, Map<int, Vector2Bezier> p_u_prime, Vector2Bezier p_tan_1, Vector2Bezier p_tan_2);
 
 	// Given set of points and their parameterization, try to find a better
 	// parameterization.
@@ -185,7 +185,7 @@ private:
 	// @param Vector2Bezier u
 	// @return New root point
 	// @rtype Vector2Bezier
-	Vector2Bezier find_root(Vector<Vector2Bezier> p_curves, Vector2Bezier p_curve, Vector2Bezier p_u);
+	Vector2Bezier findRoot(Vector<Vector2Bezier> p_curves, Vector2Bezier p_curve, Vector2Bezier p_u);
 
 	// Evaluate a bezier curve at a particular parameter value.
 	// @param int degree:
@@ -199,7 +199,7 @@ private:
 	// @param int first:
 	// @param int last:
 	// @return dictionary of chord length parameterization
-	Map<int, Vector2Bezier> chord_length_parameterize(Vector<Bezier> p_curves, int32_t p_first, int32_t p_last);
+	Map<int, Vector2Bezier> chordLengthParameterize(Vector<Bezier> p_curves, int32_t p_first, int32_t p_last);
 
 	// Find the maximum squared distance of digitized points to fitted
 	// curve.
@@ -223,7 +223,7 @@ private:
 	// threshold.
 	// @param list of angles:
 	// @return list of split indices
-	Vector<int32_t> _find_tangent_split_auto(Vector<real_t> p_angles);
+	Vector<int32_t> _findTangentSplitAuto(Vector<real_t> p_angles);
 
 	// Loop existing frames and see if any keyframes contain tangents that
 	// are not unified. If this is the case the index of the closest sampled
