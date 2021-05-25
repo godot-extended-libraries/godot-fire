@@ -3334,8 +3334,8 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				rot_tracks.insert("log_z", get_track_count());
 			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
 				value = 0.0f;
-				new_path = path + "rotation_quat:y";
-				rot_tracks.insert("log_z", get_track_count());
+				new_path = path + "rotation_quat:w";
+				rot_tracks.insert("log_w", get_track_count());
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
