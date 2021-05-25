@@ -3318,23 +3318,27 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			} else if (types[type_i] == BEZIER_TRACK_SCALE_Z) {
 				Vector3 scale = key.value.scale;
 				value = scale.z;
-				new_path = path + "scale:z";	
+				new_path = path + "scale:z";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_X) {
 				value = rot.x;
 				new_path = path + "rotation_quat_log:x";
-				rot_tracks.insert("x", get_track_count());		
+				rot_tracks.insert("x", get_track_count());
+				settings.max_error = settings.tangent_split_angle_thresholdValue;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
 				value = rot.y;
 				new_path = path + "rotation_quat_log:y";
-				rot_tracks.insert("y", get_track_count());		
+				rot_tracks.insert("y", get_track_count());
+				settings.max_error = settings.tangent_split_angle_thresholdValue;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
 				value = rot.z;
 				new_path = path + "rotation_quat_log:z";
-				rot_tracks.insert("z", get_track_count());		
+				rot_tracks.insert("z", get_track_count());
+				settings.max_error = settings.tangent_split_angle_thresholdValue;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
 				value = rot.w;
 				new_path = path + "rotation_quat_log:w";
-				rot_tracks.insert("w", get_track_count());		
+				rot_tracks.insert("w", get_track_count());
+				settings.max_error = settings.tangent_split_angle_thresholdValue;
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
