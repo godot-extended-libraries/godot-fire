@@ -245,19 +245,19 @@ Quat Quat::squad(const Quat p_a, const Quat p_b, const Quat p_post, const float 
 void Quat::log() {
 	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
 	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
-	float s = x;
-	Vector3 v = Vector3(y, z, w);
+	float s = w;
+	Vector3 v = Vector3(x, y, z);
 	float ang = Math::acos(s);
 	float l = v.length();
 	Quat rot;
-	rot.w = 0.0f;
+	w = 0.0f;
 	if (l < 1e-9f) {
 		return;
 	}
 	v = v * ang / l;
-	rot.x = v.x;
-	rot.y = v.y;
-	rot.z = v.z;
+	x = v.x;
+	y = v.y;
+	z = v.z;
 }
 
 void Quat::exp() {
