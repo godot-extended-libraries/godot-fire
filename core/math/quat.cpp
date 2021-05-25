@@ -250,7 +250,7 @@ Quat Quat::log() const {
 		float angle = Math::acos(a_0);
 		angle = CLAMP(angle, -1.0f, 1.0f);
 		float sin_angle = Math::sin(angle);
-		if (!Math::is_equal_approx(Math::absf(sin_angle), 0.0f)) {
+		if (!Math::is_zero_approx(Math::absf(sin_angle))) {
 			float coeff = angle / sin_angle;
 			result.x *= coeff;
 			result.y *= coeff;
@@ -266,7 +266,7 @@ Quat Quat::exp() const {
 	float angle = rot.length();
 	float coeff = 0.0f;
 
-	if (!Math::is_equal_approx(angle, 0.0f)) {
+	if (!Math::is_zero_approx(angle)) {
 		coeff = Math::sin(angle) / angle;
 	}
 	Quat result;
