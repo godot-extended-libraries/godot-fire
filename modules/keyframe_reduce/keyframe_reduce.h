@@ -132,8 +132,6 @@ public:
 
 		// Step size at which to sample the animation curves."
 		real_t step_size = 1.0;
-
-		bool tangent_split_angle_threshold = false;
 		// The threshold to split tangents.
 		real_t tangent_split_angle_thresholdValue = Math::deg2rad(15.0f);
 	};
