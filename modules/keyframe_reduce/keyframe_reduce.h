@@ -129,7 +129,7 @@ public:
 public:
 	struct KeyframeReductionSetting {
 		// Maximum allowed error when reducing the animation curves.
-		real_t max_error = Math::rad2deg(0.1f);
+		real_t max_error = Math::deg2rad(0.1f);
 
 		// Step size at which to sample the animation curves."
 		real_t step_size = 1.0;
@@ -141,7 +141,7 @@ public:
 		bool tangent_split_existing = true;
 		bool tangent_split_angle_threshold = true;
 		// The threshold to split tangents.
-		real_t tangent_split_angle_thresholdValue = Math::rad2deg(5.0f);
+		real_t tangent_split_angle_thresholdValue = Math::deg2rad(5.0f);
 	};
 
 private:
