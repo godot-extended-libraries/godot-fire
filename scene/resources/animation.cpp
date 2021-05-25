@@ -3288,7 +3288,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		NodePath new_path;
 		BezierKeyframeReduce::KeyframeReductionSetting settings;
 		settings.max_error = p_allowed_linear_err;
-		// Magic number from https://bitsquid.blogspot.com/2009/11/bitsquid-low-level-animation-system.html
 		for (int transform_i = 0; transform_i < tt->transforms.size(); transform_i++) {
 			const TKey<TransformKey> &key = tt->transforms[transform_i];
 			real_t time = key.time;
