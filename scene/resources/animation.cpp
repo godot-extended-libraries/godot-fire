@@ -3287,6 +3287,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		Vector<BezierKeyframeReduce::Bezier> curves;
 		NodePath new_path;
 		BezierKeyframeReduce::KeyframeReductionSetting settings;
+		settings.max_error = p_allowed_linear_err;
 		// Magic number from https://bitsquid.blogspot.com/2009/11/bitsquid-low-level-animation-system.html
 		for (int transform_i = 0; transform_i < tt->transforms.size(); transform_i++) {
 			const TKey<TransformKey> &key = tt->transforms[transform_i];
@@ -3323,22 +3324,22 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				value = rot.x;
 				new_path = path + "rotation_quat_log:x";
 				rot_tracks.insert("x", get_track_count());
-				settings.max_error = settings.tangent_split_angle_thresholdValue;
+				settings.max_error = p_allowed_angular_err;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
 				value = rot.y;
 				new_path = path + "rotation_quat_log:y";
 				rot_tracks.insert("y", get_track_count());
-				settings.max_error = settings.tangent_split_angle_thresholdValue;
+				settings.max_error = p_allowed_angular_err;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
 				value = rot.z;
 				new_path = path + "rotation_quat_log:z";
 				rot_tracks.insert("z", get_track_count());
-				settings.max_error = settings.tangent_split_angle_thresholdValue;
+				settings.max_error = p_allowed_angular_err;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
 				value = rot.w;
 				new_path = path + "rotation_quat_log:w";
 				rot_tracks.insert("w", get_track_count());
-				settings.max_error = settings.tangent_split_angle_thresholdValue;
+				settings.max_error = p_allowed_angular_err;
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
