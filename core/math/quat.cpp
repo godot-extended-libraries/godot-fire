@@ -251,7 +251,7 @@ void Quat::log() {
 	float l = v.length();
 	Quat rot;
 	w = 0.0f;
-	if (l < 1e-9f) {
+	if (Math::is_zero_approx(s)) {
 		return;
 	}
 	v = v * ang / l;
