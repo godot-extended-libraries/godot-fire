@@ -243,21 +243,20 @@ Quat Quat::squad(const Quat p_a, const Quat p_b, const Quat p_post, const float 
 }
 
 Quat Quat::log() const {
-	Quat result = *this;
-	float a_0 = result.w;
-	result.w = 0.0;
-	if (Math::abs(a_0) < 1.0) {
-		float angle = Math::acos(a_0);
-		angle = CLAMP(angle, -1.0f, 1.0f);
-		float sin_angle = Math::sin(angle);
-		if (!Math::is_zero_approx(Math::absf(sin_angle))) {
-			float coeff = angle / sin_angle;
-			result.x *= coeff;
-			result.y *= coeff;
-			result.z *= coeff;
-		}
+	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
+	Vector3 vec = Vector3(x, y, z);
+	float angle = Math::acos(w);
+	float length = vec.length();
+	if (Math::is_zero_approx(length)) {
+		return Quat();
 	}
-	return result;
+	vec = vec * angle / length;
+	Quat rot;
+	rot.x = vec.x;
+	rot.y = vec.y;
+	rot.z = vec.z;
+	rot.w = 0.0f;
+	return rot;
 }
 
 Quat Quat::exp() const {
