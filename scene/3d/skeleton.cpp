@@ -82,12 +82,11 @@ bool Skeleton::_set(const StringName &p_path, const Variant &p_value) {
 			Transform pose = bones[bone].pose;
 			pose.origin = p_value;
 			bones.write[bone].pose = pose;
-		} else if (property == "rotation_quat_log") {
+		} else if (property == "rotation_quat") {
 			ERR_FAIL_INDEX_V(bone, bones.size(), false);
 			Transform pose = bones[bone].pose;
 			Vector3 scale = pose.basis.get_scale();
-			Quat rot = p_value;
-			rot = rot.exp();	
+			Quat rot = p_value;	
 			pose.basis.set_quat_scale(rot, scale);
 			bones.write[bone].pose = pose;
 		} else if (property == "scale") {
@@ -158,10 +157,9 @@ bool Skeleton::_get(const StringName &p_path, Variant &r_ret) const {
 		if (property == "translation") {
 			r_ret = bones[bone].pose.origin;
 			return true;
-		} else if (property == "rotation_quat_log") {
+		} else if (property == "rotation_quat") {
 			Basis rot_basis = bones[bone].pose.basis;
 			Quat rot = rot_basis.get_rotation_quat();
-			rot = rot.log();
 			r_ret = rot;
 			return true;
 		} else if (property == "scale") {
