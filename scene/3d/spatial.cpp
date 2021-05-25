@@ -832,7 +832,7 @@ void Spatial::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "translation", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_translation", "get_translation");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "rotation_degrees", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_degrees", "get_rotation_degrees");
 	ADD_PROPERTY(PropertyInfo(Variant::QUAT, "rotation_quat", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_quat", "get_rotation_quat");
-	ADD_PROPERTY(PropertyInfo(Variant::QUAT, "rotation_quat_log", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_quat", "get_rotation_quat");
+	ADD_PROPERTY(PropertyInfo(Variant::QUAT, "rotation_quat_log", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_quat_log", "get_rotation_quat_log");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "rotation", PROPERTY_HINT_NONE, "", 0), "set_rotation", "get_rotation");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "scale", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_scale", "get_scale");
 	ADD_GROUP("Matrix", "");
