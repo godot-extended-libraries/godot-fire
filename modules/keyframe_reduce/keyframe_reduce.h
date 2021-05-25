@@ -185,7 +185,7 @@ private:
 	// @param Vector2Bezier u
 	// @return New root point
 	// @rtype Vector2Bezier
-	Vector2Bezier findRoot(Vector<Vector2Bezier> p_curves, Vector2Bezier p_curve, Vector2Bezier p_u);
+	Vector2Bezier find_root(Vector<Vector2Bezier> p_curves, Vector2Bezier p_curve, Vector2Bezier p_u);
 
 	// Evaluate a bezier curve at a particular parameter value.
 	// @param int degree:

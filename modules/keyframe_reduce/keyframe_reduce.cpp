@@ -258,7 +258,7 @@ Vector<Vector2Bezier> BezierKeyframeReduce::generate_bezier(const Vector<Bezier>
 void BezierKeyframeReduce::reparameterize(Vector<Bezier> p_existing_curves, int32_t p_first, int32_t p_last, Map<int32_t, Vector2Bezier> &r_u, Vector<Vector2Bezier> p_curves) {
 	int32_t i_range = p_last + 1;
 	for (int32_t i = p_first; i < i_range; i++) {
-		r_u[i - p_first] = findRoot(p_curves, p_existing_curves[i].time_value, r_u[i - p_first]);
+		r_u[i - p_first] = find_root(p_curves, p_existing_curves[i].time_value, r_u[i - p_first]);
 	}
 }
 
@@ -268,7 +268,7 @@ void BezierKeyframeReduce::reparameterize(Vector<Bezier> p_existing_curves, int3
 // @param Vector2Bezier u
 // @return New root point
 // @rtype Vector2Bezier
-Vector2Bezier BezierKeyframeReduce::findRoot(Vector<Vector2Bezier> p_curves, Vector2Bezier p_curve, Vector2Bezier p_u) {
+Vector2Bezier BezierKeyframeReduce::find_root(Vector<Vector2Bezier> p_curves, Vector2Bezier p_curve, Vector2Bezier p_u) {
 	// generate control vertices for Q'
 	Vector<Vector2Bezier> curve1;
 	for (int32_t curve_i = 0; curve_i < 3; curve_i++) {
@@ -402,7 +402,7 @@ real_t BezierKeyframeReduce::sum_real_list(Vector<real_t> p_reals) {
 // threshold.
 // @param list of angles:
 // @return list of split indices
-Vector<int32_t> BezierKeyframeReduce::_findTangentSplitAuto(Vector<real_t> p_angles) {
+Vector<int32_t> BezierKeyframeReduce::_find_tangent_split_auto(Vector<real_t> p_angles) {
 	// get angles from points
 	Vector<int32_t> splits;
 
@@ -635,7 +635,7 @@ real_t BezierKeyframeReduce::reduce(const Vector<Bezier> &p_points, Vector<Bezie
 	// get split indices
 	Vector<int32_t> split;
 
-	split.append_array(_findTangentSplitAuto(sampled_frame_values.angles));
+	split.append_array(_find_tangent_split_auto(sampled_frame_values.angles));
 
 	split.append_array(_find_tangent_split_existing(
 				p_points, start, end, p_settings.step_size));
