@@ -242,25 +242,25 @@ Quat Quat::squad(const Quat p_a, const Quat p_b, const Quat p_post, const float 
 	return slerp_1.slerpni(slerp_2, slerp_t);
 }
 
-void Quat::log() {
-	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
-	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
-	float s = w;
-	Vector3 v = Vector3(x, y, z);
-	float ang = Math::acos(s);
-	float l = v.length();
-	Quat rot;
-	w = 0.0f;
-	if (Math::is_zero_approx(s)) {
-		return;
+Quat Quat::log() const {
+	Quat result = *this;
+	float a_0 = result.w;
+	result.w = 0.0;
+	if (Math::abs(a_0) < 1.0) {
+		float angle = Math::acos(a_0);
+		angle = CLAMP(angle, -1.0f, 1.0f);
+		float sin_angle = Math::sin(angle);
+		if (!Math::is_equal_approx(Math::absf(sin_angle), 0.0f)) {
+			float coeff = angle / sin_angle;
+			result.x *= coeff;
+			result.y *= coeff;
+			result.z *= coeff;
+		}
 	}
-	v = v * ang / l;
-	x = v.x;
-	y = v.y;
-	z = v.z;
+	return result;
 }
 
-void Quat::exp() {
+Quat Quat::exp() const {
 	Quat rot = *this;
 
 	float angle = rot.length();
@@ -269,21 +269,23 @@ void Quat::exp() {
 	if (!Math::is_equal_approx(angle, 0.0f)) {
 		coeff = Math::sin(angle) / angle;
 	}
-	x = rot.x * coeff;
-	y = rot.y * coeff;
-	z = rot.z * coeff;
-	w = Math::cos(angle);
+	Quat result;
+	result.x = rot.x * coeff;
+	result.y = rot.y * coeff;
+	result.z = rot.z * coeff;
+	result.w = Math::cos(angle);
+	return result;
 }
 
 Quat Quat::intermediate(Quat p_a, Quat p_b) const {
 	Quat a_inv = p_a.inverse();
 	Quat c_1 = a_inv * p_b;
 	Quat c_2 = a_inv * (*this);
-	c_1.log();
-	c_2.log();
+	c_1 = c_1.log();
+	c_2 = c_2.log();
 	Quat c_3 = c_2 + c_1;
 	c_3 = c_3 * -0.25f;
-	c_3.exp();
+	c_3 = c_3.exp();
 	Quat r = p_a * c_3;
 	return r.normalized();
 }

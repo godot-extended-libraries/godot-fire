@@ -3295,7 +3295,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			Variant value = 0.0f;
 			Quat rot = key.value.rot;
 			rot.normalize();
-			rot.log();
+			rot = rot.exp();
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
 				value = loc.x;
