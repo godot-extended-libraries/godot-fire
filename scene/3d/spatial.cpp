@@ -401,9 +401,8 @@ Quat Spatial::get_rotation_quat_log() const {
 }
 
 void Spatial::set_rotation_quat_log(const Quat &p_quat) {
-	p_quat = p_quat.exp();
 	Transform xform = get_transform();
-	xform.basis.set_quat_scale(p_quat, get_scale());
+	xform.basis.set_quat_scale(p_quat.exp(), get_scale());
 	set_transform(xform);
 }
 
