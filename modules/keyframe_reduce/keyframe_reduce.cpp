@@ -644,14 +644,27 @@ real_t BezierKeyframeReduce::reduce(const Vector<Bezier> &p_points, Vector<Bezie
 		x[x_i] = bezier.time_value.x;
 		y[x_i] = bezier.time_value.y;
 	}
+	double length = points[points.size() - 1].time_value.x;
+	points.clear();
 	boost::math::interpolators::makima<std::vector<double> > spline = boost::math::interpolators::makima<std::vector<double> >(std::move(x), std::move(y));
-
-	for (int32_t x_i = 0; x_i < points.size(); x_i++) {
+	const double increment = 1.0 / p_settings.frame_rate;
+	double time = 0.0;
+	bool last = false;
+	while (true) {
 		Bezier bezier;
-        bezier.time_value.x = points[x_i].time_value.x;
-		bezier.time_value.y = spline(bezier.time_value.x);
-		points.write[x_i] = bezier;
+		bezier.time_value.x = time;
+		bezier.time_value.y = spline(time);
+		points.push_back(bezier);
+		if (last) {
+			break;
+		}
+		time += increment;
+		if (time >= length) {
+			last = true;
+			time = length;
+		}
 	}
+
 	// get start and end frames
 	int32_t start = 0;
 	int32_t end = points.size() - 1;

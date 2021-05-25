@@ -141,6 +141,7 @@ public:
 		bool tangent_split_angle_threshold = true;
 		// The threshold to split tangents.
 		real_t tangent_split_angle_thresholdValue = 15.0f;
+		real_t frame_rate = 30.0f;
 	};
 
 private:
