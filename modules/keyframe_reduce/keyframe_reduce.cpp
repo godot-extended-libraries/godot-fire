@@ -449,7 +449,7 @@ Vector<int32_t> BezierKeyframeReduce::_find_tangent_split_existing(const Vector<
 		int32_t index = int((i - p_start) / p_step);
 
 		// validate split
-		Vector2 frame_abs = (p_frames[i].in_handle - p_frames[i].out_handle).abs();
+		Vector2 frame_abs = (p_frames[i].out_handle - p_frames[i].in_handle).abs();
 		if (frame_abs.x > THRESHOLD && frame_abs.y > THRESHOLD) {
 			splits.push_back(index);
 		}
