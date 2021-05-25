@@ -3322,16 +3322,16 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				new_path = path + "scale:z";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_X) {
 				value = rot.x;
-				new_path = path + "rotation_quat:x";
+				new_path = path + "rotation_quat_log:x";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
 				value = rot.y;
-				new_path = path + "rotation_quat:z";
+				new_path = path + "rotation_quat_log:z";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
 				value = rot.z;
-				new_path = path + "rotation_quat:y";
+				new_path = path + "rotation_quat_log:y";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
 				value = rot.w;
-				new_path = path + "rotation_quat:w";
+				new_path = path + "rotation_quat_log:w";
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
@@ -3441,7 +3441,7 @@ void Animation::optimize(float p_allowed_linear_err, float p_allowed_angular_err
 			track_insert_key(translation_track, 0.0f, Vector3());
 			track_insert_key(translation_track, length, Vector3());
 		}
-		int32_t quat_track = find_track(path + "rotation_quat:");
+		int32_t quat_track = find_track(path + "rotation_quat_log:");
 		bool is_rot_complete = quat_track != -1 && track_get_key_count(quat_track) == 2;
 		Quat rot_start;
 		if (is_rot_complete) {
