@@ -108,8 +108,8 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 		timestamp_vp_map[rt_id] = p_viewport->self;
 	}
 
-	RID current_eye_render_target = p_eye == XRInterface::EYE_RIGHT ? p_viewport->right_eye_render_target : p_viewport->render_target;
-	RID current_eye_render_buffers = p_eye == XRInterface::EYE_RIGHT ? p_viewport->right_eye_render_buffers : p_viewport->render_buffers;
+	RID current_eye_render_target = p_viewport->render_target;
+	RID current_eye_render_buffers = p_viewport->render_buffers;
 
 	/* Camera should always be BEFORE any other 3D */
 
@@ -497,7 +497,7 @@ void RendererViewport::draw_viewports() {
 		if (!vp->render_target.is_valid()) {
 			continue;
 		}
-		ERR_CONTINUE(vp->use_xr && xr_interface.is_valid() && xr_interface->is_stereo() && !vp->right_eye_render_target.is_valid());
+		ERR_CONTINUE(vp->use_xr && !vp->right_eye_render_target.is_valid());
 
 		bool visible = vp->viewport_to_screen_rect != Rect2();
 
@@ -521,6 +521,7 @@ void RendererViewport::draw_viewports() {
 		if (visible) {
 			vp->last_pass = draw_viewports_pass;
 		}
+	}
 
 	for (int i = 0; i < active_viewports.size(); i++) {
 		Viewport *vp = active_viewports[i];
@@ -1131,7 +1132,7 @@ void RendererViewport::call_set_use_vsync(bool p_enable) {
 RendererViewport::RendererViewport() {
 	occlusion_rays_per_thread = GLOBAL_GET("rendering/occlusion_culling/occlusion_rays_per_thread");
 }
-void RendererViewport::commit_for_eye(Map<DisplayServer::WindowID, Vector<RendererCompositor::BlitToScreen>> &blit_to_screen_list, XRInterface::Eyes p_eye, Viewport *p_viewport) {
+void RendererViewport::commit_for_eye(Map<DisplayServer::WindowID, Vector<BlitToScreen>> &blit_to_screen_list, XRInterface::Eyes p_eye, Viewport *p_viewport) {
 	// This function is responsible for outputting the final render buffer for
 	// each eye.
 	// p_screen_rect will only have a value when we're outputting to the main
@@ -1142,14 +1143,12 @@ void RendererViewport::commit_for_eye(Map<DisplayServer::WindowID, Vector<Render
 	// For an interface that outputs to an external device we should render a copy
 	// of one of the eyes to the main viewport if p_screen_rect is set, and only
 	// output to the external device if not.
-	RendererCompositor::BlitToScreen blit;
+	BlitToScreen blit;
 	if (p_eye == XRInterface::EYE_RIGHT) {
 		blit.render_target = p_viewport->right_eye_render_target;
 	} else {
 		blit.render_target = p_viewport->render_target;
 	}
 	blit.rect.set_size(Size2i(p_viewport->size.x, p_viewport->size.y));
-	blit.eye = p_eye;
-	blit.vr = true;
 	blit_to_screen_list[0].push_back(blit);
 }

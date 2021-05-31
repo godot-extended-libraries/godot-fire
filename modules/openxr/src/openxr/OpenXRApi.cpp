@@ -11,13 +11,14 @@
 #include "servers/xr/xr_positional_tracker.h"
 #include "servers/xr_server.h"
 
+#include <climits>
+
 #include "OpenXRApi.h"
 
 #include "core/io/json.h"
 #include "core/math/camera_matrix.h"
 #include "vulkan/vulkan_core.h"
 #include <math.h>
-
 ////////////////////////////////////////////////////////////////////////////////
 // Extension functions
 
@@ -1229,8 +1230,8 @@ void OpenXRApi::uninitialize() {
 		if (inputmaps[i].godot_controller >= 0) {
 			continue;
 		}
-		XRPositionalTracker *xr_tracker = XRServer::get_singleton()->get_tracker(inputmaps[i].godot_controller);
-		if (!xr_tracker) {
+		Ref<XRPositionalTracker> xr_tracker = XRServer::get_singleton()->get_tracker(inputmaps[i].godot_controller);
+		if (xr_tracker.is_null()) {
 			continue;
 		}
 		XRServer::get_singleton()->remove_tracker(xr_tracker);

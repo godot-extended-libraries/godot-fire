@@ -59,13 +59,10 @@ typedef struct {
 	godot_bool (*initialize)(void *);
 	void (*uninitialize)(void *);
 	godot_vector2 (*get_render_targetsize)(const void *);
-	void (*fill_projection_for_view)(void *, godot_float *, godot_int, godot_float, godot_float, godot_float);
 	godot_transform (*get_camera_transform)(void *);
 	godot_transform (*get_transform_for_view)(void *, godot_int, godot_transform *);
 	void (*fill_projection_for_view)(void *, godot_float *, godot_int, godot_float, godot_float, godot_float);
-	void (*commit_for_eye)(void *, godot_int, godot_rid *, godot_rect2 *);
 	void (*process)(void *);
-	void (*get_external_texture_for_eye)(void *, godot_bool, godot_rid *);
 	void (*notification)(void *, godot_int);
 	godot_int (*get_camera_feed_id)(void *);
 } godot_xr_interface_gdnative;

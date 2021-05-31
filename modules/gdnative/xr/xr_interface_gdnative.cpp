@@ -212,12 +212,6 @@ CameraMatrix XRInterfaceGDNative::get_projection_for_view(uint32_t p_view, real_
 	return cm;
 }
 
-void XRInterfaceGDNative::get_external_texture_for_eye(XRInterface::Eyes p_eye, RID p_texture) {
-	ERR_FAIL_COND(interface == nullptr);
-
-	interface->get_external_texture_for_eye(data, (godot_int)p_eye, (godot_rid *)&p_texture);
-}
-
 Vector<BlitToScreen> XRInterfaceGDNative::commit_views(RID p_render_target, const Rect2 &p_screen_rect) {
 	Vector<BlitToScreen> blit_to_screen;
 

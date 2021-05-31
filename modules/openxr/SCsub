@@ -26,10 +26,13 @@ if (env['platform'] == 'windows'):
 elif (env['platform'] == 'darwin'):
     platform_string = 'osx32'
     extension_string = '.dylib'
-elif (env['platform'] == "x11"):
+elif (env['platform'] == "linuxbsd"):
     platform_string = 'linux'
-    extension_string = '.so'
+    extension_string = '.so.1'
 
-library_location = 'openxr_loader_windows/1.0.14/' + platform_string + '/lib/openxr_loader' + extension_string
+if env['platform'] == "windows":
+    library_location = 'openxr_loader_windows/1.0.14/' + platform_string + '/lib/openxr_loader' + extension_string
+else:
+    library_location = '/usr/lib64/libopenxr_loader' + extension_string
 
 env.Append(LIBS=[File(library_location)])

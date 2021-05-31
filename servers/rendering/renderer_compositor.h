@@ -77,14 +77,6 @@ public:
 	virtual void initialize() = 0;
 	virtual void begin_frame(double frame_step) = 0;
 
-	struct BlitToScreen {
-		RID render_target;
-		Rect2i rect;
-		int eye = -1;
-		bool vr = false;
-		//lens distorted parameters for VR should go here
-	};
-
 	virtual void prepare_for_blitting_render_targets() = 0;
 	virtual void blit_render_targets_to_screen(DisplayServer::WindowID p_screen, const BlitToScreen *p_render_targets, int p_amount) = 0;
 

@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include "XRInterface.h"
+#include "servers/rendering/renderer_compositor.h"
 
 StringName OpenXRInterface::get_name() const {
 	StringName ret = "OpenXR";
@@ -28,14 +29,6 @@ bool OpenXRInterface::get_anchor_detection_is_enabled() const {
 
 void OpenXRInterface::set_anchor_detection_is_enabled(bool p_enable) {
 	// we ignore this, not supported in this interface!
-}
-
-bool OpenXRInterface::is_stereo() {
-	bool ret = true;
-
-	// TODO we should check our configuration and see if we are setup for stereo (hmd) or mono output (tablet)
-
-	return ret;
 }
 
 bool OpenXRInterface::is_initialized() const {
@@ -111,46 +104,6 @@ void OpenXRInterface::set_default_pos(Transform *p_transform, float p_world_scal
 	}
 }
 
-Transform OpenXRInterface::get_transform_for_eye(XRInterface::Eyes p_eye, const Transform &p_cam_transform) {
-	Transform transform_for_eye;
-	Transform reference_frame = XRServer::get_singleton()->get_reference_frame();
-	Transform ret;
-	float world_scale = XRServer::get_singleton()->get_world_scale();
-
-	if (arvr_data.openxr_api != NULL) {
-		if (p_eye == 0) {
-			// this is used for head positioning, it should return the position center between the eyes
-			if (!arvr_data.openxr_api->get_head_center(world_scale, transform_for_eye)) {
-				set_default_pos(&transform_for_eye, world_scale, p_eye);
-			}
-		} else {
-			// printf("Get view matrix for eye %d\n", p_eye);
-			if (p_eye == 1) {
-				if (!arvr_data.openxr_api->get_view_transform(0, world_scale, transform_for_eye)) {
-					set_default_pos(&transform_for_eye, world_scale, p_eye);
-				}
-			} else if (p_eye == 2) {
-				if (!arvr_data.openxr_api->get_view_transform(1, world_scale, transform_for_eye)) {
-					set_default_pos(&transform_for_eye, world_scale, p_eye);
-				}
-			} else {
-				// TODO does this ever happen?
-				set_default_pos(&transform_for_eye, world_scale, p_eye);
-			}
-		}
-	} else {
-		set_default_pos(&transform_for_eye, world_scale, p_eye);
-	}
-
-	// Now construct our full Transform, the order may be in reverse, have
-	// to test
-	// :)
-	ret *= p_cam_transform;
-	ret *= reference_frame;
-	ret *= transform_for_eye;
-	return ret;
-}
-
 void OpenXRInterface::fill_projection_for_eye(float *p_projection, int p_eye, float p_aspect, float p_z_near, float p_z_far) {
 	if (arvr_data.openxr_api != NULL) {
 		// printf("fill projection for eye %d\n", p_eye);
@@ -175,30 +128,10 @@ void OpenXRInterface::process() {
 	}
 }
 
-void OpenXRInterface::get_external_texture_for_eye(XRInterface::Eyes p_eye, RID r_texture) {
-	// this only gets called from Godot 3.2 and newer, allows us to use
-	// OpenXR swapchain directly.
-
-	RenderingDevice::get_singleton()->submit_vr_texture(r_texture, p_eye);
+void OpenXRInterface::notification(int p_what) {
 }
 
-CameraMatrix OpenXRInterface::get_projection_for_eye(XRInterface::Eyes p_eye, real_t p_aspect, real_t p_z_near, real_t p_z_far) {
-	_THREAD_SAFE_METHOD_
-
-	CameraMatrix eye;
-
-	if (p_eye == XRInterface::EYE_MONO) {
-		///@TODO for now hardcode some of this, what is really needed here is that this needs to be in sync with the real cameras properties
-		// which probably means implementing a specific class for iOS and Android. For now this is purely here as an example.
-		// Note also that if you use a normal viewport with AR/VR turned off you can still use the tracker output of this interface
-		// to position a stock standard Godot camera and have control over this.
-		// This will make more sense when we implement ARkit on iOS (probably a separate interface).
-		eye.set_perspective(60.0, p_aspect, p_z_near, p_z_far, false);
-	} else {
-		arvr_data.openxr_api->fill_projection_matrix(p_eye, p_z_near, p_z_far, (float *)eye.matrix);
-	};
-
-	return eye;
-};
-void OpenXRInterface::notification(int p_what) {
+Vector<BlitToScreen> OpenXRInterface::commit_views(RID p_render_target, const Rect2 &p_screen_rect) {
+	Vector<BlitToScreen> ret;
+	return ret;
 }

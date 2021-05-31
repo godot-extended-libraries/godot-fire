@@ -43,8 +43,8 @@ void RendererCompositorRD::blit_render_targets_to_screen(DisplayServer::WindowID
 	RD::DrawListID draw_list = RD::get_singleton()->draw_list_begin_for_screen(p_screen);
 
 	for (int i = 0; i < p_amount; i++) {
-		if (p_render_targets[i].vr) {
-			int rendered_eye = p_render_targets[i].eye;
+		if (p_render_targets[i].multi_view.use_layer) {
+			int rendered_eye = i;
 			Ref<OpenXRInterface> xr_interface = XRServer::get_singleton()->get_primary_interface();
 			if (xr_interface.is_null()) {
 				return;

@@ -15,7 +15,7 @@
 void register_openxr_types() {
 	ClassDB::register_class<OpenXRInterface>();
 	if (XRServer::get_singleton()) {
-		Ref<OpenXRInterface> new_interface = nullptr;
+		Ref<OpenXRInterface> new_interface;
 		new_interface.instance();
 		XRServer::get_singleton()->add_interface(new_interface);
 		if (Engine::get_singleton()->get_singleton()->is_editor_hint()) {

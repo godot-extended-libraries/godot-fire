@@ -120,10 +120,6 @@ public:
 
 	XRInterface();
 	~XRInterface();
-
-	// deprecated
-	virtual unsigned int get_external_texture_for_eye(XRInterface::Eyes p_eye); /* if applicable return external texture to render to */
-	virtual void commit_for_eye(XRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) = 0; /* output the left or right eye */
 };
 
 VARIANT_ENUM_CAST(XRInterface::Capabilities);
