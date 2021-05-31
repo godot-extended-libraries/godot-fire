@@ -126,6 +126,40 @@ void OpenXRInterface::notification(int p_what) {
 }
 
 Vector<BlitToScreen> OpenXRInterface::commit_views(RID p_render_target, const Rect2 &p_screen_rect) {
-	Vector<BlitToScreen> ret;
-	return ret;
+_THREAD_SAFE_METHOD_
+
+	Vector<BlitToScreen> blit_to_screen;
+
+	// We must have a valid render target
+	ERR_FAIL_COND_V(!p_render_target.is_valid(), blit_to_screen);
+
+	// Because we are rendering to our device we must use our main viewport!
+	ERR_FAIL_COND_V(p_screen_rect == Rect2(), blit_to_screen);
+
+	// and add our blits
+	BlitToScreen blit;
+	blit.render_target = p_render_target;
+	blit.multi_view.use_layer = true;
+	blit.lens_distortion.apply = true;
+	blit.lens_distortion.k1 = k1;
+	blit.lens_distortion.k2 = k2;
+	blit.lens_distortion.upscale = oversample;
+	blit.lens_distortion.aspect_ratio = aspect;
+
+	// left eye
+	blit.rect = p_screen_rect;
+	blit.rect.size.width *= 0.5;
+	blit.multi_view.layer = 0;
+	blit.lens_distortion.eye_center.x = ((-intraocular_dist / 2.0) + (display_width / 4.0)) / (display_width / 2.0);
+	blit_to_screen.push_back(blit);
+
+	// right eye
+	blit.rect = p_screen_rect;
+	blit.rect.size.width *= 0.5;
+	blit.rect.position.x = blit.rect.size.width;
+	blit.multi_view.layer = 1;
+	blit.lens_distortion.eye_center.x = ((intraocular_dist / 2.0) - (display_width / 4.0)) / (display_width / 2.0);
+	blit_to_screen.push_back(blit);
+
+	return blit_to_screen;
 }

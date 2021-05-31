@@ -19,6 +19,19 @@ class OpenXRInterface : public XRInterface {
 		bool has_external_texture_support = true;
 	} arvr_data;
 
+	// Just set some defaults for these. At some point we need to look at adding a lookup table for common device + headset combos and/or support reading cardboard QR codes
+	float eye_height = 1.85;
+	uint64_t last_ticks = 0;
+
+	real_t intraocular_dist = 6.0;
+	real_t display_width = 14.5;
+	real_t display_to_lens = 4.0;
+	real_t oversample = 1.5;
+
+	real_t k1 = 0.215;
+	real_t k2 = 0.215;
+	real_t aspect = 1.0;
+
 public:
 	virtual Transform get_camera_transform() override { return Transform(); }
 	virtual uint32_t get_view_count() override {
