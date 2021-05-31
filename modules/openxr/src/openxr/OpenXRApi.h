@@ -7,9 +7,6 @@
 #define OPENXR_API_H
 
 #include "drivers/vulkan/vulkan_context.h"
-#ifdef WIN32
-#include <windows.h>
-#endif
 #include "core/typedefs.h"
 #include "core/error/error_macros.h"
 #include "core/math/transform.h"
@@ -207,7 +204,6 @@ private:
 	bool initialiseSwapChains();
 	bool initialiseActionSets();
 	bool initialiseHandTracking();
-	bool check_graphics_requirements_gl(XrSystemId system_id);
 	XrResult acquire_image(int eye);
 	void update_actions();
 	void update_handtracking();

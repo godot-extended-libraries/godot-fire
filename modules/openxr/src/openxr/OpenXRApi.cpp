@@ -773,7 +773,9 @@ bool OpenXRApi::initialiseSession() {
 
 	buffer_index = (uint32_t *)malloc(sizeof(uint32_t) * view_count);
 
-	if (!check_graphics_requirements_gl(system_id)) {
+    XrGraphicsRequirementsVulkan2KHR graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR};
+	result = xrGetVulkanGraphicsRequirements2KHR_ptr(instance, system_id, &graphicsRequirements);
+	if (!xr_result(result, "Failed to load ")) {
 		return false;
 	}
 	String video_driver = ProjectSettings::get_singleton()->get("rendering/driver/driver_name");
@@ -791,13 +793,7 @@ bool OpenXRApi::initialiseSession() {
 	graphics_binding_vulkan.physicalDevice = vk_physical_device;
 	graphics_binding_vulkan.device = vk_device;
 	graphics_binding_vulkan.queueFamilyIndex = 0;
-	graphics_binding_vulkan.queueIndex = 0;    
-    XrGraphicsRequirementsVulkan2KHR graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR};
-	result = xrGetVulkanGraphicsRequirements2KHR_ptr(instance, system_id, &graphicsRequirements);
-	if (!xr_result(result, "Failed to load ")) {
-		return false;
-	}
-
+	graphics_binding_vulkan.queueIndex = 0;
 	result = xrGetVulkanGraphicsDevice_ptr(instance, system_id, vk_instance, &vk_physical_device);
 	if (!xr_result(result, "Failed to load ")) {
 		return false;
@@ -1597,24 +1593,6 @@ bool OpenXRApi::parse_interaction_profiles(const String &p_json) {
 		}
 	}
 
-	return true;
-}
-
-bool OpenXRApi::check_graphics_requirements_gl(XrSystemId system_id) {
-	XrGraphicsRequirementsVulkanKHR vulkan_reqs = {
-		.type = XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR, .next = NULL
-	};
-
-	PFN_xrGetVulkanGraphicsRequirements2KHR pfnGetVulkanGraphicsRequirementsKHR = NULL;
-	XrResult result = xrGetInstanceProcAddr(instance, "xrGetVulkanGraphicsRequirements2KHR", (PFN_xrVoidFunction *)&pfnGetVulkanGraphicsRequirementsKHR);
-
-	if (!xr_result(result, "Failed to get xrGetVulkanGraphicsRequirements2KHR fp!")) {
-		return false;
-	}
-
-	if (!xr_result(result, "Failed to get Vulkan graphics requirements!")) {
-		return false;
-	}
 	return true;
 }
 
