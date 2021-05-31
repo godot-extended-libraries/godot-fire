@@ -22,10 +22,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Extension functions
 
-XrResult (*xrGetVulkanGraphicsDevice2KHR_ptr)(
+XrResult (*xrGetVulkanGraphicsRequirements2KHR_ptr)(
 	XrInstance instance, 
-	const XrVulkanGraphicsDeviceGetInfoKHR* getInfo,
-	VkPhysicalDevice* vulkanPhysicalDevice) = nullptr;
+	XrSystemId systemId, 
+	XrGraphicsRequirementsVulkanKHR* graphicsRequirements) = nullptr;
+
+XrResult (*xrGetVulkanGraphicsDevice_ptr)(
+	XrInstance instance, 
+	XrSystemId systemId, 
+	VkInstance vkInstance, 
+	VkPhysicalDevice* vkPhysicalDevice) = nullptr;
 
 XrResult (*xrCreateHandTrackerEXT_ptr)(
 		XrSession session,
@@ -701,7 +707,11 @@ bool OpenXRApi::initialiseExtensions() {
 		}
 	}
 	
-	result = xrGetInstanceProcAddr(instance, "xrGetVulkanGraphicsDevice2KHR", (PFN_xrVoidFunction *)&xrGetVulkanGraphicsDevice2KHR_ptr);
+	result = xrGetInstanceProcAddr(instance, "xrGetVulkanGraphicsRequirements2KHR", (PFN_xrVoidFunction *)&xrGetVulkanGraphicsRequirements2KHR_ptr);
+	if (!xr_result(result, "Failed to obtain xrGetVulkanGraphicsRequirements2KHR function pointer")) {
+		return false;
+	}	
+	result = xrGetInstanceProcAddr(instance, "xrGetVulkanGraphicsDevice2KHR", (PFN_xrVoidFunction *)&xrGetVulkanGraphicsDevice_ptr);
 	if (!xr_result(result, "Failed to obtain xrGetVulkanGraphicsDevice2KHR function pointer")) {
 		return false;
 	}
@@ -721,7 +731,7 @@ bool OpenXRApi::initialiseSession() {
 		.formFactor = form_factor,
 	};
 
-	result = xrGetSystem(instance, &systemGetInfo, &systemId);
+	result = xrGetSystem(instance, &systemGetInfo, &system_id);
 	if (!xr_result(result, "Failed to get system for our form factor.")) {
 		return false;
 	}
@@ -732,7 +742,7 @@ bool OpenXRApi::initialiseSession() {
 		.graphicsProperties = { 0 },
 		.trackingProperties = { 0 },
 	};
-	result = xrGetSystemProperties(instance, systemId, &systemProperties);
+	result = xrGetSystemProperties(instance, system_id, &systemProperties);
 	if (!xr_result(result, "Failed to get System properties")) {
 		return false;
 	}
@@ -740,12 +750,12 @@ bool OpenXRApi::initialiseSession() {
 	// TODO We should add a setting to our config whether we want stereo support and check that here.
 
 	XrViewConfigurationType viewConfigType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-	if (!isViewConfigSupported(viewConfigType, systemId)) {
+	if (!isViewConfigSupported(viewConfigType, system_id)) {
 		ERR_PRINT("OpenXR Stereo View Configuration not supported!");
 		return false;
 	}
 
-	result = xrEnumerateViewConfigurationViews(instance, systemId, viewConfigType, 0, &view_count, NULL);
+	result = xrEnumerateViewConfigurationViews(instance, system_id, viewConfigType, 0, &view_count, NULL);
 	if (!xr_result(result, "Failed to get view configuration view count!")) {
 		return false;
 	}
@@ -756,14 +766,14 @@ bool OpenXRApi::initialiseSession() {
 		configuration_views[i].next = NULL;
 	}
 
-	result = xrEnumerateViewConfigurationViews(instance, systemId, viewConfigType, view_count, &view_count, configuration_views);
+	result = xrEnumerateViewConfigurationViews(instance, system_id, viewConfigType, view_count, &view_count, configuration_views);
 	if (!xr_result(result, "Failed to enumerate view configuration views!")) {
 		return false;
 	}
 
 	buffer_index = (uint32_t *)malloc(sizeof(uint32_t) * view_count);
 
-	if (!check_graphics_requirements_gl(systemId)) {
+	if (!check_graphics_requirements_gl(system_id)) {
 		return false;
 	}
 	String video_driver = ProjectSettings::get_singleton()->get("rendering/driver/driver_name");
@@ -781,19 +791,22 @@ bool OpenXRApi::initialiseSession() {
 	graphics_binding_vulkan.physicalDevice = vk_physical_device;
 	graphics_binding_vulkan.device = vk_device;
 	graphics_binding_vulkan.queueFamilyIndex = 0;
-	graphics_binding_vulkan.queueIndex = 0;
-    
-	XrVulkanGraphicsDeviceGetInfoKHR device_get_info{XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR};
-	device_get_info.systemId = systemId;
-	device_get_info.vulkanInstance = vk_instance;
-	result = xrGetVulkanGraphicsDevice2KHR_ptr(instance, &device_get_info, &vk_physical_device);
+	graphics_binding_vulkan.queueIndex = 0;    
+    XrGraphicsRequirementsVulkan2KHR graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR};
+	result = xrGetVulkanGraphicsRequirements2KHR_ptr(instance, system_id, &graphicsRequirements);
 	if (!xr_result(result, "Failed to load ")) {
 		return false;
 	}
+
+	result = xrGetVulkanGraphicsDevice_ptr(instance, system_id, vk_instance, &vk_physical_device);
+	if (!xr_result(result, "Failed to load ")) {
+		return false;
+	}
+
 	XrSessionCreateInfo session_create_info = {
 		.type = XR_TYPE_SESSION_CREATE_INFO,
 		.next = &graphics_binding_vulkan,
-		.systemId = systemId
+		.systemId = system_id
 	};
 
 	result = xrCreateSession(instance, &session_create_info, &session);
@@ -1115,7 +1128,7 @@ bool OpenXRApi::initialiseHandTracking() {
 		.next = &handTrackingSystemProperties,
 	};
 
-	result = xrGetSystemProperties(instance, systemId, &systemProperties);
+	result = xrGetSystemProperties(instance, system_id, &systemProperties);
 	if (!xr_result(result, "Failed to obtain hand tracking information")) {
 		return false;
 	}

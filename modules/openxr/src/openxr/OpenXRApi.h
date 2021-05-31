@@ -152,7 +152,7 @@ private:
 	bool hand_tracking_supported = false;
 
 	XrInstance instance = XR_NULL_HANDLE;
-	XrSystemId systemId;
+	XrSystemId system_id;
 	XrSession session = XR_NULL_HANDLE;
 	XrSessionState state = XR_SESSION_STATE_UNKNOWN;
 	XrGraphicsBindingVulkanKHR graphics_binding_vulkan;
