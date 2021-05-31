@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "xrmath.h"
-#include "modules/openxr/openxr_loader_windows/1.0.14/include/openxr/openxr.h"
+#include "modules/openxr/openxr_loader_windows/1.0.16/include/openxr/openxr.h"
 
 #include <vulkan/vulkan.h>
 
@@ -42,7 +42,7 @@
 #define XR_USE_GRAPHICS_API_VULKAN
 #endif
 
-#include "modules/openxr/openxr_loader_windows/1.0.14/include/openxr/openxr_platform.h"
+#include "modules/openxr/openxr_loader_windows/1.0.16/include/openxr/openxr_platform.h"
 
 // forward declare this
 class OpenXRApi;
@@ -214,7 +214,7 @@ private:
 	void transform_from_matrix(Transform &r_dest, XrMatrix4x4f *matrix, float p_world_scale);
 
 	bool parse_action_sets(const String &p_json);
-	bool parse_interaction_profiles(const String &p_json);
+	bool parse_interaction_profiles(const String &p_json);    
 
 public:
 	static OpenXRApi *openxr_get_api();

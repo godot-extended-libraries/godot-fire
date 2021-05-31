@@ -32,7 +32,7 @@
 
 #include "core/config/project_settings.h"
 
-#include "modules/openxr/openxr_loader_windows/1.0.14/include/openxr/openxr.h"
+#include "modules/openxr/openxr_loader_windows/1.0.16/include/openxr/openxr.h"
 #include "modules/openxr/src/XRInterface.h"
 
 void RendererCompositorRD::prepare_for_blitting_render_targets() {

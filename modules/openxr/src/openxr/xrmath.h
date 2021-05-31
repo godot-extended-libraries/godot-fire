@@ -18,7 +18,7 @@
 #pragma once
 
 #include <math.h>
-#include "modules/openxr/openxr_loader_windows/1.0.14/include/openxr/openxr.h"
+#include "modules/openxr/openxr_loader_windows/1.0.16/include/openxr/openxr.h"
 #define MATH_PI 3.14159265358979323846f
 
 typedef struct XrMatrix4x4f {

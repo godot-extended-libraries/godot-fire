@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/error/error_macros.h"
-#include "modules/openxr/openxr_loader_windows/1.0.14/include/openxr/openxr.h"
+#include "modules/openxr/openxr_loader_windows/1.0.16/include/openxr/openxr.h"
 #include "servers/xr/xr_interface.h"
 #include "servers/xr_server.h"
 

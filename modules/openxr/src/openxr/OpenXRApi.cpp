@@ -6,7 +6,7 @@
 #include "core/variant/variant.h"
 #include "drivers/vulkan/rendering_device_vulkan.h"
 #include "drivers/vulkan/vulkan_context.h"
-#include "modules/openxr/openxr_loader_windows/1.0.14/include/openxr/openxr_platform.h"
+#include "modules/openxr/openxr_loader_windows/1.0.16/include/openxr/openxr_platform.h"
 #include "openxr/openxr.h"
 #include "servers/xr/xr_positional_tracker.h"
 #include "servers/xr_server.h"
@@ -21,6 +21,11 @@
 #include <math.h>
 ////////////////////////////////////////////////////////////////////////////////
 // Extension functions
+
+XrResult (*xrGetVulkanGraphicsDevice2KHR_ptr)(
+	XrInstance instance, 
+	const XrVulkanGraphicsDeviceGetInfoKHR* getInfo,
+	VkPhysicalDevice* vulkanPhysicalDevice) = nullptr;
 
 XrResult (*xrCreateHandTrackerEXT_ptr)(
 		XrSession session,
@@ -695,6 +700,11 @@ bool OpenXRApi::initialiseExtensions() {
 			return false;
 		}
 	}
+	
+	result = xrGetInstanceProcAddr(instance, "xrGetVulkanGraphicsDevice2KHR", (PFN_xrVoidFunction *)&xrGetVulkanGraphicsDevice2KHR_ptr);
+	if (!xr_result(result, "Failed to obtain xrGetVulkanGraphicsDevice2KHR function pointer")) {
+		return false;
+	}
 
 	return true;
 }
@@ -763,12 +773,6 @@ bool OpenXRApi::initialiseSession() {
 	RenderingDeviceVulkan *rd = (RenderingDeviceVulkan *)RenderingDeviceVulkan::get_singleton();
 	VkInstance vk_instance = rd->get_vulkan_context()->get_instance();
 
-	PFN_xrGetVulkanGraphicsDevice2KHR pfn_get_vulkan_device2_khr = nullptr;
-	result = xrGetInstanceProcAddr(instance, "xrGetVulkanGraphicsDevice2KHR", (PFN_xrVoidFunction *)&pfn_get_vulkan_device2_khr);
-	if (!xr_result(result, "Failed to load ")) {
-		return false;
-	}
-
 	VkDevice vk_device = rd->get_vulkan_context()->get_device();
 	VkPhysicalDevice vk_physical_device = rd->get_vulkan_context()->get_physical_device();
 	XrGraphicsBindingVulkanKHR graphics_binding_vulkan = {};
@@ -778,9 +782,14 @@ bool OpenXRApi::initialiseSession() {
 	graphics_binding_vulkan.device = vk_device;
 	graphics_binding_vulkan.queueFamilyIndex = 0;
 	graphics_binding_vulkan.queueIndex = 0;
-	
-	XrVulkanGraphicsDeviceGetInfoKHR graphics_device_info = {};
-	pfn_get_vulkan_device2_khr(instance, &graphics_device_info, &vk_physical_device);
+    
+	XrVulkanGraphicsDeviceGetInfoKHR device_get_info{XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR};
+	device_get_info.systemId = systemId;
+	device_get_info.vulkanInstance = vk_instance;
+	result = xrGetVulkanGraphicsDevice2KHR_ptr(instance, &device_get_info, &vk_physical_device);
+	if (!xr_result(result, "Failed to load ")) {
+		return false;
+	}
 	XrSessionCreateInfo session_create_info = {
 		.type = XR_TYPE_SESSION_CREATE_INFO,
 		.next = &graphics_binding_vulkan,
@@ -1590,7 +1599,6 @@ bool OpenXRApi::check_graphics_requirements_gl(XrSystemId system_id) {
 		return false;
 	}
 
-	result = pfnGetVulkanGraphicsRequirementsKHR(instance, system_id, &vulkan_reqs);
 	if (!xr_result(result, "Failed to get Vulkan graphics requirements!")) {
 		return false;
 	}
