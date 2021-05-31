@@ -26,10 +26,6 @@ void OpenXRPose::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "action", PROPERTY_HINT_ENUM, "SkeletonBase,godot/aim_pose,godot/grip_pose"), "set_action", "get_action");
 
-	// For now this is hard coded, these are fixed entries based on the OpenXR spec
-	ClassDB::bind_method(D_METHOD("get_path"), &OpenXRPose::get_path);
-	ClassDB::bind_method(D_METHOD("set_path"), &OpenXRPose::set_path);
-
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "controlller_path", PROPERTY_HINT_ENUM, "/user/hand/left,/user/hand/right,/user/treadmill"), "set_path", "get_path");
 	ClassDB::bind_method(D_METHOD("is_active"), &OpenXRPose::is_active);
 }
