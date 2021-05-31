@@ -105,18 +105,12 @@ void OpenXRInterface::set_default_pos(Transform *p_transform, float p_world_scal
 }
 
 void OpenXRInterface::fill_projection_for_eye(float *p_projection, int p_eye, float p_aspect, float p_z_near, float p_z_far) {
-	if (arvr_data.openxr_api != NULL) {
-		// printf("fill projection for eye %d\n", p_eye);
+	if (arvr_data.openxr_api) {
 		if (p_eye == 1) {
 			arvr_data.openxr_api->fill_projection_matrix(0, p_z_near, p_z_far, p_projection);
 		} else {
 			arvr_data.openxr_api->fill_projection_matrix(1, p_z_near, p_z_far, p_projection);
 		}
-		// ???
-
-		// printf("\n");
-	} else {
-		// uhm, should do something here really..
 	}
 }
 
