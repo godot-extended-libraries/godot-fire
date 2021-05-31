@@ -509,3 +509,6 @@ MobileVRInterface::~MobileVRInterface() {
 		uninitialize();
 	};
 };
+
+void MobileVRInterface::get_external_texture_for_eye(XRInterface::Eyes p_eye, RID r_texture) {
+}

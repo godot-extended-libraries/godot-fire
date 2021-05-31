@@ -34,6 +34,7 @@
 #include "renderer_canvas_cull.h"
 #include "renderer_scene_cull.h"
 #include "rendering_server_globals.h"
+#include "servers/rendering/rendering_device.h"
 
 static Transform2D _canvas_get_transform(RendererViewport::Viewport *p_viewport, RendererCanvasCull::Canvas *p_canvas, RendererViewport::Viewport::CanvasData *p_canvas_data, const Vector2 &p_vp_size) {
 	Transform2D xf = p_viewport->global_transform;
@@ -107,6 +108,9 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 		timestamp_vp_map[rt_id] = p_viewport->self;
 	}
 
+	RID current_eye_render_target = p_eye == XRInterface::EYE_RIGHT ? p_viewport->right_eye_render_target : p_viewport->render_target;
+	RID current_eye_render_buffers = p_eye == XRInterface::EYE_RIGHT ? p_viewport->right_eye_render_buffers : p_viewport->render_buffers;
+
 	/* Camera should always be BEFORE any other 3D */
 
 	bool scenario_draw_canvas_bg = false; //draw canvas, or some layer of it, as BG for 3D instead of in front
@@ -133,13 +137,13 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 		}
 	}
 
-	if ((scenario_draw_canvas_bg || can_draw_3d) && !p_viewport->render_buffers.is_valid()) {
+	if ((scenario_draw_canvas_bg || can_draw_3d) && !current_eye_render_buffers.is_valid()) {
 		//wants to draw 3D but there is no render buffer, create
 		p_viewport->render_buffers = RSG::scene->render_buffers_create();
 		RSG::scene->render_buffers_configure(p_viewport->render_buffers, p_viewport->render_target, p_viewport->size.width, p_viewport->size.height, p_viewport->msaa, p_viewport->screen_space_aa, p_viewport->use_debanding, p_view_count);
 	}
 
-	RSG::storage->render_target_request_clear(p_viewport->render_target, bgcolor);
+	RSG::storage->render_target_request_clear(current_eye_render_target, bgcolor);
 
 	if (!scenario_draw_canvas_bg && can_draw_3d) {
 		_draw_3d(p_viewport);
@@ -160,7 +164,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 		if (p_viewport->sdf_active) {
 			//process SDF
 
-			Rect2 sdf_rect = RSG::storage->render_target_get_sdf_rect(p_viewport->render_target);
+			Rect2 sdf_rect = RSG::storage->render_target_get_sdf_rect(current_eye_render_target);
 
 			RendererCanvasRender::LightOccluderInstance *occluders = nullptr;
 
@@ -182,7 +186,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 				}
 			}
 
-			RSG::canvas_render->render_sdf(p_viewport->render_target, occluders);
+			RSG::canvas_render->render_sdf(current_eye_render_target, occluders);
 
 			p_viewport->sdf_active = false; // if used, gets set active again
 		}
@@ -384,7 +388,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 
 		if (scenario_draw_canvas_bg && canvas_map.front() && canvas_map.front()->key().get_layer() > scenario_canvas_max_layer) {
 			if (!can_draw_3d) {
-				RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
+				RSG::scene->render_empty_scene(current_eye_render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
 			} else {
 				_draw_3d(p_viewport);
 			}
@@ -417,7 +421,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 				ptr = ptr->filter_next_ptr;
 			}
 
-			RSG::canvas->render_canvas(p_viewport->render_target, canvas, xform, canvas_lights, canvas_directional_lights, clip_rect, p_viewport->texture_filter, p_viewport->texture_repeat, p_viewport->snap_2d_transforms_to_pixel, p_viewport->snap_2d_vertices_to_pixel);
+			RSG::canvas->render_canvas(current_eye_render_target, canvas, xform, canvas_lights, canvas_directional_lights, clip_rect, p_viewport->texture_filter, p_viewport->texture_repeat, p_viewport->snap_2d_transforms_to_pixel, p_viewport->snap_2d_vertices_to_pixel);
 			if (RSG::canvas->was_sdf_used()) {
 				p_viewport->sdf_active = true;
 			}
@@ -425,7 +429,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 
 			if (scenario_draw_canvas_bg && E->key().get_layer() >= scenario_canvas_max_layer) {
 				if (!can_draw_3d) {
-					RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
+					RSG::scene->render_empty_scene(current_eye_render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
 				} else {
 					_draw_3d(p_viewport);
 				}
@@ -436,16 +440,16 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport, uint32_t p_view_coun
 
 		if (scenario_draw_canvas_bg) {
 			if (!can_draw_3d) {
-				RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
+				RSG::scene->render_empty_scene(current_eye_render_buffers, p_viewport->scenario, p_viewport->shadow_atlas);
 			} else {
 				_draw_3d(p_viewport);
 			}
 		}
 	}
 
-	if (RSG::storage->render_target_is_clear_requested(p_viewport->render_target)) {
+	if (RSG::storage->render_target_is_clear_requested(current_eye_render_target)) {
 		//was never cleared in the end, force clear it
-		RSG::storage->render_target_do_clear_request(p_viewport->render_target);
+		RSG::storage->render_target_do_clear_request(current_eye_render_target);
 	}
 
 	if (p_viewport->measure_render_time) {
@@ -493,7 +497,7 @@ void RendererViewport::draw_viewports() {
 		if (!vp->render_target.is_valid()) {
 			continue;
 		}
-		//ERR_CONTINUE(!vp->render_target.is_valid());
+		ERR_CONTINUE(vp->use_xr && xr_interface.is_valid() && xr_interface->is_stereo() && !vp->right_eye_render_target.is_valid());
 
 		bool visible = vp->viewport_to_screen_rect != Rect2();
 
@@ -517,7 +521,6 @@ void RendererViewport::draw_viewports() {
 		if (visible) {
 			vp->last_pass = draw_viewports_pass;
 		}
-	}
 
 	for (int i = 0; i < active_viewports.size(); i++) {
 		Viewport *vp = active_viewports[i];
@@ -566,7 +569,7 @@ void RendererViewport::draw_viewports() {
 					blit_to_screen_list[vp->viewport_to_screen].push_back(blits[b]);
 				}
 			}
-
+			RSG::storage->render_info_end_capture();
 			// and for our frame timing, mark when we've finished committing our eyes
 			XRServer::get_singleton()->_mark_commit();
 		} else {
@@ -632,6 +635,7 @@ void RendererViewport::viewport_initialize(RID p_rid) {
 	viewport->hide_scenario = false;
 	viewport->hide_canvas = false;
 	viewport->render_target = RSG::storage->render_target_create();
+	viewport->right_eye_render_target = RSG::storage->render_target_create();
 	viewport->shadow_atlas = RSG::scene->shadow_atlas_create();
 	viewport->viewport_render_direct_to_screen = false;
 
@@ -776,6 +780,7 @@ RID RendererViewport::viewport_get_texture(RID p_viewport) const {
 	const Viewport *viewport = viewport_owner.getornull(p_viewport);
 	ERR_FAIL_COND_V(!viewport, RID());
 
+	// FIXME: No way to access right eye texture
 	return RSG::storage->render_target_get_texture(viewport->render_target);
 }
 
@@ -866,6 +871,7 @@ void RendererViewport::viewport_set_transparent_background(RID p_viewport, bool 
 	ERR_FAIL_COND(!viewport);
 
 	RSG::storage->render_target_set_flag(viewport->render_target, RendererStorage::RENDER_TARGET_TRANSPARENT, p_enabled);
+	RSG::storage->render_target_set_flag(viewport->right_eye_render_target, RendererStorage::RENDER_TARGET_TRANSPARENT, p_enabled);
 	viewport->transparent_bg = p_enabled;
 }
 
@@ -1054,6 +1060,7 @@ void RendererViewport::viewport_set_sdf_oversize_and_scale(RID p_viewport, RS::V
 	ERR_FAIL_COND(!viewport);
 
 	RSG::storage->render_target_set_sdf_size_and_scale(viewport->render_target, p_size, p_scale);
+	RSG::storage->render_target_set_sdf_size_and_scale(viewport->right_eye_render_target, p_size, p_scale);
 }
 
 bool RendererViewport::free(RID p_rid) {
@@ -1061,9 +1068,13 @@ bool RendererViewport::free(RID p_rid) {
 		Viewport *viewport = viewport_owner.getornull(p_rid);
 
 		RSG::storage->free(viewport->render_target);
+		RSG::storage->free(viewport->right_eye_render_target);
 		RSG::scene->free(viewport->shadow_atlas);
 		if (viewport->render_buffers.is_valid()) {
 			RSG::scene->free(viewport->render_buffers);
+		}
+		if (viewport->right_eye_render_buffers.is_valid()) {
+			RSG::scene->free(viewport->right_eye_render_buffers);
 		}
 
 		while (viewport->canvas_map.front()) {
@@ -1119,4 +1130,26 @@ void RendererViewport::call_set_use_vsync(bool p_enable) {
 
 RendererViewport::RendererViewport() {
 	occlusion_rays_per_thread = GLOBAL_GET("rendering/occlusion_culling/occlusion_rays_per_thread");
+}
+void RendererViewport::commit_for_eye(Map<DisplayServer::WindowID, Vector<RendererCompositor::BlitToScreen>> &blit_to_screen_list, XRInterface::Eyes p_eye, Viewport *p_viewport) {
+	// This function is responsible for outputting the final render buffer for
+	// each eye.
+	// p_screen_rect will only have a value when we're outputting to the main
+	// viewport.
+
+	// For an interface that must output to the main viewport (such as with mobile
+	// VR) we should give an error when p_screen_rect is not set
+	// For an interface that outputs to an external device we should render a copy
+	// of one of the eyes to the main viewport if p_screen_rect is set, and only
+	// output to the external device if not.
+	RendererCompositor::BlitToScreen blit;
+	if (p_eye == XRInterface::EYE_RIGHT) {
+		blit.render_target = p_viewport->right_eye_render_target;
+	} else {
+		blit.render_target = p_viewport->render_target;
+	}
+	blit.rect.set_size(Size2i(p_viewport->size.x, p_viewport->size.y));
+	blit.eye = p_eye;
+	blit.vr = true;
+	blit_to_screen_list[0].push_back(blit);
 }
