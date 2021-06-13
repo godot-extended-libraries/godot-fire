@@ -3387,10 +3387,18 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
 	}
-	int32_t track_rot = add_track(TrackType::TYPE_VALUE);
-	track_set_path(track_rot, path + "rotation_quat");
-	track_set_interpolation_type(track_rot, InterpolationType::INTERPOLATION_LINEAR);
-	track_set_interpolation_loop_wrap(track_rot, true);
+	int32_t track_rot_x = add_track(TrackType::TYPE_BEZIER);
+	track_set_path(track_rot_x, path + "rotation_quat_log:x");
+	track_set_interpolation_loop_wrap(track_rot_x, true);
+	int32_t track_rot_y = add_track(TrackType::TYPE_BEZIER);
+	track_set_path(track_rot_y, path + "rotation_quat_log:y");
+	track_set_interpolation_loop_wrap(track_rot_y, true);
+	int32_t track_rot_z = add_track(TrackType::TYPE_BEZIER);
+	track_set_path(track_rot_z, path + "rotation_quat_log:z");
+	track_set_interpolation_loop_wrap(track_rot_z, true);
+	int32_t track_rot_w = add_track(TrackType::TYPE_BEZIER);
+	track_set_path(track_rot_w, path + "rotation_quat_log:w");
+	track_set_interpolation_loop_wrap(track_rot_w, true);
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
 		int32_t current_track = E->get();
 		if (current_track == -1) {
@@ -3402,23 +3410,20 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			Quat rot;
 			if (rot_tracks.has("x")) {
 				float value = bezier_track_interpolate(rot_tracks["x"], time);
-				rot.x = value;
+				track_insert_key(track_rot_x, value, rot);
 			}
 			if (rot_tracks.has("y")) {
 				float value = bezier_track_interpolate(rot_tracks["y"], time);
-				rot.y = value;
+				track_insert_key(track_rot_y, value, rot);
 			}
 			if (rot_tracks.has("z")) {
 				float value = bezier_track_interpolate(rot_tracks["z"], time);
-				rot.z = value;
+				track_insert_key(track_rot_z, value, rot);
 			}
 			if (rot_tracks.has("w")) {
 				float value = bezier_track_interpolate(rot_tracks["w"], time);
-				rot.w = value;
+				track_insert_key(track_rot_w, value, rot);
 			}
-			rot = rot.exp();
-			rot.normalize();
-			track_insert_key(track_rot, time, rot);
 		}
 	}
 	if (rot_tracks.has("w")) {
