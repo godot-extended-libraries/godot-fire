@@ -35,10 +35,8 @@
 #include "modules/keyframe_reduce/keyframe_reduce.h"
 #include "scene/scene_string_names.h"
 
-#include "core/math/geometry.h"
-#include "modules/keyframe_reduce/keyframe_reduce.h"
 #include "thirdparty/geometrics/Mathematics/IntpAkimaNonuniform1.h"
-
+#include "core/math/geometry.h"
 #define ANIM_MIN_LENGTH 0.001
 
 bool Animation::_set(const StringName &p_name, const Variant &p_value) {
@@ -3361,22 +3359,18 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				value = rot.x;
 				new_path = path + "rotation_quat_log:x";
 				rot_tracks.insert("x", get_track_count());
-				settings.max_error = p_allowed_angular_err;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
 				value = rot.y;
 				new_path = path + "rotation_quat_log:y";
 				rot_tracks.insert("y", get_track_count());
-				settings.max_error = p_allowed_angular_err;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
 				value = rot.z;
 				new_path = path + "rotation_quat_log:z";
 				rot_tracks.insert("z", get_track_count());
-				settings.max_error = p_allowed_angular_err;
 			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
 				value = rot.w;
 				new_path = path + "rotation_quat_log:w";
 				rot_tracks.insert("w", get_track_count());
-				settings.max_error = p_allowed_angular_err;
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
