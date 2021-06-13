@@ -34,8 +34,6 @@
 #include "core/math/math_funcs.h"
 #include <vector>
 
-#include "thirdparty/boost/math/interpolators/makima.hpp"
-
 // Based on https://github.com/robertjoosten/maya-keyframe-reduction
 
 // MIT License
@@ -284,19 +282,4 @@ public:
 	// @return float Reduction rate
 	real_t reduce(const Vector<Bezier> &p_points, Vector<Bezier> &r_keyframes, KeyframeReductionSetting p_settings);
 };
-
-static double interpolate_makima(double p_time, Vector<double> p_x, Vector<double> p_y) {
-	std::vector<double> x;
-	x.resize(p_x.size());
-	for (int i = 0; i < p_x.size(); i++) {
-		x[i] = p_x[i];
-	}
-	std::vector<double> y;
-	y.resize(p_y.size());
-	for (int i = 0; i < p_y.size(); i++) {
-		y[i] = p_y[i];
-	}
-	boost::math::interpolators::makima<std::vector<double> > spline = boost::math::interpolators::makima<std::vector<double> >(std::move(x), std::move(y));
-	return spline(p_time);
-}
 #endif
