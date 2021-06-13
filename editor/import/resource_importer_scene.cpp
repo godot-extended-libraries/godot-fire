@@ -1365,7 +1365,9 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 	bool use_optimizer = p_options["animation/optimizer/enabled"];
 	float anim_optimizer_linerr = p_options["animation/optimizer/max_linear_error"];
 	float anim_optimizer_angerr = p_options["animation/optimizer/max_angular_error"];
+	anim_optimizer_angerr = Math::deg2rad(anim_optimizer_angerr);
 	float anim_optimizer_maxang = p_options["animation/optimizer/max_angle"];
+	anim_optimizer_maxang = Math::deg2rad(anim_optimizer_maxang);
 	int light_bake_mode = p_options["meshes/light_baking"];
 	bool use_convert_bezier = p_options["animation/optimizer/convert_bezier/enabled"];
 

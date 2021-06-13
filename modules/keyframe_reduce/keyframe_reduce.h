@@ -285,18 +285,18 @@ public:
 	real_t reduce(const Vector<Bezier> &p_points, Vector<Bezier> &r_keyframes, KeyframeReductionSetting p_settings);
 };
 
-static real_t interpolate_makima(real_t p_time, Vector<real_t> p_x, Vector<real_t> p_y) {
-	std::vector<real_t> x;
+static double interpolate_makima(double p_time, Vector<double> p_x, Vector<double> p_y) {
+	std::vector<double> x;
 	x.resize(p_x.size());
 	for (int i = 0; i < p_x.size(); i++) {
 		x[i] = p_x[i];
 	}
-	std::vector<real_t> y;
+	std::vector<double> y;
 	y.resize(p_y.size());
 	for (int i = 0; i < p_y.size(); i++) {
 		y[i] = p_y[i];
 	}
-	boost::math::interpolators::makima<std::vector<real_t> > spline = boost::math::interpolators::makima<std::vector<real_t> >(std::move(x), std::move(y));
+	boost::math::interpolators::makima<std::vector<double> > spline = boost::math::interpolators::makima<std::vector<double> >(std::move(x), std::move(y));
 	return spline(p_time);
 }
 #endif
