@@ -31,7 +31,6 @@
 #include "animation.h"
 #include "core/math/geometry.h"
 #include "core/math/math_defs.h"
-#include "core/math/vector2.h"
 #include "core/math/vector3.h"
 #include "modules/keyframe_reduce/keyframe_reduce.h"
 #include "scene/scene_string_names.h"
@@ -2463,7 +2462,7 @@ float Animation::bezier_track_interpolate(int p_track, float p_time) const {
 	y.push_back(bt->values[idx + 2].value.value);
 	y.push_back(bt->values[idx + 3].value.value);
 	y.push_back(bt->values[idx + 4].value.value);
-
+	
 	int i = 0, j = 0;
 	for (i = 1; i < x.size(); ++i) {
 		double temp_x = x[i];
@@ -3387,6 +3386,50 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			BezierKeyframeReduce::Bezier curve = out_curves[curve_i];
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
+	}
+	int32_t track_rot = add_track(TrackType::TYPE_VALUE);
+	track_set_path(track_rot, path + "rotation_quat");
+	track_set_interpolation_type(track_rot, InterpolationType::INTERPOLATION_CUBIC);
+	track_set_interpolation_loop_wrap(track_rot, true);
+	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
+		int32_t current_track = E->get();
+		if (current_track == -1) {
+			continue;
+		}
+		int32_t count = track_get_key_count(current_track);
+		for (int32_t key_i = 0; key_i < count; key_i++) {
+			float time = track_get_key_time(current_track, key_i);
+			Quat rot;
+			if (rot_tracks.has("x")) {
+				float value = bezier_track_interpolate(rot_tracks["x"], time);
+				rot.x = value;
+			}
+			if (rot_tracks.has("y")) {
+				float value = bezier_track_interpolate(rot_tracks["y"], time);
+				rot.y = value;
+			}
+			if (rot_tracks.has("z")) {
+				float value = bezier_track_interpolate(rot_tracks["z"], time);
+				rot.z = value;
+			}
+			if (rot_tracks.has("w")) {
+				float value = bezier_track_interpolate(rot_tracks["w"], time);
+				rot.w = value;
+			}
+			track_insert_key(track_rot, time, rot.exp());
+		}
+	}
+	if (rot_tracks.has("w")) {
+		remove_track(rot_tracks["w"]);
+	}
+	if (rot_tracks.has("z")) {
+		remove_track(rot_tracks["z"]);
+	}
+	if (rot_tracks.has("y")) {
+		remove_track(rot_tracks["y"]);
+	}
+	if (rot_tracks.has("x")) {
+		remove_track(rot_tracks["x"]);
 	}
 }
 
