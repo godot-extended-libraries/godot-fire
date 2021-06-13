@@ -32,11 +32,9 @@
 #include "core/math/math_defs.h"
 #include "core/math/vector3.h"
 #include "scene/scene_string_names.h"
-
 #include "core/math/geometry.h"
 #include "modules/keyframe_reduce/keyframe_reduce.h"
-#include "thirdparty/boost/math/interpolators/makima.hpp"
-
+#include "modules/keyframe_reduce/thirdparty/boost/math/interpolators/makima.hpp"
 #define ANIM_MIN_LENGTH 0.001
 
 bool Animation::_set(const StringName &p_name, const Variant &p_value) {

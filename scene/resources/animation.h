@@ -69,10 +69,12 @@ public:
 		BEZIER_TRACK_SCALE_X,
 		BEZIER_TRACK_SCALE_Y,
 		BEZIER_TRACK_SCALE_Z,
-		BEZIER_TRACK_ROT_X,
-		BEZIER_TRACK_ROT_Y,
-		BEZIER_TRACK_ROT_Z,
-		BEZIER_TRACK_ROT_W,
+		BEZIER_TRACK_ROT_X0,
+		BEZIER_TRACK_ROT_X1,
+		BEZIER_TRACK_ROT_X2,
+		BEZIER_TRACK_ROT_Y0,
+		BEZIER_TRACK_ROT_Y1,
+		BEZIER_TRACK_ROT_Y2,
 	};
 
 private:
@@ -287,7 +289,17 @@ private:
 	bool _quat_track_optimize_key(const TKey<Variant> &t0, const TKey<Variant> &t1, const TKey<Variant> &t2, float p_alowed_linear_err, float p_alowed_angular_err, float p_max_optimizable_angle);
 	void _convert_bezier(int32_t p_idx, real_t p_allowed_linear_err, real_t p_allowed_angular_err, real_t p_max_optimizable_angle);
 	void _convert_blendshapes(int32_t p_idx, float p_allowed_linear_err, float p_allowed_angular_err, float p_max_optimizable_angle);
-
+	Basis compute_rotation_matrix_from_ortho_6d(Vector3 x_raw, Vector3 y_raw) {
+		Vector3 x = x_raw.normalized();
+		Vector3 z = x.cross(y_raw);
+		z = z.normalized();
+		Vector3 y = z.cross(x);
+		Basis basis;
+		basis.set_axis(Vector3::AXIS_X, x);
+		basis.set_axis(Vector3::AXIS_Y, y);
+		basis.set_axis(Vector3::AXIS_Z, z);
+		return basis;
+	}
 protected:
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;
