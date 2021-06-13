@@ -35,6 +35,7 @@
 
 #include "core/math/geometry.h"
 #include "modules/keyframe_reduce/keyframe_reduce.h"
+#include "thirdparty/boost/math/interpolators/makima.hpp"
 
 #define ANIM_MIN_LENGTH 0.001
 
@@ -2413,45 +2414,59 @@ float Animation::bezier_track_interpolate(int p_track, float p_time) const {
 	if (idx < 0) {
 		return bt->values[0].value.value;
 	}
-
 	if (idx >= bt->values.size() - 1) {
 		return bt->values[bt->values.size() - 1].value.value;
 	}
+	if (idx >= bt->values.size() - 4) {
+		float t = p_time - bt->values[idx].time;
+		int iterations = 10;
 
-	float t = p_time - bt->values[idx].time;
+		float duration = bt->values[idx + 1].time - bt->values[idx].time; // time duration between our two keyframes
+		float low = 0; // 0% of the current animation segment
+		float high = 1; // 100% of the current animation segment
+		float middle;
 
-	int iterations = 10;
+		Vector2 start(0, bt->values[idx].value.value);
+		Vector2 start_out = start + bt->values[idx].value.out_handle;
+		Vector2 end(duration, bt->values[idx + 1].value.value);
+		Vector2 end_in = end + bt->values[idx + 1].value.in_handle;
 
-	float duration = bt->values[idx + 1].time - bt->values[idx].time; // time duration between our two keyframes
-	float low = 0; // 0% of the current animation segment
-	float high = 1; // 100% of the current animation segment
-	float middle;
+		//narrow high and low as much as possible
+		for (int i = 0; i < iterations; i++) {
 
-	Vector2 start(0, bt->values[idx].value.value);
-	Vector2 start_out = start + bt->values[idx].value.out_handle;
-	Vector2 end(duration, bt->values[idx + 1].value.value);
-	Vector2 end_in = end + bt->values[idx + 1].value.in_handle;
+			middle = (low + high) / 2;
 
-	//narrow high and low as much as possible
-	for (int i = 0; i < iterations; i++) {
+			Vector2 interp = _bezier_interp(middle, start, start_out, end_in, end);
 
-		middle = (low + high) / 2;
-
-		Vector2 interp = _bezier_interp(middle, start, start_out, end_in, end);
-
-		if (interp.x < t) {
-			low = middle;
-		} else {
-			high = middle;
+			if (interp.x < t) {
+				low = middle;
+			} else {
+				high = middle;
+			}
 		}
+
+		//interpolate the result:
+		Vector2 low_pos = _bezier_interp(low, start, start_out, end_in, end);
+		Vector2 high_pos = _bezier_interp(high, start, start_out, end_in, end);
+		float c = (t - low_pos.x) / (high_pos.x - low_pos.x);
+
+		return low_pos.linear_interpolate(high_pos, c).y;
 	}
 
-	//interpolate the result:
-	Vector2 low_pos = _bezier_interp(low, start, start_out, end_in, end);
-	Vector2 high_pos = _bezier_interp(high, start, start_out, end_in, end);
-	float c = (t - low_pos.x) / (high_pos.x - low_pos.x);
-
-	return low_pos.linear_interpolate(high_pos, c).y;
+	std::vector<double> x;
+	std::vector<double> y;
+	x.push_back(bt->values[idx].time);
+	x.push_back(bt->values[idx + 1].time);
+	x.push_back(bt->values[idx + 2].time);
+	x.push_back(bt->values[idx + 3].time);
+	x.push_back(bt->values[idx + 4].time);
+	y.push_back(bt->values[idx].value.value);
+	y.push_back(bt->values[idx + 1].value.value);
+	y.push_back(bt->values[idx + 2].value.value);
+	y.push_back(bt->values[idx + 3].value.value);
+	y.push_back(bt->values[idx + 4].value.value);
+	boost::math::interpolators::makima<std::vector<double> > spline = boost::math::interpolators::makima<std::vector<double> >(std::move(x), std::move(y));
+	return spline(p_time);
 }
 
 int Animation::audio_track_insert_key(int p_track, float p_time, const RES &p_stream, float p_start_offset, float p_end_offset) {
@@ -3276,10 +3291,12 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	types.push_back(BEZIER_TRACK_SCALE_X);
 	types.push_back(BEZIER_TRACK_SCALE_Y);
 	types.push_back(BEZIER_TRACK_SCALE_Z);
-	types.push_back(BEZIER_TRACK_ROT_X);
-	types.push_back(BEZIER_TRACK_ROT_Y);
-	types.push_back(BEZIER_TRACK_ROT_Z);
-	types.push_back(BEZIER_TRACK_ROT_W);
+	types.push_back(BEZIER_TRACK_ROT_X0);
+	types.push_back(BEZIER_TRACK_ROT_X1);
+	types.push_back(BEZIER_TRACK_ROT_X2);
+	types.push_back(BEZIER_TRACK_ROT_Y0);
+	types.push_back(BEZIER_TRACK_ROT_Y1);
+	types.push_back(BEZIER_TRACK_ROT_Y2);
 	Ref<BezierKeyframeReduce> reduce;
 	reduce.instance();
 	Map<String, int32_t> rot_tracks;
@@ -3293,8 +3310,13 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			real_t time = key.time;
 			Variant value = 0.0f;
 			Quat rot = key.value.rot;
-			rot.normalize();
-			rot = rot.log();
+			if (rot.w < 0.0f) {
+				rot = rot.inverse();
+			}
+			Basis basis = rot;
+			basis.orthonormalize();
+			Vector3 basis_x = basis.get_axis(Vector3::AXIS_X);
+			Vector3 basis_y = basis.get_axis(Vector3::AXIS_Y);
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
 				value = loc.x;
@@ -3319,26 +3341,30 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				Vector3 scale = key.value.scale;
 				value = scale.z;
 				new_path = path + "scale:z";
-			} else if (types[type_i] == BEZIER_TRACK_ROT_X) {
-				value = rot.x;
-				new_path = path + "rotation_quat_log:x";
-				rot_tracks.insert("x", get_track_count());
-				settings.max_error = p_allowed_angular_err;
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
-				value = rot.y;
-				new_path = path + "rotation_quat_log:y";
-				rot_tracks.insert("y", get_track_count());
-				settings.max_error = p_allowed_angular_err;
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
-				value = rot.z;
-				new_path = path + "rotation_quat_log:z";
-				rot_tracks.insert("z", get_track_count());
-				settings.max_error = p_allowed_angular_err;
-			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
-				value = rot.w;
-				new_path = path + "rotation_quat_log:w";
-				rot_tracks.insert("w", get_track_count());
-				settings.max_error = p_allowed_angular_err;
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X0) {
+				value = basis_x.x;
+				new_path = path + "rotation_basis:x0";
+				rot_tracks.insert("x0", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X1) {
+				value = basis_x.y;
+				new_path = path + "rotation_basis:x1";
+				rot_tracks.insert("x1", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X2) {
+				value = basis_x.z;
+				new_path = path + "rotation_basis:x2";
+				rot_tracks.insert("x2", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y0) {
+				value = basis_y.x;
+				new_path = path + "rotation_basis:y0";
+				rot_tracks.insert("y0", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y1) {
+				value = basis_y.y;
+				new_path = path + "rotation_basis:y1";
+				rot_tracks.insert("y1", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y2) {
+				value = basis_y.z;
+				new_path = path + "rotation_basis:y2";
+				rot_tracks.insert("y2", get_track_count());
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
@@ -3361,52 +3387,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			BezierKeyframeReduce::Bezier curve = out_curves[curve_i];
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
-	}
-	int32_t track_rot = add_track(TrackType::TYPE_VALUE);
-	track_set_path(track_rot, path + "rotation_quat");
-	track_set_interpolation_type(track_rot, InterpolationType::INTERPOLATION_CUBIC);
-	track_set_interpolation_loop_wrap(track_rot, true);
-	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
-		int32_t current_track = E->get();
-		if (current_track == -1) {
-			continue;
-		}
-		int32_t count = track_get_key_count(current_track);
-		for (int32_t key_i = 0; key_i < count; key_i++) {
-			float time = track_get_key_time(current_track, key_i);
-			Quat rot;
-			if (rot_tracks.has("x")) {
-				float value = bezier_track_interpolate(rot_tracks["x"], time);
-				rot.x = value;
-			}
-			if (rot_tracks.has("y")) {
-				float value = bezier_track_interpolate(rot_tracks["y"], time);
-				rot.y = value;
-			}
-			if (rot_tracks.has("z")) {
-				float value = bezier_track_interpolate(rot_tracks["z"], time);
-				rot.z = value;
-			}
-			if (rot_tracks.has("w")) {
-				float value = bezier_track_interpolate(rot_tracks["w"], time);
-				rot.w = value;
-			}
-			rot = rot.exp();
-			rot.normalize();
-			track_insert_key(track_rot, time, rot);
-		}
-	}
-	if (rot_tracks.has("w")) {
-		remove_track(rot_tracks["w"]);
-	}
-	if (rot_tracks.has("z")) {
-		remove_track(rot_tracks["z"]);
-	}
-	if (rot_tracks.has("y")) {
-		remove_track(rot_tracks["y"]);
-	}
-	if (rot_tracks.has("x")) {
-		remove_track(rot_tracks["x"]);
 	}
 }
 
