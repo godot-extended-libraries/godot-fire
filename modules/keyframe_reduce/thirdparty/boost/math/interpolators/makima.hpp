@@ -11,7 +11,7 @@
 #define BOOST_MATH_INTERPOLATORS_MAKIMA_HPP
 #include <memory>
 #include <cmath>
-#include "modules/keyframe_reduce/thirdparty/boost/math/interpolators/detail/cubic_hermite_detail.hpp"
+#include "detail/cubic_hermite_detail.hpp"
 
 namespace boost {
 namespace math {

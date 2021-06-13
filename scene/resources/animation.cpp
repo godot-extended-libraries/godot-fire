@@ -34,7 +34,7 @@
 #include "scene/scene_string_names.h"
 #include "core/math/geometry.h"
 #include "modules/keyframe_reduce/keyframe_reduce.h"
-#include "modules/keyframe_reduce/thirdparty/boost/math/interpolators/makima.hpp"
+
 #define ANIM_MIN_LENGTH 0.001
 
 bool Animation::_set(const StringName &p_name, const Variant &p_value) {
@@ -2450,9 +2450,8 @@ float Animation::bezier_track_interpolate(int p_track, float p_time) const {
 
 		return low_pos.linear_interpolate(high_pos, c).y;
 	}
-
-	std::vector<double> x;
-	std::vector<double> y;
+	Vector<real_t> x;
+	Vector<real_t> y;
 	x.push_back(bt->values[idx].time);
 	x.push_back(bt->values[idx + 1].time);
 	x.push_back(bt->values[idx + 2].time);
@@ -2463,8 +2462,8 @@ float Animation::bezier_track_interpolate(int p_track, float p_time) const {
 	y.push_back(bt->values[idx + 2].value.value);
 	y.push_back(bt->values[idx + 3].value.value);
 	y.push_back(bt->values[idx + 4].value.value);
-	boost::math::interpolators::makima<std::vector<double> > spline = boost::math::interpolators::makima<std::vector<double> >(std::move(x), std::move(y));
-	return spline(p_time);
+	// https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/
+	return interpolate_makima(p_time, x, y);
 }
 
 int Animation::audio_track_insert_key(int p_track, float p_time, const RES &p_stream, float p_start_offset, float p_end_offset) {
