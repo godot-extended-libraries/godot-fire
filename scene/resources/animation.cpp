@@ -3315,16 +3315,13 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	types.push_back(BEZIER_TRACK_ROT_Y0);
 	types.push_back(BEZIER_TRACK_ROT_Y1);
 	types.push_back(BEZIER_TRACK_ROT_Y2);
-	types.push_back(BEZIER_TRACK_ROT_Z0);
-	types.push_back(BEZIER_TRACK_ROT_Z1);
-	types.push_back(BEZIER_TRACK_ROT_Z2);
 	Ref<BezierKeyframeReduce> reduce;
 	reduce.instance();
 	Map<String, int32_t> rot_tracks;
 	for (int type_i = 0; type_i < types.size(); type_i++) {
 		Vector<BezierKeyframeReduce::Bezier> curves;
 		NodePath new_path;
-		BezierKeyframeReduce::KeyframeReductionSetting settings;		
+		BezierKeyframeReduce::KeyframeReductionSetting settings;
 		// Magic number from https://bitsquid.blogspot.com/2009/11/bitsquid-low-level-animation-system.html
 		settings.max_error = 0.0014;
 		for (int transform_i = 0; transform_i < tt->transforms.size(); transform_i++) {
@@ -3382,18 +3379,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				value = basis.get_row(1).z;
 				new_path = path + "rotation_basis:y2";
 				rot_tracks.insert("y2", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Z0) {
-				value = basis.get_row(2).x;
-				new_path = path + "rotation_basis:z0";
-				rot_tracks.insert("z0", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Z1) {
-				value = basis.get_row(2).y;
-				new_path = path + "rotation_basis:z1";
-				rot_tracks.insert("z1", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Z2) {
-				value = basis.get_row(2).z;
-				new_path = path + "rotation_basis:z2";
-				rot_tracks.insert("z2", get_track_count());
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
@@ -3429,74 +3414,36 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		int32_t count = track_get_key_count(current_track);
 		for (int32_t key_i = 0; key_i < count; key_i++) {
 			float time = track_get_key_time(current_track, key_i);
-			Basis rot;
+			Vector3 axis_x;
+			Vector3 axis_y;
 			if (rot_tracks.has("x0")) {
 				float value = bezier_track_interpolate(rot_tracks["x0"], time);
-				Vector3 row = rot.get_row(0);
-				row.x = value;
-				rot.set_row(0, row);
+				axis_x.x = value;
 			}
 			if (rot_tracks.has("x1")) {
 				float value = bezier_track_interpolate(rot_tracks["x1"], time);
-				Vector3 row = rot.get_row(0);
-				row.y = value;
-				rot.set_row(0, row);
+				axis_x.y = value;
 			}
 			if (rot_tracks.has("x2")) {
 				float value = bezier_track_interpolate(rot_tracks["x2"], time);
-				Vector3 row = rot.get_row(0);
-				row.z = value;
-				rot.set_row(0, row);
+				axis_x.z = value;
 			}
 			if (rot_tracks.has("y0")) {
 				float value = bezier_track_interpolate(rot_tracks["y0"], time);
-				Vector3 row = rot.get_row(1);
-				row.x = value;
-				rot.set_row(1, row);
+				axis_y.x = value;
 			}
 			if (rot_tracks.has("y1")) {
 				float value = bezier_track_interpolate(rot_tracks["y1"], time);
-				Vector3 row = rot.get_row(1);
-				row.y = value;
-				rot.set_row(1, row);
+				axis_y.y = value;
 			}
 			if (rot_tracks.has("y2")) {
 				float value = bezier_track_interpolate(rot_tracks["y2"], time);
-				Vector3 row = rot.get_row(1);
-				row.z = value;
-				rot.set_row(1, row);
+				axis_y.z = value;
 			}
-			if (rot_tracks.has("z0")) {
-				float value = bezier_track_interpolate(rot_tracks["z0"], time);
-				Vector3 row = rot.get_row(2);
-				row.x = value;
-				rot.set_row(2, row);
-			}
-			if (rot_tracks.has("z1")) {
-				float value = bezier_track_interpolate(rot_tracks["z1"], time);
-				Vector3 row = rot.get_row(2);
-				row.y = value;
-				rot.set_row(2, row);
-			}
-			if (rot_tracks.has("z2")) {
-				float value = bezier_track_interpolate(rot_tracks["z2"], time);
-				Vector3 row = rot.get_row(2);
-				row.z = value;
-				rot.set_row(2, row);
-			}
-			Quat quat = rot.get_rotation_quat();
-			quat = quat.slerp(Quat(), 0.0f);
+			Basis basis = compute_rotation_matrix_from_ortho_6d(axis_x, axis_y);
+			Quat quat = basis.get_rotation_quat();
 			track_insert_key(track_rot_quat, time, quat);
 		}
-	}
-	if (rot_tracks.has("z2")) {
-		remove_track(rot_tracks["z2"]);
-	}
-	if (rot_tracks.has("z1")) {
-		remove_track(rot_tracks["z1"]);
-	}
-	if (rot_tracks.has("z0")) {
-		remove_track(rot_tracks["z0"]);
 	}
 	if (rot_tracks.has("y2")) {
 		remove_track(rot_tracks["y2"]);
