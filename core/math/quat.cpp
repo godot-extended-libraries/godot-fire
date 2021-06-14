@@ -31,6 +31,7 @@
 #include "quat.h"
 
 #include "core/math/basis.h"
+#include "core/math/math_defs.h"
 #include "core/print_string.h"
 
 // set_euler_xyz expects a vector containing the Euler angles in the format
@@ -219,16 +220,118 @@ Quat Quat::slerpni(const Quat &p_to, const real_t &p_weight) const {
 			invFactor * from.w + newFactor * p_to.w);
 }
 
-Quat Quat::cubic_slerp(const Quat &p_b, const Quat &p_pre_a, const Quat &p_post_b, const real_t &p_weight) const {
+Quat Quat::cubic_slerp(const Quat &p_q, const Quat &p_prep, const Quat &p_postq, const real_t &p_t) const {
 #ifdef MATH_CHECKS
 	ERR_FAIL_COND_V_MSG(!is_normalized(), Quat(), "The start quaternion must be normalized.");
-	ERR_FAIL_COND_V_MSG(!p_b.is_normalized(), Quat(), "The end quaternion must be normalized.");
+	ERR_FAIL_COND_V_MSG(!p_q.is_normalized(), Quat(), "The end quaternion must be normalized.");
 #endif
-	//the only way to do slerp :|
-	real_t t2 = (1.0 - p_weight) * p_weight * 2;
-	Quat sp = this->slerp(p_b, p_weight);
-	Quat sq = p_pre_a.slerpni(p_post_b, p_weight);
-	return sp.slerpni(sq, t2);
+	// Modify quaternions for shortest path
+	// https://math.stackexchange.com/questions/2650188/super-confused-by-squad-algorithm-for-quaternion-interpolation
+	const Quat q_a = *this;
+	Quat prep = (q_a - p_prep).length_squared() < (q_a + p_prep).length_squared() ? p_prep : p_prep * -1.0f;
+	Quat q_b = (q_a - p_q).length_squared() < (q_a + p_q).length_squared() ? p_q : p_q * -1.0f;
+	Quat postq = (p_q - p_postq).length_squared() < (p_q + p_postq).length_squared() ? p_postq : p_postq * -1.0f;
+
+	return prep.spline_segment(q_a, q_b, postq, p_t);
+}
+
+Quat Quat::squad(const Quat p_a, const Quat p_b, const Quat p_post, const float p_t) const {
+	Quat pre = *this;
+	float slerp_t = 2.0 * p_t * (1.0 - p_t);
+	Quat slerp_1 = pre.slerpni(p_post, p_t);
+	Quat slerp_2 = p_a.slerpni(p_b, p_t);
+	return slerp_1.slerpni(slerp_2, slerp_t);
+}
+
+Quat Quat::log() const {
+	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
+	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
+	real_t v_norm = Vector3(x, y, z).length();
+	real_t q_norm = (*this).length();
+	real_t tolerance = 1e-17;
+	if (q_norm < tolerance) {
+		Vector3 vec = Vector3(x, y, z);
+		vec *= NAN;
+		return Quat(vec.x, vec.y, vec.z, -INFINITY);
+	}
+	if (v_norm < tolerance) {
+		q_norm = Math::log(q_norm);
+		// real quaternions - no imaginary part
+		return Quat(0.0f, 0.0f, 0.0f, Math::log(q_norm));
+	}
+	Vector3 vec = Vector3(x, y, z) / v_norm;
+	vec = acos(w / q_norm) * vec;
+	return Quat(vec.x, vec.y, vec.z, Math::log(q_norm));
+}
+
+Quat Quat::log_map(Quat p_p) const {
+	// Returns tangent vector
+	// TODO 2021-06-13 fire Unit test
+	// Quat q = Quat(Vector3(1.0f, 0.0f, 0.0f), Math_PI);
+	// Quat log_q = q.log();
+	// ERR_FAIL_COND_V(!log_q.is_equal_approx(Quat(Math_PI / 2.0f, 0.0f, 0.0f, 0.0f)), Quat());
+
+	Quat rot = (*this);
+	rot = (rot.inverse() * p_p).log();
+	return rot;
+}
+
+Quat Quat::exp_map(Quat p_p) const {
+	// Returns orientation
+	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
+	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
+	// https://github.com/KieranWynn/pyquaternion
+
+	// TODO 2021-06-13 fire Unit test
+	// Quat q = Quat(Vector3(1.0f, 0.0f, 0.0f), Math_PI);
+	// Quat log_q = q.exp();
+	// Quat q_multi = Quat(Math::sin(1.f), 0.f, 0.f, Math::cos(1.0f));
+	// q_multi.x *= Math::exp(0.0f);
+	// q_multi.y *= Math::exp(0.0f);
+	// q_multi.z *= Math::exp(0.0f);
+	// q_multi.w *= Math::exp(0.0f);
+	// ERR_FAIL_COND_V(!log_q.is_equal_approx(q_multi), Quat());
+
+	Quat rot = (*this) * p_p.exp();
+	Vector3 vec = Vector3(x, y, z);
+	real_t v_norm = vec.length();
+	if (Math::is_zero_approx(v_norm)) {
+		return Quat();
+	}
+	rot.normalize();
+	return rot;
+}
+
+Quat Quat::exp() const {
+	Vector3 vec = Vector3(x, y, z);
+	real_t v_norm = vec.length();
+	if (!Math::is_zero_approx(v_norm)) {
+		vec = vec / v_norm;
+	}
+	real_t magnitude = Math::exp(w);
+	vec = magnitude * sin(v_norm) * vec;
+	Quat rot = Quat(vec.x, vec.y, vec.z, magnitude * cos(v_norm));
+	return rot;
+}
+
+Quat Quat::intermediate(Quat p_a, Quat p_b) const {
+	Quat a_inv = p_a.inverse();
+	Quat c_1 = a_inv * p_b;
+	Quat c_2 = a_inv * (*this);
+	c_1 = c_1.log();
+	c_2 = c_2.log();
+	Quat c_3 = c_2 + c_1;
+	c_3 = c_3 * -0.25f;
+	c_3 = c_3.exp();
+	Quat r = p_a * c_3;
+	return r.normalized();
+}
+
+Quat Quat::spline_segment(const Quat p_a, const Quat p_b, const Quat p_post, const float p_t) const {
+	Quat pre = *this;
+	Quat q_a = pre.intermediate(p_a, p_b);
+	Quat q_b = p_a.intermediate(p_b, p_post);
+	return p_a.squad(q_a, q_b, p_b, p_t);
 }
 
 Quat::operator String() const {
