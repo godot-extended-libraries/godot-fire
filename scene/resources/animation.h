@@ -69,10 +69,15 @@ public:
 		BEZIER_TRACK_SCALE_X,
 		BEZIER_TRACK_SCALE_Y,
 		BEZIER_TRACK_SCALE_Z,
-		BEZIER_TRACK_ROT_X,
-		BEZIER_TRACK_ROT_Y,
-		BEZIER_TRACK_ROT_Z,
-		BEZIER_TRACK_ROT_W,
+		BEZIER_TRACK_ROT_X0,
+		BEZIER_TRACK_ROT_X1,
+		BEZIER_TRACK_ROT_X2,
+		BEZIER_TRACK_ROT_Y0,
+		BEZIER_TRACK_ROT_Y1,
+		BEZIER_TRACK_ROT_Y2,
+		BEZIER_TRACK_ROT_Z0,
+		BEZIER_TRACK_ROT_Z1,
+		BEZIER_TRACK_ROT_Z2,
 	};
 
 private:
@@ -298,6 +303,7 @@ private:
 		basis.set_axis(Vector3::AXIS_Z, z);
 		return basis;
 	}
+
 protected:
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;

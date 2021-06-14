@@ -3321,10 +3321,15 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	types.push_back(BEZIER_TRACK_SCALE_X);
 	types.push_back(BEZIER_TRACK_SCALE_Y);
 	types.push_back(BEZIER_TRACK_SCALE_Z);
-	types.push_back(BEZIER_TRACK_ROT_X);
-	types.push_back(BEZIER_TRACK_ROT_Y);
-	types.push_back(BEZIER_TRACK_ROT_Z);
-	types.push_back(BEZIER_TRACK_ROT_W);
+	types.push_back(BEZIER_TRACK_ROT_X0);
+	types.push_back(BEZIER_TRACK_ROT_X1);
+	types.push_back(BEZIER_TRACK_ROT_X2);
+	types.push_back(BEZIER_TRACK_ROT_Y0);
+	types.push_back(BEZIER_TRACK_ROT_Y1);
+	types.push_back(BEZIER_TRACK_ROT_Y2);
+	types.push_back(BEZIER_TRACK_ROT_Z0);
+	types.push_back(BEZIER_TRACK_ROT_Z1);
+	types.push_back(BEZIER_TRACK_ROT_Z2);
 	Ref<BezierKeyframeReduce> reduce;
 	reduce.instance();
 	Map<String, int32_t> rot_tracks;
@@ -3339,7 +3344,8 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			real_t time = key.time;
 			Variant value = 0.0f;
 			Quat rot = key.value.rot;
-			rot = rot.log_map();
+			rot.normalize();
+			Basis basis = rot;
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
 				value = loc.x;
@@ -3364,22 +3370,42 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				Vector3 scale = key.value.scale;
 				value = scale.z;
 				new_path = path + "scale:z";
-			} else if (types[type_i] == BEZIER_TRACK_ROT_X) {
-				value = rot.x;
-				new_path = path + "rotation_quat:x";
-				rot_tracks.insert("x", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
-				value = rot.y;
-				new_path = path + "rotation_quat:y";
-				rot_tracks.insert("y", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
-				value = rot.z;
-				new_path = path + "rotation_quat:z";
-				rot_tracks.insert("z", get_track_count());
-			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
-				value = 0.0f;
-				new_path = path + "rotation_quat:w";
-				rot_tracks.insert("w", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X0) {
+				value = basis.get_row(0).x;
+				new_path = path + "rotation_basis:x0";
+				rot_tracks.insert("x0", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X1) {
+				value = basis.get_row(0).y;
+				new_path = path + "rotation_basis:x1";
+				rot_tracks.insert("x1", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_X2) {
+				value = basis.get_row(0).z;
+				new_path = path + "rotation_basis:x2";
+				rot_tracks.insert("x2", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y0) {
+				value = basis.get_row(1).x;
+				new_path = path + "rotation_basis:y0";
+				rot_tracks.insert("y0", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y1) {
+				value = basis.get_row(1).y;
+				new_path = path + "rotation_basis:y1";
+				rot_tracks.insert("y1", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Y2) {
+				value = basis.get_row(1).z;
+				new_path = path + "rotation_basis:y2";
+				rot_tracks.insert("y2", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Z0) {
+				value = basis.get_row(2).x;
+				new_path = path + "rotation_basis:z0";
+				rot_tracks.insert("z0", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Z1) {
+				value = basis.get_row(2).y;
+				new_path = path + "rotation_basis:z1";
+				rot_tracks.insert("z1", get_track_count());
+			} else if (types[type_i] == BEZIER_TRACK_ROT_Z2) {
+				value = basis.get_row(2).z;
+				new_path = path + "rotation_basis:z2";
+				rot_tracks.insert("z2", get_track_count());
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");
 			}
@@ -3403,10 +3429,15 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
 	}
-	int32_t track_rot = add_track(TrackType::TYPE_VALUE);
-	track_set_path(track_rot, path + "rotation_quat");
-	track_set_interpolation_type(track_rot, InterpolationType::INTERPOLATION_CUBIC);
-	track_set_interpolation_loop_wrap(track_rot, true);
+	int32_t track_rot_degrees_x = add_track(TrackType::TYPE_BEZIER);
+	track_set_path(track_rot_degrees_x, path + "rotation_degrees:x");
+	track_set_interpolation_loop_wrap(track_rot_degrees_x, true);
+	int32_t track_rot_degrees_y = add_track(TrackType::TYPE_BEZIER);
+	track_set_path(track_rot_degrees_y, path + "rotation_degrees:y");
+	track_set_interpolation_loop_wrap(track_rot_degrees_y, true);
+	int32_t track_rot_degrees_z = add_track(TrackType::TYPE_BEZIER);
+	track_set_path(track_rot_degrees_z, path + "rotation_degrees:z");
+	track_set_interpolation_loop_wrap(track_rot_degrees_z, true);
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
 		int32_t current_track = E->get();
 		if (current_track == -1) {
@@ -3415,42 +3446,101 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		int32_t count = track_get_key_count(current_track);
 		for (int32_t key_i = 0; key_i < count; key_i++) {
 			float time = track_get_key_time(current_track, key_i);
-			Quat rot;
-			if (rot_tracks.has("x")) {
-				float value = bezier_track_interpolate(rot_tracks["x"], time);
-				rot.x = value;
+			Basis rot;
+			if (rot_tracks.has("x0")) {
+				float value = bezier_track_interpolate(rot_tracks["x0"], time);
+				Vector3 row = rot.get_row(0);
+				row.x = value;
+				rot.set_row(0, row);
 			}
-			if (rot_tracks.has("y")) {
-				float value = bezier_track_interpolate(rot_tracks["y"], time);
-				rot.y = value;
+			if (rot_tracks.has("x1")) {
+				float value = bezier_track_interpolate(rot_tracks["x1"], time);
+				Vector3 row = rot.get_row(0);
+				row.y = value;
+				rot.set_row(0, row);
 			}
-			if (rot_tracks.has("z")) {
-				float value = bezier_track_interpolate(rot_tracks["z"], time);
-				rot.z = value;
+			if (rot_tracks.has("x2")) {
+				float value = bezier_track_interpolate(rot_tracks["x2"], time);
+				Vector3 row = rot.get_row(0);
+				row.z = value;
+				rot.set_row(0, row);
 			}
-			if (rot_tracks.has("w")) {
-				float value = bezier_track_interpolate(rot_tracks["w"], time);
-				rot.w = value;
+			if (rot_tracks.has("y0")) {
+				float value = bezier_track_interpolate(rot_tracks["y0"], time);
+				Vector3 row = rot.get_row(1);
+				row.x = value;
+				rot.set_row(1, row);
 			}
-			rot = rot.exp_map();
-			rot.normalize();
-			track_insert_key(track_rot, time, rot);
+			if (rot_tracks.has("y1")) {
+				float value = bezier_track_interpolate(rot_tracks["y1"], time);
+				Vector3 row = rot.get_row(1);
+				row.y = value;
+				rot.set_row(1, row);
+			}
+			if (rot_tracks.has("y2")) {
+				float value = bezier_track_interpolate(rot_tracks["y2"], time);
+				Vector3 row = rot.get_row(1);
+				row.z = value;
+				rot.set_row(1, row);
+			}
+			if (rot_tracks.has("z0")) {
+				float value = bezier_track_interpolate(rot_tracks["z0"], time);
+				Vector3 row = rot.get_row(2);
+				row.x = value;
+				rot.set_row(2, row);
+			}
+			if (rot_tracks.has("z1")) {
+				float value = bezier_track_interpolate(rot_tracks["z1"], time);
+				Vector3 row = rot.get_row(2);
+				row.y = value;
+				rot.set_row(2, row);
+			}
+			if (rot_tracks.has("z2")) {
+				float value = bezier_track_interpolate(rot_tracks["z2"], time);
+				Vector3 row = rot.get_row(2);
+				row.z = value;
+				rot.set_row(2, row);
+			}
+			Quat quat = rot.get_rotation_quat();
+			quat = quat.slerp(Quat(), 0.0f);
+			Vector3 rot_euler = quat.get_euler();
+			Vector3 rot_degrees;
+			rot_degrees.x = Math::rad2deg(rot_euler.x);
+			rot_degrees.y = Math::rad2deg(rot_euler.y);
+			rot_degrees.z = Math::rad2deg(rot_euler.z);
+			bezier_track_insert_key(track_rot_degrees_x, time, rot_degrees.x, Vector2(), Vector2());
+			bezier_track_insert_key(track_rot_degrees_y, time, rot_degrees.y, Vector2(), Vector2());
+			bezier_track_insert_key(track_rot_degrees_z, time, rot_degrees.z, Vector2(), Vector2());
 		}
 	}
-	if (rot_tracks.has("w")) {
-		remove_track(rot_tracks["w"]);
+	if (rot_tracks.has("z2")) {
+		remove_track(rot_tracks["z2"]);
 	}
-	if (rot_tracks.has("z")) {
-		remove_track(rot_tracks["z"]);
+	if (rot_tracks.has("z1")) {
+		remove_track(rot_tracks["z1"]);
 	}
-	if (rot_tracks.has("y")) {
-		remove_track(rot_tracks["y"]);
+	if (rot_tracks.has("z0")) {
+		remove_track(rot_tracks["z0"]);
 	}
-	if (rot_tracks.has("x")) {
-		remove_track(rot_tracks["x"]);
+	if (rot_tracks.has("y2")) {
+		remove_track(rot_tracks["y2"]);
+	}
+	if (rot_tracks.has("y1")) {
+		remove_track(rot_tracks["y1"]);
+	}
+	if (rot_tracks.has("y0")) {
+		remove_track(rot_tracks["y0"]);
+	}
+	if (rot_tracks.has("x2")) {
+		remove_track(rot_tracks["x2"]);
+	}
+	if (rot_tracks.has("x1")) {
+		remove_track(rot_tracks["x1"]);
+	}
+	if (rot_tracks.has("x0")) {
+		remove_track(rot_tracks["x0"]);
 	}
 }
-
 void Animation::_transform_track_bezier_optimize(int p_idx, float p_allowed_linear_err, float p_allowed_angular_err, float p_max_optimizable_angle) {
 	ERR_FAIL_INDEX(p_idx, tracks.size());
 	ERR_FAIL_COND(tracks[p_idx]->type != TYPE_TRANSFORM);
