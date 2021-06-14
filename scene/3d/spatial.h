@@ -147,11 +147,9 @@ public:
 	Spatial *get_parent_spatial() const;
 
 	Ref<World> get_world() const;
-
 	void set_translation(const Vector3 &p_translation);
 	void set_rotation(const Vector3 &p_euler_rad);
 	void set_rotation_degrees(const Vector3 &p_euler_deg);
-	void set_rotation_quat_exp_map(const Quat &p_quat);
 	void set_rotation_quat(const Quat &p_quat);
 
 	void set_scale(const Vector3 &p_scale);
@@ -160,7 +158,6 @@ public:
 	Vector3 get_rotation() const;
 	Vector3 get_rotation_degrees() const;
 	Quat get_rotation_quat() const;
-	Quat get_rotation_quat_exp_map() const;
 	Vector3 get_scale() const;
 
 	void set_transform(const Transform &p_transform);
