@@ -31,6 +31,7 @@
 #include "animation.h"
 #include "core/math/geometry.h"
 #include "core/math/math_defs.h"
+#include "core/math/plane.h"
 #include "core/math/vector3.h"
 #include "modules/keyframe_reduce/keyframe_reduce.h"
 #include "scene/scene_string_names.h"
@@ -3288,8 +3289,6 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	for (int type_i = 0; type_i < types.size(); type_i++) {
 		Vector<BezierKeyframeReduce::Bezier> curves;
 		NodePath new_path;
-		BezierKeyframeReduce::KeyframeReductionSetting settings;
-		// Magic number from https://bitsquid.blogspot.com/2009/11/bitsquid-low-level-animation-system.html
 		for (int transform_i = 0; transform_i < tt->transforms.size(); transform_i++) {
 			const TKey<TransformKey> &key = tt->transforms[transform_i];
 			real_t time = key.time;
@@ -3343,6 +3342,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			curves.push_back(BezierKeyframeReduce::Bezier(point, Vector2(), Vector2()));
 		}
 		Vector<BezierKeyframeReduce::Bezier> out_curves;
+		BezierKeyframeReduce::KeyframeReductionSetting settings;
 		real_t rate = reduce->reduce(curves, out_curves, settings);
 		String full_node = String(new_path).split(":")[0];
 		String property = String(new_path).trim_prefix(full_node + ":");

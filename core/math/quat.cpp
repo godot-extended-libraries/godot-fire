@@ -31,6 +31,7 @@
 #include "quat.h"
 
 #include "core/math/basis.h"
+#include "core/math/math_defs.h"
 #include "core/print_string.h"
 
 // set_euler_xyz expects a vector containing the Euler angles in the format
@@ -244,13 +245,17 @@ Quat Quat::squad(const Quat p_a, const Quat p_b, const Quat p_post, const float 
 
 Quat Quat::log() const {
 	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
-	Vector3 v_norm = Vector3(x, y, z).normalized();
-	float q_norm = w;
-	if (Math::is_zero_approx(q_norm)) {
-		// Undefined
-		Vector3 vec = Vector3(NAN, NAN, NAN) * Vector3(x, y, z);
+	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
+	real_t v_norm = Vector3(x, y, z).length();
+	real_t q_norm = (*this).length();
+	real_t tolerance = 1e-17;
+	if (q_norm < tolerance) {
+		Vector3 vec = Vector3(x, y, z);
+		vec *= NAN;
 		return Quat(vec.x, vec.y, vec.z, -INFINITY);
-	} else {
+	}
+	if (v_norm < tolerance) {
+		q_norm = Math::log(q_norm);
 		// real quaternions - no imaginary part
 		return Quat(0.0f, 0.0f, 0.0f, Math::log(q_norm));
 	}
@@ -260,18 +265,44 @@ Quat Quat::log() const {
 }
 
 Quat Quat::log_map(Quat p_p) const {
-	// A tangent vector having the length and direction given by the geodesic joining this quat and eta.
+	// Returns tangent vector
+	// TODO 2021-06-13 fire Unit test
+	// Quat q = Quat(Vector3(1.0f, 0.0f, 0.0f), Math_PI);
+	// Quat log_q = q.log();
+	// ERR_FAIL_COND_V(!log_q.is_equal_approx(Quat(Math_PI / 2.0f, 0.0f, 0.0f, 0.0f)), Quat());
+
+	Quat rot = (*this);
+	rot = (rot.inverse() * p_p).log();
+	return rot;
+}
+
+Quat Quat::exp_map(Quat p_p) const {
+	// Returns orientation
 	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
 	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
 	// https://github.com/KieranWynn/pyquaternion
-	return ((*this).inverse() * p_p).log();
+
+	// TODO 2021-06-13 fire Unit test
+	// Quat q = Quat(Vector3(1.0f, 0.0f, 0.0f), Math_PI);
+	// Quat log_q = q.exp();
+	// Quat q_multi = Quat(Math::sin(1.f), 0.f, 0.f, Math::cos(1.0f));
+	// q_multi.x *= Math::exp(0.0f);
+	// q_multi.y *= Math::exp(0.0f);
+	// q_multi.z *= Math::exp(0.0f);
+	// q_multi.w *= Math::exp(0.0f);
+	// ERR_FAIL_COND_V(!log_q.is_equal_approx(q_multi), Quat());
+
+	Quat rot = (*this) * p_p.exp();
+	Vector3 vec = Vector3(x, y, z);
+	real_t v_norm = vec.length();
+	if (Math::is_zero_approx(v_norm)) {
+		return Quat();
+	}
+	rot.normalize();
+	return rot;
 }
 
-Quat Quat::exp_map(Quat p_eta) const {
-	return (*this).exp(p_eta);
-}
-
-Quat Quat::exp(Quat p_eta) const {
+Quat Quat::exp() const {
 	Vector3 vec = Vector3(x, y, z);
 	real_t v_norm = vec.length();
 	if (!Math::is_zero_approx(v_norm)) {
@@ -279,7 +310,8 @@ Quat Quat::exp(Quat p_eta) const {
 	}
 	real_t magnitude = Math::exp(w);
 	vec = magnitude * sin(v_norm) * vec;
-	return Quat(vec.x, vec.y, vec.z, magnitude * cos(v_norm));
+	Quat rot = Quat(vec.x, vec.y, vec.z, magnitude * cos(v_norm));
+	return rot;
 }
 
 Quat Quat::intermediate(Quat p_a, Quat p_b) const {
@@ -290,7 +322,7 @@ Quat Quat::intermediate(Quat p_a, Quat p_b) const {
 	c_2 = c_2.log();
 	Quat c_3 = c_2 + c_1;
 	c_3 = c_3 * -0.25f;
-	c_3 = c_3.exp_map();
+	c_3 = c_3.exp();
 	Quat r = p_a * c_3;
 	return r.normalized();
 }

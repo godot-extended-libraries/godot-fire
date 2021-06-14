@@ -387,12 +387,14 @@ Vector3 Spatial::get_rotation_degrees() const {
 }
 
 Quat Spatial::get_rotation_quat_exp_map() const {
-	return data.local_transform.basis.get_rotation_quat().log_map();
+	Quat rot = data.local_transform.basis.get_rotation_quat();
+	return rot.log_map();
 }
 
 void Spatial::set_rotation_quat_exp_map(const Quat &p_quat) {
+	Quat rot = p_quat.exp_map();
+	rot.normalize();
 	Transform xform = get_transform();
-	Quat rot = p_quat.exp_map(p_quat);
 	xform.basis.set_quat_scale(rot, get_scale());
 	set_transform(xform);
 }

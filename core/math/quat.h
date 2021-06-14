@@ -79,8 +79,8 @@ public:
 	// Returns a smooth approximation between the current quaternion and post using a and b as 'tangents'
 	Quat squad(const Quat p_a, const Quat p_b, const Quat p_post, const float p_t) const;
 	Quat log() const;
-	Quat exp(Quat p_eta = Quat()) const;
-	Quat exp_map(Quat p_eta = Quat()) const;
+	Quat exp() const;
+	Quat exp_map(Quat p_p = Quat()) const;
 	Quat log_map(Quat p_p = Quat()) const;
 
 	// Tries to compute sensible tangent values for the quaternion
