@@ -31,6 +31,7 @@
 #include "spatial.h"
 
 #include "core/engine.h"
+#include "core/math/math_defs.h"
 #include "core/message_queue.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
@@ -704,6 +705,15 @@ Vector3 Spatial::to_local(Vector3 p_global) const {
 	return get_global_transform().affine_inverse().xform(p_global);
 }
 
+void Spatial::set_rotation_degrees(const Vector3 &p_euler_deg) {
+
+	set_rotation(p_euler_deg * Math_PI / 180.0);
+}
+
+Vector3 Spatial::get_rotation_degrees() const {
+	return get_rotation() * 180.0 / Math_PI;
+}
+
 Vector3 Spatial::to_global(Vector3 p_local) const {
 
 	return get_global_transform().xform(p_local);
@@ -810,7 +820,6 @@ void Spatial::_bind_methods() {
 	ADD_GROUP("Transform", "");
 	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM, "global_transform", PROPERTY_HINT_NONE, "", 0), "set_global_transform", "get_global_transform");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "translation", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_translation", "get_translation");
-	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "rotation_degrees", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_degrees", "get_rotation_degrees");
 	ADD_PROPERTY(PropertyInfo(Variant::QUAT, "rotation_quat", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_quat", "get_rotation_quat");
 	ADD_PROPERTY(PropertyInfo(Variant::QUAT, "rotation_basis", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_basis", "get_rotation_basis");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "rotation", PROPERTY_HINT_NONE, "", 0), "set_rotation", "get_rotation");
