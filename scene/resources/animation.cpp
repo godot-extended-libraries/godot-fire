@@ -3377,7 +3377,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				new_path = path + "rotation_quat:z";
 				rot_tracks.insert("z", get_track_count());
 			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
-				value = rot.w;
+				value = 0.0f;
 				new_path = path + "rotation_quat:w";
 				rot_tracks.insert("w", get_track_count());
 			} else {
