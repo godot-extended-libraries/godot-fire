@@ -3419,7 +3419,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 	}
 	int32_t track_rot_quat = add_track(TrackType::TYPE_VALUE);
 	track_set_path(track_rot_quat, path + "rotation_quat");
-	track_set_interpolation_type(track_rot_quat, InterpolationType::INTERPOLATION_CUBIC);
+	track_set_interpolation_type(track_rot_quat, InterpolationType::INTERPOLATION_LINEAR);
 	track_set_interpolation_loop_wrap(track_rot_quat, true);
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
 		int32_t current_track = E->get();
