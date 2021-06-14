@@ -35,8 +35,8 @@
 #include "modules/keyframe_reduce/keyframe_reduce.h"
 #include "scene/scene_string_names.h"
 
-#include "thirdparty/geometrics/Mathematics/IntpAkimaNonuniform1.h"
 #include "core/math/geometry.h"
+#include "thirdparty/geometrics/Mathematics/IntpAkimaNonuniform1.h"
 #define ANIM_MIN_LENGTH 0.001
 
 bool Animation::_set(const StringName &p_name, const Variant &p_value) {
@@ -2417,7 +2417,7 @@ float Animation::bezier_track_interpolate(int p_track, float p_time) const {
 	if (idx >= bt->values.size() - 1) {
 		return bt->values[bt->values.size() - 1].value.value;
 	}
-	if (idx >= bt->values.size() - 4) {
+	if (idx >= bt->values.size() - 10) {
 		float t = p_time - bt->values[idx].time;
 		int iterations = 10;
 
@@ -2453,28 +2453,36 @@ float Animation::bezier_track_interpolate(int p_track, float p_time) const {
 		return low_pos.linear_interpolate(high_pos, c).y;
 	}
 	Vector<real_t> X;
-	int interpolation_len = 5;
+	int interpolation_len = 10;
 	X.resize(interpolation_len);
 	X.write[0] = bt->values[idx].time;
 	X.write[1] = bt->values[idx + 1].time;
 	X.write[2] = bt->values[idx + 2].time;
-	X.write[1] = bt->values[idx + 3].time;
-	X.write[2] = bt->values[idx + 4].time;
+	X.write[3] = bt->values[idx + 3].time;
+	X.write[4] = bt->values[idx + 4].time;
+	X.write[5] = bt->values[idx + 5].time;
+	X.write[6] = bt->values[idx + 6].time;
+	X.write[7] = bt->values[idx + 7].time;
+	X.write[8] = bt->values[idx + 8].time;
+	X.write[9] = bt->values[idx + 9].time;
 	Vector<real_t> F;
 	F.resize(interpolation_len);
 	F.write[0] = bt->values[idx].value.value;
 	F.write[1] = bt->values[idx + 1].value.value;
 	F.write[2] = bt->values[idx + 2].value.value;
-	F.write[1] = bt->values[idx + 3].value.value;
-	F.write[2] = bt->values[idx + 4].value.value;
+	F.write[3] = bt->values[idx + 3].value.value;
+	F.write[4] = bt->values[idx + 4].value.value;
+	F.write[5] = bt->values[idx + 5].value.value;
+	F.write[6] = bt->values[idx + 6].value.value;
+	F.write[7] = bt->values[idx + 7].value.value;
+	F.write[8] = bt->values[idx + 8].value.value;
+	F.write[9] = bt->values[idx + 9].value.value;
 
 	int i = 0, j = 0;
 	for (i = 1; i < interpolation_len; ++i) {
 		real_t temp_x = X[i];
 		real_t temp_f = F[i];
 		if (Math::is_nan(temp_x) || Math::is_nan(temp_f)) {
-			X.write[j] = 0.0f;
-			F.write[j] = 0.0f;
 			continue;
 		}
 		for (j = i; j > 0 && X[j - 1] > temp_x; --j) {
@@ -3329,8 +3337,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			real_t time = key.time;
 			Variant value = 0.0f;
 			Quat rot = key.value.rot;
-			rot.normalize();
-			rot = rot.log();
+			rot = rot.log_map();
 			if (types[type_i] == BEZIER_TRACK_LOC_X) {
 				Vector3 loc = key.value.loc;
 				value = loc.x;
@@ -3357,19 +3364,19 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				new_path = path + "scale:z";
 			} else if (types[type_i] == BEZIER_TRACK_ROT_X) {
 				value = rot.x;
-				new_path = path + "rotation_quat_log:x";
+				new_path = path + "rotation_quat_exp_map:x";
 				rot_tracks.insert("x", get_track_count());
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Y) {
 				value = rot.y;
-				new_path = path + "rotation_quat_log:y";
+				new_path = path + "rotation_quat_exp_map:y";
 				rot_tracks.insert("y", get_track_count());
 			} else if (types[type_i] == BEZIER_TRACK_ROT_Z) {
 				value = rot.z;
-				new_path = path + "rotation_quat_log:z";
+				new_path = path + "rotation_quat_exp_map:z";
 				rot_tracks.insert("z", get_track_count());
 			} else if (types[type_i] == BEZIER_TRACK_ROT_W) {
 				value = rot.w;
-				new_path = path + "rotation_quat_log:w";
+				new_path = path + "rotation_quat_exp_map:w";
 				rot_tracks.insert("w", get_track_count());
 			} else {
 				ERR_BREAK_MSG(true, "Animation: Unknown bezier type");

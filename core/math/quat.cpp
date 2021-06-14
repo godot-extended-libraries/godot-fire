@@ -244,37 +244,42 @@ Quat Quat::squad(const Quat p_a, const Quat p_b, const Quat p_post, const float 
 
 Quat Quat::log() const {
 	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
-	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
-	Vector3 vec = Vector3(x, y, z);
-	float angle = Math::acos(w);
-	float length = vec.length();
-	if (Math::is_zero_approx(length)) {
-		return Quat();
+	Vector3 v_norm = Vector3(x, y, z).normalized();
+	float q_norm = w;
+	if (Math::is_zero_approx(q_norm)) {
+		// Undefined
+		Vector3 vec = Vector3(NAN, NAN, NAN) * Vector3(x, y, z);
+		return Quat(vec.x, vec.y, vec.z, -INFINITY);
+	} else {
+		// real quaternions - no imaginary part
+		return Quat(0.0f, 0.0f, 0.0f, Math::log(q_norm));
 	}
-	vec = vec * angle / length;
-	Quat rot;
-	rot.x = vec.x;
-	rot.y = vec.y;
-	rot.z = vec.z;
-	rot.w = 0.0f;
-	return rot;
+	Vector3 vec = Vector3(x, y, z) / v_norm;
+	vec = acos(w / q_norm) * vec;
+	return Quat(vec.x, vec.y, vec.z, Math::log(q_norm));
 }
 
-Quat Quat::exp() const {
-	Quat rot = *this;
+Quat Quat::log_map(Quat p_p) const {
+	// A tangent vector having the length and direction given by the geodesic joining this quat and eta.
+	// http://www.cs.jhu.edu/~misha/Fall20/29.pdf Exponential map quat are guaranteed to be rotations
+	// https://math.stackexchange.com/questions/2552/the-logarithm-of-quaternion
+	// https://github.com/KieranWynn/pyquaternion
+	return ((*this).inverse() * p_p).log();
+}
 
-	float angle = rot.length();
-	float coeff = 0.0f;
+Quat Quat::exp_map(Quat p_eta) const {
+	return (*this).exp(p_eta);
+}
 
-	if (!Math::is_zero_approx(angle)) {
-		coeff = Math::sin(angle) / angle;
+Quat Quat::exp(Quat p_eta) const {
+	Vector3 vec = Vector3(x, y, z);
+	real_t v_norm = vec.length();
+	if (!Math::is_zero_approx(v_norm)) {
+		vec = vec / v_norm;
 	}
-	Quat result;
-	result.x = rot.x * coeff;
-	result.y = rot.y * coeff;
-	result.z = rot.z * coeff;
-	result.w = Math::cos(angle);
-	return result;
+	real_t magnitude = Math::exp(w);
+	vec = magnitude * sin(v_norm) * vec;
+	return Quat(vec.x, vec.y, vec.z, magnitude * cos(v_norm));
 }
 
 Quat Quat::intermediate(Quat p_a, Quat p_b) const {
@@ -285,7 +290,7 @@ Quat Quat::intermediate(Quat p_a, Quat p_b) const {
 	c_2 = c_2.log();
 	Quat c_3 = c_2 + c_1;
 	c_3 = c_3 * -0.25f;
-	c_3 = c_3.exp();
+	c_3 = c_3.exp_map();
 	Quat r = p_a * c_3;
 	return r.normalized();
 }
