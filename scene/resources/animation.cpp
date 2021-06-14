@@ -2418,7 +2418,7 @@ float Animation::bezier_track_interpolate(int p_track, float p_time) const {
 	if (idx >= bt->values.size() - 1) {
 		return bt->values[bt->values.size() - 1].value.value;
 	}
-	if (idx >= bt->values.size() - 10) {
+	if (idx >= bt->values.size() - 4) {
 		float t = p_time - bt->values[idx].time;
 		int iterations = 10;
 
@@ -2454,30 +2454,18 @@ float Animation::bezier_track_interpolate(int p_track, float p_time) const {
 		return low_pos.linear_interpolate(high_pos, c).y;
 	}
 	Vector<real_t> X;
-	int interpolation_len = 10;
+	int interpolation_len = 4;
 	X.resize(interpolation_len);
 	X.write[0] = bt->values[idx].time;
 	X.write[1] = bt->values[idx + 1].time;
 	X.write[2] = bt->values[idx + 2].time;
 	X.write[3] = bt->values[idx + 3].time;
-	X.write[4] = bt->values[idx + 4].time;
-	X.write[5] = bt->values[idx + 5].time;
-	X.write[6] = bt->values[idx + 6].time;
-	X.write[7] = bt->values[idx + 7].time;
-	X.write[8] = bt->values[idx + 8].time;
-	X.write[9] = bt->values[idx + 9].time;
 	Vector<real_t> F;
 	F.resize(interpolation_len);
 	F.write[0] = bt->values[idx].value.value;
 	F.write[1] = bt->values[idx + 1].value.value;
 	F.write[2] = bt->values[idx + 2].value.value;
 	F.write[3] = bt->values[idx + 3].value.value;
-	F.write[4] = bt->values[idx + 4].value.value;
-	F.write[5] = bt->values[idx + 5].value.value;
-	F.write[6] = bt->values[idx + 6].value.value;
-	F.write[7] = bt->values[idx + 7].value.value;
-	F.write[8] = bt->values[idx + 8].value.value;
-	F.write[9] = bt->values[idx + 9].value.value;
 
 	int i = 0, j = 0;
 	for (i = 1; i < interpolation_len; ++i) {
@@ -3290,7 +3278,7 @@ void Animation::_convert_blendshapes(int32_t p_idx, float p_allowed_linear_err, 
 	if (Math::is_equal_approx(rate, 0)) {
 		print_line("Animation: Unable to reduce " + short_path);
 	} else {
-		print_verbose("Animation: Reduced " + short_path + " to " + rtos(Math::stepify(rate * 100, 0.1f)) + "%");
+		print_line("Animation: Reduced " + short_path + " to " + rtos(Math::stepify(rate * 100, 0.1f)) + "%");
 	}
 	if (!out_curves.size()) {
 		return;
