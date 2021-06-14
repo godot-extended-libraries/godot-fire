@@ -151,12 +151,28 @@ public:
 	void set_rotation(const Vector3 &p_euler_rad);
 	void set_rotation_degrees(const Vector3 &p_euler_deg);
 	void set_rotation_quat(const Quat &p_quat);
+	void set_rotation_basis(const Basis &p_basis) {
+		if (data.dirty & DIRTY_VECTORS) {
+			data.scale = data.local_transform.basis.get_scale();
+			data.dirty &= ~DIRTY_VECTORS;
+		}
+		data.local_transform.basis = p_basis.scaled(data.scale);
+		data.dirty |= DIRTY_LOCAL;
+		_change_notify("transform");
+		_propagate_transform_changed(this);
+		if (data.notify_local_transform) {
+			notification(NOTIFICATION_LOCAL_TRANSFORM_CHANGED);
+		}
+	}
 
 	void set_scale(const Vector3 &p_scale);
 
 	Vector3 get_translation() const;
 	Vector3 get_rotation() const;
 	Vector3 get_rotation_degrees() const;
+	Basis get_rotation_basis() const {
+		return data.local_transform.basis.orthonormalized();
+	}
 	Quat get_rotation_quat() const;
 	Vector3 get_scale() const;
 

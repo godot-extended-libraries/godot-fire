@@ -3393,7 +3393,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		if (Math::is_equal_approx(rate, 0)) {
 			print_line("Animation: Unable to reduce " + short_path);
 		} else {
-			print_verbose("Animation: Reduced " + short_path + " to " + rtos(Math::stepify(rate * 100, 0.1f)) + "%");
+			print_line("Animation: Reduced " + short_path + " to " + rtos(Math::stepify(rate * 100, 0.1f)) + "%");
 		}
 		int32_t track = add_track(TrackType::TYPE_BEZIER);
 		track_set_path(track, new_path);
@@ -3403,7 +3403,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 		}
 	}
 	int32_t track_rot_quat = add_track(TrackType::TYPE_VALUE);
-	track_set_path(track_rot_quat, path + "rotation_quat");
+	track_set_path(track_rot_quat, path + "rotation_basis");
 	track_set_interpolation_type(track_rot_quat, InterpolationType::INTERPOLATION_LINEAR);
 	track_set_interpolation_loop_wrap(track_rot_quat, true);
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
@@ -3441,8 +3441,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 				axis_y.z = value;
 			}
 			Basis basis = compute_rotation_matrix_from_ortho_6d(axis_x, axis_y);
-			Quat quat = basis.get_rotation_quat();
-			track_insert_key(track_rot_quat, time, quat);
+			track_insert_key(track_rot_quat, time, basis);
 		}
 	}
 	if (rot_tracks.has("y2")) {

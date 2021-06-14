@@ -343,11 +343,6 @@ void Spatial::set_rotation(const Vector3 &p_euler_rad) {
 	}
 }
 
-void Spatial::set_rotation_degrees(const Vector3 &p_euler_deg) {
-
-	set_rotation(p_euler_deg * Math_PI / 180.0);
-}
-
 void Spatial::set_scale(const Vector3 &p_scale) {
 
 	if (data.dirty & DIRTY_VECTORS) {
@@ -379,11 +374,6 @@ Vector3 Spatial::get_rotation() const {
 	}
 
 	return data.rotation;
-}
-
-Vector3 Spatial::get_rotation_degrees() const {
-
-	return get_rotation() * 180.0 / Math_PI;
 }
 
 Quat Spatial::get_rotation_quat() const {
@@ -757,6 +747,8 @@ void Spatial::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_rotation_degrees"), &Spatial::get_rotation_degrees);
 	ClassDB::bind_method(D_METHOD("set_rotation_quat", "quat"), &Spatial::set_rotation_quat);
 	ClassDB::bind_method(D_METHOD("get_rotation_quat"), &Spatial::get_rotation_quat);
+	ClassDB::bind_method(D_METHOD("set_rotation_basis", "basis"), &Spatial::set_rotation_basis);
+	ClassDB::bind_method(D_METHOD("get_rotation_basis"), &Spatial::get_rotation_basis);
 	ClassDB::bind_method(D_METHOD("set_scale", "scale"), &Spatial::set_scale);
 	ClassDB::bind_method(D_METHOD("get_scale"), &Spatial::get_scale);
 	ClassDB::bind_method(D_METHOD("set_global_transform", "global"), &Spatial::set_global_transform);
@@ -820,6 +812,7 @@ void Spatial::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "translation", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_translation", "get_translation");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "rotation_degrees", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_degrees", "get_rotation_degrees");
 	ADD_PROPERTY(PropertyInfo(Variant::QUAT, "rotation_quat", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_quat", "get_rotation_quat");
+	ADD_PROPERTY(PropertyInfo(Variant::QUAT, "rotation_basis", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_rotation_basis", "get_rotation_basis");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "rotation", PROPERTY_HINT_NONE, "", 0), "set_rotation", "get_rotation");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "scale", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_scale", "get_scale");
 	ADD_GROUP("Matrix", "");
