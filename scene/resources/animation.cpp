@@ -3417,15 +3417,10 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			bezier_track_insert_key(track, curve.time_value.x, curve.time_value.y, curve.in_handle, curve.out_handle);
 		}
 	}
-	int32_t track_rot_degrees_x = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_x, path + "rotation_degrees:x");
-	track_set_interpolation_loop_wrap(track_rot_degrees_x, true);
-	int32_t track_rot_degrees_y = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_y, path + "rotation_degrees:y");
-	track_set_interpolation_loop_wrap(track_rot_degrees_y, true);
-	int32_t track_rot_degrees_z = add_track(TrackType::TYPE_BEZIER);
-	track_set_path(track_rot_degrees_z, path + "rotation_degrees:z");
-	track_set_interpolation_loop_wrap(track_rot_degrees_z, true);
+	int32_t track_rot_quat = add_track(TrackType::TYPE_VALUE);
+	track_set_path(track_rot_quat, path + "rotation_quat");
+	track_set_interpolation_type(track_rot_quat, InterpolationType::INTERPOLATION_CUBIC);
+	track_set_interpolation_loop_wrap(track_rot_quat, true);
 	for (Map<String, int32_t>::Element *E = rot_tracks.front(); E; E = E->next()) {
 		int32_t current_track = E->get();
 		if (current_track == -1) {
@@ -3491,14 +3486,7 @@ void Animation::_convert_bezier(int32_t p_idx, float p_allowed_linear_err, float
 			}
 			Quat quat = rot.get_rotation_quat();
 			quat = quat.slerp(Quat(), 0.0f);
-			Vector3 rot_euler = quat.get_euler();
-			Vector3 rot_degrees;
-			rot_degrees.x = Math::rad2deg(rot_euler.x);
-			rot_degrees.y = Math::rad2deg(rot_euler.y);
-			rot_degrees.z = Math::rad2deg(rot_euler.z);
-			bezier_track_insert_key(track_rot_degrees_x, time, rot_degrees.x, Vector2(), Vector2());
-			bezier_track_insert_key(track_rot_degrees_y, time, rot_degrees.y, Vector2(), Vector2());
-			bezier_track_insert_key(track_rot_degrees_z, time, rot_degrees.z, Vector2(), Vector2());
+			track_insert_key(track_rot_quat, time, quat);
 		}
 	}
 	if (rot_tracks.has("z2")) {
