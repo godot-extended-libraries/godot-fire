@@ -85,16 +85,16 @@ private:
 
 	// LibResample
 	SRC_STATE *libresample_state = nullptr;
-	int libresample_error;
+	int libresample_error = 0;
 
-	int64_t capture_discarded_frames;
-	int64_t capture_pushed_frames;
-	int32_t capture_ring_limit;
-	int32_t capture_ring_current_size;
-	int32_t capture_ring_max_size;
-	int64_t capture_ring_size_sum;
-	int32_t capture_get_calls;
-	int64_t capture_get_frames;
+	int64_t capture_discarded_frames = 0;
+	int64_t capture_pushed_frames = 0;
+	int32_t capture_ring_limit = 0;
+	int32_t capture_ring_current_size = 0;
+	int32_t capture_ring_max_size = 0;
+	int64_t capture_ring_size_sum = 0;
+	int32_t capture_get_calls = 0;
+	int64_t capture_get_frames = 0;
 
 public:
 	struct SpeechInput {
