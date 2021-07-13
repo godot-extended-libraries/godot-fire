@@ -57,7 +57,6 @@ class Speech : public Node {
 
 	int skipped_audio_packets = 0;
 
-	Node *voice_controller = nullptr; // TODO: rewrite this in C++
 	SpeechProcessor *speech_processor = nullptr;
 
 	struct InputPacket {
@@ -158,7 +157,6 @@ public:
 
 		ClassDB::bind_method(D_METHOD("set_streaming_bus", "bus"), &Speech::set_streaming_bus);
 		ClassDB::bind_method(D_METHOD("set_audio_input_stream_player", "player"), &Speech::set_audio_input_stream_player);
-		ClassDB::bind_method(D_METHOD("assign_voice_controller"), &Speech::assign_voice_controller);
 	}
 
 	int get_skipped_audio_packets() {
@@ -226,16 +224,9 @@ public:
 		if (speech_processor) {
 			speech_processor->stop();
 		}
-		if (voice_controller) {
-			if (voice_controller->has_method("clear_all_player_audio")) {
-				voice_controller->call("clear_all_player_audio");
-			}
+		if (has_method("clear_all_player_audio")) {
+			call("clear_all_player_audio");
 		}
-	}
-
-	// TODO: replace this with a C++ class, must be assigned externally for now
-	void assign_voice_controller(Node *p_voice_controller) {
-		voice_controller = p_voice_controller;
 	}
 
 	void _notification(int p_what) {
