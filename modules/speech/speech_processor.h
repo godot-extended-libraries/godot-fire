@@ -65,8 +65,8 @@ private:
 	OpusCodec *opus_codec = nullptr;
 
 private:
-	const uint32_t buffer_frame_count = voice_sample_rate / MILLISECONDS_PER_PACKET;
 	const uint32_t voice_sample_rate = 48000;
+	const uint32_t buffer_frame_count = voice_sample_rate / MILLISECONDS_PER_PACKET;
 	const uint32_t pcm_buffer_size = buffer_frame_count * BUFFER_BYTE_COUNT * CHANNEL_COUNT;
 	uint32_t record_mix_frames_processed = 0;
 

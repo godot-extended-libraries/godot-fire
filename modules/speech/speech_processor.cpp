@@ -342,7 +342,7 @@ Dictionary SpeechProcessor::get_stats() const {
 	return stats;
 }
 
-SpeechProcessor::SpeechProcessor() : {
+SpeechProcessor::SpeechProcessor() {
 	print_line(String("SpeechProcessor::SpeechProcessor"));
 	opus_codec = new OpusCodec(voice_sample_rate, CHANNEL_COUNT);
 
