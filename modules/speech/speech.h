@@ -31,6 +31,7 @@
 #ifndef STREAM_AUDIO_OPUS_H
 #define STREAM_AUDIO_OPUS_H
 
+#include "core/error/error_macros.h"
 #include "opus_codec.h"
 #include "thirdparty/libsamplerate/src/samplerate.h"
 
@@ -284,8 +285,8 @@ public:
 	}
 
 	Speech() {
-		preallocate_buffers();
 		speech_processor = memnew(SpeechProcessor);
+		preallocate_buffers();
 	};
 	~Speech(){};
 };
