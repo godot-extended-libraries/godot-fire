@@ -69,9 +69,9 @@ private:
 private:
 	uint32_t record_mix_frames_processed = 0;
 
-	AudioServer *audio_server = NULL;
-	AudioStreamPlayer *audio_input_stream_player = NULL;
-	Ref<AudioEffectCapture> audio_effect_capture = NULL;
+	AudioServer *audio_server = nullptr;
+	AudioStreamPlayer *audio_input_stream_player = nullptr;
+	Ref<AudioEffectCapture> audio_effect_capture = nullptr;
 
 	uint32_t mix_rate;
 	PackedByteArray mix_byte_array;
@@ -97,12 +97,12 @@ private:
 
 public:
 	struct SpeechInput {
-		PackedByteArray *pcm_byte_array = NULL;
+		PackedByteArray *pcm_byte_array = nullptr;
 		float volume = 0.0;
 	};
 
 	struct CompressedSpeechBuffer {
-		PackedByteArray *compressed_byte_array = NULL;
+		PackedByteArray *compressed_byte_array = nullptr;
 		int buffer_size = 0;
 	};
 
@@ -168,7 +168,7 @@ public:
 		if (opus_codec) {
 			return opus_codec->get_speech_decoder();
 		} else {
-			return NULL;
+			return nullptr;
 		}
 	}
 

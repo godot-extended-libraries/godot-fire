@@ -204,7 +204,7 @@ Dictionary SpeechProcessor::compress_buffer(const PackedByteArray &p_pcm_byte_ar
 		return p_output_buffer;
 	}
 
-	PackedByteArray *byte_array = NULL;
+	PackedByteArray *byte_array = nullptr;
 	if (!p_output_buffer.has("byte_array")) {
 		byte_array = (PackedByteArray *)&p_output_buffer["byte_array"];
 	}
@@ -319,7 +319,7 @@ void SpeechProcessor::_notification(int p_what) {
 			stop();
 			mix_byte_array.resize(0);
 
-			audio_server = NULL;
+			audio_server = nullptr;
 			//}
 			break;
 		case NOTIFICATION_PROCESS:
@@ -403,7 +403,7 @@ SpeechProcessor::SpeechProcessor() {
 	print_line(String("SpeechProcessor::SpeechProcessor"));
 
 	audio_server = AudioServer::get_singleton();
-	if (audio_server != NULL) {
+	if (audio_server != nullptr) {
 		mix_rate = audio_server->get_mix_rate();
 	}
 }

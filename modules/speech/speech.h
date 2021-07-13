@@ -56,8 +56,8 @@ class Speech : public Node {
 
 	int skipped_audio_packets = 0;
 
-	Node *voice_controller = NULL; // TODO: rewrite this in C++
-	SpeechProcessor *speech_processor = NULL;
+	Node *voice_controller = nullptr; // TODO: rewrite this in C++
+	SpeechProcessor *speech_processor = nullptr;
 
 	struct InputPacket {
 		PackedByteArray compressed_byte_array;
@@ -207,7 +207,7 @@ public:
 		if (speech_processor) {
 			return speech_processor->get_speech_decoder();
 		} else {
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -249,7 +249,7 @@ public:
 				case NOTIFICATION_PREDELETE: { // was: EXIT_TREE
 					if (speech_processor) {
 						speech_processor->queue_delete();
-						speech_processor = NULL;
+						speech_processor = nullptr;
 					}
 					break;
 				}
