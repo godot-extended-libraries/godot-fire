@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  speech_decoder.h                                                     */
+/*  macros.h                                                             */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,55 +28,6 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef SPEECH_DECODER_H
-#define SPEECH_DECODER_H
-
-#include "core/object/ref_counted.h"
-
-#include "thirdparty/opus/opus/opus.h"
-
-class SpeechDecoder : public RefCounted {
-	GDCLASS(SpeechDecoder, RefCounted)
-public:
-	static void _bind_methods() {
-	}
-
-private:
-	::OpusDecoder *decoder = nullptr;
-
-public:
-	SpeechDecoder() {
-	}
-	~SpeechDecoder() {
-		set_decoder(nullptr);
-	}
-
-	void set_decoder(::OpusDecoder *p_decoder) {
-		if (!decoder) {
-			opus_decoder_destroy(decoder);
-		}
-		decoder = p_decoder;
-	}
-
-	virtual bool process(
-			const PackedByteArray *p_compressed_buffer,
-			PackedByteArray *p_pcm_output_buffer,
-			const int p_compressed_buffer_size,
-			const int p_pcm_output_buffer_size,
-			const int p_buffer_frame_count) {
-		*p_pcm_output_buffer->ptrw() = 0;
-		memcpy(p_pcm_output_buffer->ptrw() + 1, p_compressed_buffer->ptr(), p_pcm_output_buffer_size - 1);
-		return true;
-
-		if (decoder) {
-			opus_int16 *output_buffer_pointer = reinterpret_cast<opus_int16 *>(p_pcm_output_buffer->ptrw());
-			const unsigned char *opus_buffer_pointer = reinterpret_cast<const unsigned char *>(p_compressed_buffer->ptr());
-
-			opus_int32 ret_value = opus_decode(decoder, opus_buffer_pointer, p_compressed_buffer_size, output_buffer_pointer, p_buffer_frame_count, 0);
-			return ret_value;
-		}
-
-		return false;
-	}
-};
-#endif //SPEECH_DECODER_H
+#ifndef SPEECH_MACROS_HPP
+#define SPEECH_MACROS_HPP
+#endif
