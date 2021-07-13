@@ -98,12 +98,6 @@ public:
 
 	int encode_buffer(const PackedByteArray *p_pcm_buffer, PackedByteArray *p_output_buffer) {
 		int number_of_bytes = -1;
-
-		// The following line disables compression and sends data uncompressed.
-		// Combine it with a change in speech_decoder.h
-		memcpy(p_output_buffer->ptrw(), p_pcm_buffer->ptr() + 1, BUFFER_FRAME_COUNT * 2 - 1);
-		return BUFFER_FRAME_COUNT * 2 - 1;
-
 		if (encoder) {
 			const opus_int16 *pcm_buffer_pointer = reinterpret_cast<const opus_int16 *>(p_pcm_buffer->ptr());
 
