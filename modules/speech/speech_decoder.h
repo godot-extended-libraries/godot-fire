@@ -37,16 +37,13 @@
 
 class SpeechDecoder : public RefCounted {
 	GDCLASS(SpeechDecoder, RefCounted)
-public:
-	static void _bind_methods() {
-	}
-
 private:
 	::OpusDecoder *decoder = nullptr;
 
 public:
 	SpeechDecoder() {
 	}
+	
 	~SpeechDecoder() {
 		set_decoder(nullptr);
 	}
