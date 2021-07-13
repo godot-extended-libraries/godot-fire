@@ -37,46 +37,6 @@
 
 #include "macros.h"
 
-#if SPEECH_DECODER_POLYMORPHISM
-class OpusSpeechDecoder : public SpeechDecoder {
-	GDCLASS(OpusSpeechDecoder, SpeechDecoder);
-	::OpusDecoder *decoder = NULL;
-
-public:
-	OpusSpeechDecoder() {
-	}
-	~OpusSpeechDecoder() {
-		set_decoder(NULL);
-	}
-
-	void _init() {}
-
-	void set_decoder(::OpusDecoder *p_decoder) {
-		if (!decoder) {
-			opus_decoder_destroy(decoder);
-		}
-		decoder = p_decoder;
-	}
-
-	virtual bool process(
-			const PackedByteArray *p_compressed_buffer,
-			PackedByteArray *p_pcm_output_buffer,
-			const int p_compressed_buffer_size,
-			const int p_pcm_output_buffer_size,
-			const int p_buffer_frame_count) {
-		if (decoder) {
-			opus_int16 *output_buffer_pointer = reinterpret_cast<opus_int16 *>(p_pcm_output_buffer->write().ptr());
-			const unsigned char *opus_buffer_pointer = reinterpret_cast<const unsigned char *>(p_compressed_buffer->read().ptr());
-
-			opus_int32 ret_value = opus_decode(decoder, opus_buffer_pointer, p_compressed_buffer_size, output_buffer_pointer, p_buffer_frame_count, 0);
-			return true;
-		}
-
-		return false;
-	}
-};
-#endif
-
 // TODO: always assumes little endian
 
 template <uint32_t SAMPLE_RATE, uint32_t CHANNEL_COUNT>
@@ -130,11 +90,7 @@ public:
 			return NULL;
 		}
 
-#if SPEECH_DECODER_POLYMORPHISM
-		Ref<OpusSpeechDecoder> speech_decoder = OpusSpeechDecoder::_new();
-#else
 		Ref<SpeechDecoder> speech_decoder = memnew(SpeechDecoder);
-#endif
 		speech_decoder->set_decoder(decoder);
 
 		return speech_decoder;

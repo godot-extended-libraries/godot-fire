@@ -35,32 +35,8 @@
 
 #include "macros.h"
 
-#if SPEECH_DECODER_POLYMORPHISM
-#else
 #include "thirdparty/opus/opus/opus.h"
-#endif
 
-#if SPEECH_DECODER_POLYMORPHISM
-class SpeechDecoder : public Reference {
-	GDCLASS(SpeechDecoder, Reference)
-public:
-	static void _register_methods() {
-		register_method("_init", &SpeechDecoder::_init);
-	}
-
-	SpeechDecoder() {}
-	virtual ~SpeechDecoder() {}
-
-	bool process(
-			const PoolByteArray *p_compressed_buffer,
-			PoolByteArray *p_pcm_output_buffer,
-			const int p_compressed_buffer_size,
-			const int p_pcm_output_buffer_size,
-			const int p_buffer_frame_count) { return false; }
-
-	void _init() {}
-};
-#else
 class SpeechDecoder : public Reference {
 	GDCLASS(SpeechDecoder, Reference)
 public:
@@ -105,5 +81,4 @@ public:
 		return false;
 	}
 };
-#endif //SPEECH_DECODER_POLYMORPHISM
 #endif //SPEECH_DECODER_H
