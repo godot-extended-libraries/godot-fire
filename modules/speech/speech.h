@@ -238,7 +238,7 @@ public:
 	}
 
 	void _notification(int p_what) {
-		if (true) { //!Engine::get_singleton()->is_editor_hint()) {
+		if (true) {
 			switch (p_what) {
 				case NOTIFICATION_READY:
 					setup_connections();
@@ -246,7 +246,7 @@ public:
 						add_child(speech_processor);
 					}
 					break;
-				case NOTIFICATION_PREDELETE: { // was: EXIT_TREE
+				case NOTIFICATION_PREDELETE: {
 					if (speech_processor) {
 						speech_processor->queue_delete();
 						speech_processor = nullptr;
