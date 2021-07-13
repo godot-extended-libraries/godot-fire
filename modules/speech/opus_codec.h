@@ -40,11 +40,11 @@
 
 class OpusCodec {
 private:
-	const uint32_t SAMPLE_RATE = 0;
-	const uint32_t CHANNEL_COUNT = 0;
+	const uint32_t sample_rate = 0;
+	const uint32_t channel_count = 0;
 	static const uint32_t APPLICATION = OPUS_APPLICATION_VOIP;
 
-	const int BUFFER_FRAME_COUNT = SAMPLE_RATE / 100; //MILLISECONDS_PER_PACKET;
+	const int BUFFER_FRAME_COUNT = sample_rate / 100; //MILLISECONDS_PER_PACKET;
 
 	static const int INTERNAL_BUFFER_SIZE = (100 * 3 * 1276);
 	unsigned char internal_buffer[INTERNAL_BUFFER_SIZE];
@@ -84,7 +84,7 @@ protected:
 public:
 	Ref<SpeechDecoder> get_speech_decoder() {
 		int error;
-		::OpusDecoder *decoder = opus_decoder_create(SAMPLE_RATE, CHANNEL_COUNT, &error);
+		::OpusDecoder *decoder = opus_decoder_create(sample_rate, channel_count, &error);
 		if (error != OPUS_OK) {
 			ERR_PRINT("OpusCodec: could not create Opus decoder!");
 			return nullptr;
@@ -137,11 +137,11 @@ public:
 		return p_speech_decoder->process(p_compressed_buffer, p_pcm_output_buffer, p_compressed_buffer_size, p_pcm_output_buffer_size, BUFFER_FRAME_COUNT);
 	}
 
-	OpusCodec(uint32_t p_SAMPLE_RATE, uint32_t p_CHANNEL_COUNT) :
-			SAMPLE_RATE(p_SAMPLE_RATE), CHANNEL_COUNT(p_CHANNEL_COUNT) {
+	OpusCodec(uint32_t p_sample_rate, uint32_t p_channel_count) :
+			sample_rate(p_sample_rate), channel_count(p_channel_count) {
 		print_line("OpusCodec::OpusCodec");
 		int error = 0;
-		encoder = opus_encoder_create(SAMPLE_RATE, CHANNEL_COUNT, APPLICATION, &error);
+		encoder = opus_encoder_create(p_sample_rate, p_channel_count, APPLICATION, &error);
 
 		if (error != OPUS_OK) {
 			ERR_PRINT("OpusCodec: could not create Opus encoder!");
