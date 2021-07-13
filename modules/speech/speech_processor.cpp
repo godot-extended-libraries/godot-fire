@@ -332,24 +332,6 @@ void SpeechProcessor::_notification(int p_what) {
 					if (audio_frames.size() == 0) {
 						break;
 					}
-					// int len = audio_frames.size();
-					// Debugging code: hardcoded file; or sin wave.
-					/*
-					static FILE *fp = nullptr;
-					if (fp == nullptr) {
-						fp = fopen("C:\\Users\\crann\\Downloads\\MLKDream48k.wav", "rb");
-					}
-					for (int i = 0; i < len; i++) {
-						float time = (float)(double(i) / double(mix_rate));
-						float val = 0.2f * sin(2 * 3.14159265f * 12.0 * i / len); // fmod(1000.0f * time, 1.0f); // 3.14159265f *
-						//audio_frames.set(i, Vector2(val, val));
-						int a = fgetc(fp);
-						int b = fgetc(fp);
-						short c = ((a & 255) | ((b & 255) << 8));
-						val = ((float)c)/32768.0f;
-						audio_frames.set(i, Vector2(val, val));
-					}
-					*/
 					capture_get_calls++;
 					capture_get_frames += audio_frames.size();
 					capture_pushed_frames = audio_effect_capture->get_pushed_frames();
