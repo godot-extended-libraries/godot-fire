@@ -344,7 +344,7 @@ Dictionary SpeechProcessor::get_stats() const {
 
 SpeechProcessor::SpeechProcessor() {
 	print_line(String("SpeechProcessor::SpeechProcessor"));
-	opus_codec = new OpusCodec(voice_sample_rate, CHANNEL_COUNT);
+	opus_codec = new OpusCodec(CHANNEL_COUNT);
 
 	capture_discarded_frames = 0;
 	capture_pushed_frames = 0;

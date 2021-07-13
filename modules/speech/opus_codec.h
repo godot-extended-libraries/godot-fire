@@ -40,13 +40,13 @@
 
 class OpusCodec {
 private:
-	const uint32_t sample_rate = 0;
+	const uint32_t sample_rate = 48000;
 	const uint32_t channel_count = 0;
 	static const uint32_t APPLICATION = OPUS_APPLICATION_VOIP;
+	static const uint32_t MILLISECONDS_PER_PACKET = 100;
+	const int BUFFER_FRAME_COUNT = sample_rate / MILLISECONDS_PER_PACKET;
 
-	const int BUFFER_FRAME_COUNT = sample_rate / 100; //MILLISECONDS_PER_PACKET;
-
-	static const int INTERNAL_BUFFER_SIZE = (100 * 3 * 1276);
+	static const int INTERNAL_BUFFER_SIZE = (25 * 3 * 1276);
 	unsigned char internal_buffer[INTERNAL_BUFFER_SIZE];
 
 	OpusEncoder *encoder = nullptr;
@@ -133,8 +133,7 @@ public:
 		return p_speech_decoder->process(p_compressed_buffer, p_pcm_output_buffer, p_compressed_buffer_size, p_pcm_output_buffer_size, BUFFER_FRAME_COUNT);
 	}
 
-	OpusCodec(uint32_t p_sample_rate, uint32_t p_channel_count) :
-			sample_rate(p_sample_rate), channel_count(p_channel_count) {
+	OpusCodec(uint32_t p_channel_count) : channel_count(p_channel_count) {
 		print_line("OpusCodec::OpusCodec");
 		int error = 0;
 		encoder = opus_encoder_create(sample_rate, channel_count, APPLICATION, &error);
