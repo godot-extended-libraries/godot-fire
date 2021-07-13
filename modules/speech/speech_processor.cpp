@@ -342,7 +342,8 @@ Dictionary SpeechProcessor::get_stats() const {
 	return stats;
 }
 
-SpeechProcessor::SpeechProcessor() {
+SpeechProcessor::SpeechProcessor() :
+		voice_sample_rate(AudioServer::get_singleton()->get_mix_rate()) {
 	print_line(String("SpeechProcessor::SpeechProcessor"));
 	opus_codec = new OpusCodec(voice_sample_rate, CHANNEL_COUNT);
 
