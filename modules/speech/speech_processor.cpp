@@ -332,7 +332,7 @@ void SpeechProcessor::_notification(int p_what) {
 					if (audio_frames.size() == 0) {
 						break;
 					}
-					int len = audio_frames.size();
+					// int len = audio_frames.size();
 					// Debugging code: hardcoded file; or sin wave.
 					/*
 					static FILE *fp = nullptr;
