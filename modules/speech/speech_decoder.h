@@ -31,14 +31,14 @@
 #ifndef SPEECH_DECODER_H
 #define SPEECH_DECODER_H
 
-#include "core/object/reference.h"
+#include "core/object/ref_counted.h"
 
 #include "macros.h"
 
 #include "thirdparty/opus/opus/opus.h"
 
-class SpeechDecoder : public Reference {
-	GDCLASS(SpeechDecoder, Reference)
+class SpeechDecoder : public RefCounted {
+	GDCLASS(SpeechDecoder, RefCounted)
 public:
 	static void _bind_methods() {
 	}

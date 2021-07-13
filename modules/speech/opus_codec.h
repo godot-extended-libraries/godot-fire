@@ -35,8 +35,6 @@
 
 #include "thirdparty/opus/opus/opus.h"
 
-#include "macros.h"
-
 // TODO: always assumes little endian
 
 template <uint32_t SAMPLE_RATE, uint32_t CHANNEL_COUNT>
