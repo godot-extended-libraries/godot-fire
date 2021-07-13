@@ -59,9 +59,8 @@ public:
 	static const uint32_t CHANNEL_COUNT = 1;
 	static const uint32_t MILLISECONDS_PER_PACKET = 100;
 	static const uint32_t BUFFER_BYTE_COUNT = sizeof(uint16_t);
-	uint32_t get_pcm_buffer_size() const {
-		return pcm_buffer_size;
-	}
+	uint32_t get_pcm_buffer_size() const;
+
 private:
 	OpusCodec *opus_codec = nullptr;
 

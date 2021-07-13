@@ -374,3 +374,7 @@ SpeechProcessor::~SpeechProcessor() {
 	print_line(String("SpeechProcessor::~SpeechProcessor"));
 	delete opus_codec;
 }
+
+uint32_t SpeechProcessor::get_pcm_buffer_size() const {
+	return pcm_buffer_size;
+}
