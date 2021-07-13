@@ -90,7 +90,8 @@ public:
 			return nullptr;
 		}
 
-		Ref<SpeechDecoder> speech_decoder = memnew(SpeechDecoder);
+		Ref<SpeechDecoder> speech_decoder;
+		speech_decoder.instantiate();
 		speech_decoder->set_decoder(decoder);
 
 		return speech_decoder;
