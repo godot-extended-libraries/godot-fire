@@ -104,16 +104,16 @@ void SpeechProcessor::_mix_audio(const Vector2 *p_incoming_buffer) {
 																			   mono_real_array.ptr(), // Pointer to source buffer
 																			   RECORD_MIX_FRAMES, // Size of source buffer * sizeof(float)
 																			   mix_rate, // Source sample rate
-																			   VOICE_SAMPLE_RATE, // Target sample rate
+																			   voice_sample_rate, // Target sample rate
 																			   resampled_real_array.ptrw() + static_cast<size_t>(resampled_real_array_offset));
 
 		resampled_real_array_offset = 0;
 
 		const float *resampled_real_array_read_ptr = resampled_real_array.ptr();
 		double_t sum = 0;
-		while (resampled_real_array_offset < resampled_frame_count - BUFFER_FRAME_COUNT) {
+		while (resampled_real_array_offset < resampled_frame_count - buffer_frame_count) {
 			sum = 0.0;
-			for (size_t i = 0; i < BUFFER_FRAME_COUNT; i++) {
+			for (size_t i = 0; i < buffer_frame_count; i++) {
 				float frame_float = resampled_real_array_read_ptr[static_cast<size_t>(resampled_real_array_offset) + i];
 				int frame_integer = int32_t(frame_float * (float)SIGNED_32_BIT_SIZE);
 
@@ -122,7 +122,7 @@ void SpeechProcessor::_mix_audio(const Vector2 *p_incoming_buffer) {
 				write_buffer[i * 2] = SET_BUFFER_16_BIT(write_buffer, i, frame_integer);
 			}
 
-			float average = (float)sum / (float)BUFFER_FRAME_COUNT;
+			float average = (float)sum / (float)buffer_frame_count;
 
 			Dictionary voice_data_packet;
 			voice_data_packet["buffer"] = mix_byte_array;
@@ -138,7 +138,7 @@ void SpeechProcessor::_mix_audio(const Vector2 *p_incoming_buffer) {
 				speech_processed(&speech_input);
 			}
 
-			resampled_real_array_offset += BUFFER_FRAME_COUNT;
+			resampled_real_array_offset += buffer_frame_count;
 		}
 
 		{
@@ -199,7 +199,7 @@ bool SpeechProcessor::_16_pcm_mono_to_real_stereo(const PackedByteArray *p_src_b
 }
 
 Dictionary SpeechProcessor::compress_buffer(const PackedByteArray &p_pcm_byte_array, Dictionary p_output_buffer) {
-	if (p_pcm_byte_array.size() != PCM_BUFFER_SIZE) {
+	if (p_pcm_byte_array.size() != pcm_buffer_size) {
 		ERR_PRINT("SpeechProcessor: PCM buffer is incorrect size!");
 		return p_output_buffer;
 	}
@@ -213,7 +213,7 @@ Dictionary SpeechProcessor::compress_buffer(const PackedByteArray &p_pcm_byte_ar
 		ERR_PRINT("SpeechProcessor: did not provide valid 'byte_array' in p_output_buffer argument!");
 		return p_output_buffer;
 	} else {
-		if (byte_array->size() == PCM_BUFFER_SIZE) {
+		if (byte_array->size() == pcm_buffer_size) {
 			ERR_PRINT("SpeechProcessor: output byte array is incorrect size!");
 			return p_output_buffer;
 		}
@@ -294,7 +294,7 @@ void SpeechProcessor::_notification(int p_what) {
 			set_process_all(true);
 			break;
 		case NOTIFICATION_ENTER_TREE:
-			mix_byte_array.resize(BUFFER_FRAME_COUNT * BUFFER_BYTE_COUNT);
+			mix_byte_array.resize(buffer_frame_count * BUFFER_BYTE_COUNT);
 			break;
 		case NOTIFICATION_EXIT_TREE:
 			stop();
@@ -344,7 +344,7 @@ Dictionary SpeechProcessor::get_stats() const {
 
 SpeechProcessor::SpeechProcessor() {
 	print_line(String("SpeechProcessor::SpeechProcessor"));
-	opus_codec = new OpusCodec<VOICE_SAMPLE_RATE, CHANNEL_COUNT>();
+	opus_codec = new OpusCodec(voice_sample_rate, CHANNEL_COUNT);
 
 	capture_discarded_frames = 0;
 	capture_pushed_frames = 0;
@@ -357,7 +357,7 @@ SpeechProcessor::SpeechProcessor() {
 
 	mono_real_array.resize(RECORD_MIX_FRAMES);
 	resampled_real_array.resize(RECORD_MIX_FRAMES * RESAMPLED_BUFFER_FACTOR);
-	pcm_byte_array_cache.resize(PCM_BUFFER_SIZE);
+	pcm_byte_array_cache.resize(pcm_buffer_size);
 	libresample_state = src_new(SRC_SINC_BEST_QUALITY, CHANNEL_COUNT, &libresample_error);
 
 	print_line(String("SpeechProcessor::SpeechProcessor"));

@@ -56,17 +56,19 @@ class SpeechProcessor : public Node {
 	Mutex mutex;
 
 public:
-	static const uint32_t VOICE_SAMPLE_RATE = 48000;
 	static const uint32_t CHANNEL_COUNT = 1;
-	//static const uint32_t MILLISECONDS_PER_PACKET = 100;
-	static const uint32_t BUFFER_FRAME_COUNT = VOICE_SAMPLE_RATE / 100; //MILLISECONDS_PER_PACKET;
+	static const uint32_t MILLISECONDS_PER_PACKET = 100;
 	static const uint32_t BUFFER_BYTE_COUNT = sizeof(uint16_t);
-	static const uint32_t PCM_BUFFER_SIZE = BUFFER_FRAME_COUNT * BUFFER_BYTE_COUNT * CHANNEL_COUNT;
+	uint32_t get_pcm_buffer_size() const {
+		return pcm_buffer_size;
+	}
+private:
+	OpusCodec *opus_codec = nullptr;
 
 private:
-	OpusCodec<VOICE_SAMPLE_RATE, CHANNEL_COUNT> *opus_codec;
-
-private:
+	const uint32_t buffer_frame_count = voice_sample_rate / MILLISECONDS_PER_PACKET;
+	const uint32_t voice_sample_rate = AudioServer::get_singleton()->get_mix_rate();
+	const uint32_t pcm_buffer_size = buffer_frame_count * BUFFER_BYTE_COUNT * CHANNEL_COUNT;
 	uint32_t record_mix_frames_processed = 0;
 
 	AudioServer *audio_server = nullptr;
@@ -83,7 +85,7 @@ private:
 	PackedByteArray pcm_byte_array_cache;
 
 	// LibResample
-	SRC_STATE *libresample_state;
+	SRC_STATE *libresample_state = nullptr;
 	int libresample_error;
 
 	int64_t capture_discarded_frames;
@@ -146,7 +148,7 @@ public:
 			const PackedByteArray *p_read_byte_array,
 			const int p_read_size,
 			PackedVector2Array *p_write_vec2_array) {
-		if (opus_codec->decode_buffer(speech_decoder, p_read_byte_array, &pcm_byte_array_cache, p_read_size, PCM_BUFFER_SIZE)) {
+		if (opus_codec->decode_buffer(speech_decoder, p_read_byte_array, &pcm_byte_array_cache, p_read_size, pcm_buffer_size)) {
 			if (_16_pcm_mono_to_real_stereo(&pcm_byte_array_cache, p_write_vec2_array)) {
 				return true;
 			}
