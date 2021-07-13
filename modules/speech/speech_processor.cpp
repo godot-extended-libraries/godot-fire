@@ -276,7 +276,6 @@ bool SpeechProcessor::set_audio_input_stream_player(Node *p_audio_input_stream_p
 }
 
 void SpeechProcessor::_setup() {
-	//stream_audio.instance();
 }
 
 void SpeechProcessor::set_process_all(bool p_active) {
@@ -286,23 +285,8 @@ void SpeechProcessor::set_process_all(bool p_active) {
 }
 
 void SpeechProcessor::_update_stats() {
-	//if (audio_effect_capture.is_valid()) {
-	//	capture_discarded_frames += audio_effect_capture->get_discarded_frames();
-	//	audio_effect_capture->get_ring_data_left();
-	//	audio_effect_capture->get_ring_size();
-	//	capture_pushed_frames += audio_effect_capture->get_pushed_frames();
-	//}
 }
 
-//void SpeechProcessor::_ready() {
-//	if (!Engine::get_singleton()->is_editor_hint()) {
-//		_setup();
-//		set_process_all(true);
-//	} else {
-//		set_process_all(false);
-//	}
-//}
-//#include <stdio.h>
 void SpeechProcessor::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_READY:
@@ -310,20 +294,15 @@ void SpeechProcessor::_notification(int p_what) {
 			set_process_all(true);
 			break;
 		case NOTIFICATION_ENTER_TREE:
-			//if (!Engine::get_singleton()->is_editor_hint()) {
 			mix_byte_array.resize(BUFFER_FRAME_COUNT * BUFFER_BYTE_COUNT);
-			//}
 			break;
 		case NOTIFICATION_EXIT_TREE:
-			//if (!Engine::get_singleton()->is_editor_hint()) {
 			stop();
 			mix_byte_array.resize(0);
 
 			audio_server = nullptr;
-			//}
 			break;
 		case NOTIFICATION_PROCESS:
-			//if (!Engine::get_singleton()->is_editor_hint()) {
 			if (audio_effect_capture.is_valid() && audio_input_stream_player && audio_input_stream_player->is_playing()) {
 				_update_stats();
 				// This is pretty ugly, but needed to keep the audio from going out of sync
@@ -345,7 +324,6 @@ void SpeechProcessor::_notification(int p_what) {
 					record_mix_frames_processed++;
 				}
 			}
-			//}
 			break;
 	}
 }
