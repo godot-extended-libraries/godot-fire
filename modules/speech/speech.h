@@ -230,24 +230,22 @@ public:
 	}
 
 	void _notification(int p_what) {
-		if (true) {
-			switch (p_what) {
-				case NOTIFICATION_READY:
-					setup_connections();
-					if (speech_processor) {
-						add_child(speech_processor);
-					}
-					break;
-				case NOTIFICATION_PREDELETE: {
-					if (speech_processor) {
-						speech_processor->queue_delete();
-						speech_processor = nullptr;
-					}
-					break;
+		switch (p_what) {
+			case NOTIFICATION_READY:
+				setup_connections();
+				if (speech_processor) {
+					add_child(speech_processor);
 				}
-				default: {
-					break;
+				break;
+			case NOTIFICATION_PREDELETE: {
+				if (speech_processor) {
+					speech_processor->queue_delete();
+					speech_processor = nullptr;
 				}
+				break;
+			}
+			default: {
+				break;
 			}
 		}
 	}
