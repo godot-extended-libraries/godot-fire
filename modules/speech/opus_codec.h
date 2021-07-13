@@ -141,7 +141,7 @@ public:
 			sample_rate(p_sample_rate), channel_count(p_channel_count) {
 		print_line("OpusCodec::OpusCodec");
 		int error = 0;
-		encoder = opus_encoder_create(p_sample_rate, p_channel_count, APPLICATION, &error);
+		encoder = opus_encoder_create(sample_rate, channel_count, APPLICATION, &error);
 
 		if (error != OPUS_OK) {
 			ERR_PRINT("OpusCodec: could not create Opus encoder!");
