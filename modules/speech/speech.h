@@ -260,7 +260,7 @@ public:
 
 	bool set_audio_input_stream_player(Node *p_audio_stream) {
 		AudioStreamPlayer *player = cast_to<AudioStreamPlayer>(p_audio_stream);
-		ERR_FAIL_COND_V(!player, false);
+		ERR_FAIL_NULL_V(player, false);
 		if (!speech_processor) {
 			return false;
 		}
